@@ -1,25 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Family Movie Library</title>
-  <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+
+  <!-- Video.js CSS & JS -->
   <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+  <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 
   <!-- Chromecast & AirPlay plugins -->
   <script src="https://unpkg.com/videojs-contrib-quality-levels@2.1.0/dist/videojs-contrib-quality-levels.min.js"></script>
   <script src="https://unpkg.com/videojs-chromecast/dist/videojs-chromecast.min.js"></script>
-  <script src="https://unpkg.com/videojs-airplay/dist/videojs-airplay.min.js"></script>
   <link href="https://unpkg.com/videojs-chromecast/dist/videojs-chromecast.css" rel="stylesheet" />
+  <script src="https://unpkg.com/videojs-airplay/dist/videojs-airplay.min.js"></script>
 
   <style>
-    body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; margin: 0; padding: 20px; }
-    h1 { margin-bottom: 30px; }
-    .movie-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-    .movie { background: #1e1e1e; border-radius: 10px; padding: 15px; width: 300px; }
-    .movie p { font-weight: bold; font-size: 18px; margin-bottom: 10px; }
-    .video-container { width: 100%; margin-top: 10px; }
-    video { width: 100%; height: auto; border-radius: 8px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 30px;
+    }
+    .movie-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+    .movie {
+      background: #1e1e1e;
+      border-radius: 10px;
+      padding: 15px;
+      width: 320px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    }
+    .movie p {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .video-container {
+      width: 100%;
+      margin-top: 10px;
+    }
+    .video-js {
+      width: 100% !important;
+      height: auto !important;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body>
@@ -31,19 +64,27 @@
       <div class="video-container">
         <video
           id="video1"
-          class="video-js vjs-default-skin"
+          class="video-js vjs-big-play-centered"
           controls
           preload="auto"
-          data-setup='{"plugins": {"chromecast": {}, "airplay": {}}}'>
-          <source src="https://www.dropbox.com/scl/fi/n05iz3jvca14atleqvvak/20250616_1001-Blessing-of-the-Bikers.mp4?rlkey=y4sp0nemmwokpktk9jqoq70hx&st=tvildi43&raw=1" type="video/mp4" />
+          poster="https://www.dropbox.com/scl/fi/n05iz3jvca14atleqvvak/20250616_1001-Blessing-of-the-Bikers.jpg?raw=1"
+        >
+          <source src="https://www.dropbox.com/scl/fi/n05iz3jvca14atleqvvak/20250616_1001-Blessing-of-the-Bikers.mp4?raw=1" type="video/mp4" />
         </video>
       </div>
     </div>
   </div>
 
   <script>
-    // Initialize Video.js and add Chromecast & AirPlay
-    var player1 = videojs('video1');
+    // Initialize Video.js player
+    var player1 = videojs('video1', {
+      plugins: {
+        chromecast: { addButtonToControlBar: true },
+        airPlay: true
+      }
+    });
+
+    // Manually enable Chromecast and AirPlay buttons
     player1.chromecast({ addButtonToControlBar: true });
     player1.airPlay();
   </script>
