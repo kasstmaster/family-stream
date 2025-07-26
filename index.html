@@ -13,11 +13,12 @@
     }
     header {
       text-align: center;
-      padding: 20px;
-      font-size: 28px;
-      font-weight: bold;
+      padding: 10px;
       background: #000;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.7);
+    }
+    header img {
+      max-width: 300px;
+      height: auto;
     }
     .search-bar {
       text-align: center;
@@ -80,11 +81,10 @@
       justify-content: center;
       align-items: center;
       z-index: 1000;
+      flex-direction: column;
     }
     .modal.active {
       display: flex;
-      flex-direction: column;
-      align-items: center;
     }
     .modal-content {
       background: #1f1f1f;
@@ -130,8 +130,8 @@
   </style>
 </head>
 <body>
-  <header style="text-align:center; background:#000; padding:10px;">
-    <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" style="max-width:300px; height:auto;" />
+  <header>
+    <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" />
   </header>
   
   <!-- Search Bar -->
@@ -191,6 +191,14 @@
     let currentEpisodes = [];
     let currentIndex = -1;
 
+    // ✅ Shuffle function
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
     function renderMain(list) {
       movieGrid.innerHTML = "";
       backBtn.style.display = "none";
@@ -219,12 +227,11 @@
       backBtn.style.display = "inline-block";
       currentView = "episodes";
       currentEpisodes = show.episodes;
-    
+
       show.episodes.forEach((ep, index) => {
+        const epPoster = ep.poster || show.poster; // fallback
         const card = document.createElement('div');
         card.classList.add('movie-card');
-        // Use episode poster if available, otherwise use show poster
-        const epPoster = ep.poster ? ep.poster : show.poster;
         card.innerHTML = `
           <img src="${epPoster}" alt="${ep.title}" />
           <div class="movie-title">${ep.title}</div>
@@ -241,11 +248,7 @@
       modal.classList.add('active');
       videoFrame.src = url;
       detailsDiv.innerHTML = `<strong>${title}</strong> (${year})<br>${description}`;
-      if (isTV) {
-        nextBtn.style.display = (currentIndex < currentEpisodes.length - 1) ? "block" : "none";
-      } else {
-        nextBtn.style.display = "none";
-      }
+      nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
     }
 
     nextBtn.addEventListener('click', () => {
@@ -279,9 +282,10 @@
         const filtered = currentEpisodes.filter(ep => ep.title.toLowerCase().includes(query));
         movieGrid.innerHTML = "";
         filtered.forEach((ep, index) => {
+          const epPoster = ep.poster || show.poster;
           const card = document.createElement('div');
           card.classList.add('movie-card');
-          card.innerHTML = `<img src="${ep.poster}" alt="${ep.title}" /><div class="movie-title">${ep.title}</div>`;
+          card.innerHTML = `<img src="${epPoster}" alt="${ep.title}" /><div class="movie-title">${ep.title}</div>`;
           card.addEventListener('click', () => {
             currentIndex = index;
             openVideo(ep.url, ep.title, "", "", true);
@@ -291,6 +295,8 @@
       }
     });
 
+    // ✅ Shuffle before rendering
+    shuffleArray(library);
     renderMain(library);
   </script>
 </body>
