@@ -140,7 +140,7 @@
   </div>
 
   <!-- TV Show Title -->
-  <div id="sectionTitle" style="text-align:center; font-size:22px; font-weight:bold; margin-top:10px;"></div>
+  <div id="sectionTitle" style="text-align:center; font-size:40px; font-weight:bold; margin-top:10px;"></div>
 
   <!-- Back Button -->
   <button class="back-btn" id="backBtn">⬅ Back</button>
@@ -206,7 +206,7 @@ function renderMain(list) {
   movieGrid.innerHTML = "";
   backBtn.style.display = "none";
   currentView = "main";
-  document.getElementById("sectionTitle").textContent = "All Movies & TV Shows";
+  document.getElementById("sectionTitle").textContent = " ";
 
   list.forEach((item) => {
     const card = document.createElement('div');
