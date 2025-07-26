@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Family Movie Library</title>
+  <title>🍿 Family Movie Library</title>
 
   <!-- Video.js CSS -->
   <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
@@ -22,9 +22,21 @@
       background: #000;
       box-shadow: 0 2px 5px rgba(0,0,0,0.7);
     }
+    .search-bar {
+      text-align: center;
+      padding: 15px;
+    }
+    .search-bar input {
+      padding: 10px;
+      width: 90%;
+      max-width: 500px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+    }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 20px;
       padding: 20px;
     }
@@ -40,6 +52,8 @@
     }
     .movie-card img {
       width: 100%;
+      height: 240px;
+      object-fit: cover;
       display: block;
     }
     .movie-title {
@@ -67,11 +81,13 @@
       padding: 15px;
       border-radius: 10px;
       max-width: 90%;
+      width: 900px;
+      position: relative;
     }
     .close-btn {
       position: absolute;
-      top: 20px;
-      right: 20px;
+      top: 10px;
+      right: 15px;
       font-size: 28px;
       cursor: pointer;
       color: #fff;
@@ -81,10 +97,22 @@
       max-height: 70vh;
       border-radius: 10px;
     }
+    .movie-details {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #ccc;
+    }
   </style>
 </head>
 <body>
   <header>🍿 Family Movie Library</header>
+  
+  <!-- Search Bar -->
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search movies..." />
+  </div>
+
+  <!-- Movie Grid -->
   <div class="grid" id="movieGrid"></div>
 
   <!-- Modal -->
@@ -92,45 +120,81 @@
     <span class="close-btn" id="closeBtn">&times;</span>
     <div class="modal-content">
       <video id="videoPlayer" class="video-js vjs-big-play-centered" controls preload="auto"></video>
+      <div class="movie-details" id="movieDetails"></div>
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- Video.js Script -->
   <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 
   <script>
-    // ✅ Your Google Drive videos
+    // ✅ Your Movie Library
     const movies = [
       {
         title: "Blessing of the Bikers",
         url: "https://drive.google.com/uc?export=download&id=1l1MuBLMYueHEunmcP5mGdzGo6sR2eLxi",
-        poster: "https://cdn.fliki.ai/image/page/660ba680adaa44a37532fd97/6663112070e1cfda27f86585.jpg"
+        poster: "https://cdn.fliki.ai/image/page/660ba680adaa44a37532fd97/6663112070e1cfda27f86585.jpg",
+        year: "2024",
+        description: "A documentary capturing the heart and soul of the Biker community."
+      },
+      {
+        title: "Another Great Movie",
+        url: "https://drive.google.com/uc?export=download&id=YOUR_FILE_ID",
+        poster: "https://via.placeholder.com/300x450?text=Movie+Poster",
+        year: "2023",
+        description: "An epic adventure that keeps you on the edge of your seat."
       }
     ];
 
     const movieGrid = document.getElementById("movieGrid");
     const modal = document.getElementById("videoModal");
     const closeBtn = document.getElementById("closeBtn");
+    const searchInput = document.getElementById("searchInput");
+    const detailsDiv = document.getElementById("movieDetails");
+
     let player = videojs('videoPlayer');
 
-    movies.forEach((movie) => {
-      const card = document.createElement('div');
-      card.classList.add('movie-card');
-      card.innerHTML = `
-        <img src="${movie.poster}" alt="${movie.title}" />
-        <div class="movie-title">${movie.title}</div>
-      `;
-      card.addEventListener('click', () => {
-        modal.classList.add('active');
-        player.src({ type: 'video/mp4', src: movie.url });
-        player.play();
+    // ✅ Function to render movies
+    function renderMovies(list) {
+      movieGrid.innerHTML = "";
+      list.forEach((movie) => {
+        const card = document.createElement('div');
+        card.classList.add('movie-card');
+        card.innerHTML = `
+          <img src="${movie.poster}" alt="${movie.title}" />
+          <div class="movie-title">${movie.title}</div>
+        `;
+        card.addEventListener('click', () => {
+          modal.classList.add('active');
+          player.src({ type: 'video/mp4', src: movie.url });
+          detailsDiv.innerHTML = `<strong>${movie.title}</strong> (${movie.year})<br>${movie.description}`;
+          player.play();
+        });
+        movieGrid.appendChild(card);
       });
-      movieGrid.appendChild(card);
+    }
+
+    renderMovies(movies);
+
+    // ✅ Search Function
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      const filtered = movies.filter(movie => movie.title.toLowerCase().includes(query));
+      renderMovies(filtered);
     });
 
+    // ✅ Close Modal
     closeBtn.addEventListener('click', () => {
       modal.classList.remove('active');
       player.pause();
+    });
+
+    // ✅ Close Modal with ESC Key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        modal.classList.remove('active');
+        player.pause();
+      }
     });
   </script>
 </body>
