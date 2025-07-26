@@ -4,16 +4,8 @@
   <meta charset="UTF-8" />
   <title>Family Movie Library</title>
 
-  <!-- Video.js CSS & JS -->
+  <!-- Video.js CSS -->
   <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
-  <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
-
-  <!-- Chromecast & AirPlay Plugins -->
-  <script src="https://unpkg.com/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.min.js"></script>
-  <script src="https://unpkg.com/videojs-chromecast/dist/videojs-chromecast.min.js"></script>
-  <link href="https://unpkg.com/videojs-chromecast/dist/videojs-chromecast.css" rel="stylesheet" />
-  <script src="https://unpkg.com/videojs-airplay/dist/videojs-airplay.min.js"></script>
-
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -81,6 +73,7 @@
       right: 20px;
       font-size: 28px;
       cursor: pointer;
+      color: #fff;
     }
     .video-js {
       width: 100%;
@@ -101,24 +94,28 @@
     </div>
   </div>
 
+  <!-- Scripts -->
+  <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+  <script src="https://unpkg.com/videojs-chromecast/dist/videojs-chromecast.min.js"></script>
+  <script src="https://unpkg.com/videojs-airplay/dist/videojs-airplay.min.js"></script>
+
   <script>
     const movies = [
       {
         title: "Blessing of the Bikers",
         url: "https://dl.dropboxusercontent.com/scl/fi/n05iz3jvca14atleqvvak/20250616_1001-Blessing-of-the-Bikers.mp4?rlkey=y4sp0nemmwokpktk9jqoq70hx",
-        poster: "https://via.placeholder.com/300x180?text=Bikers"
+        poster: "https://via.placeholder.com/300x180/000000/FFFFFF?text=Bikers"
       },
       {
         title: "Drive Video Example",
         url: "https://drive.google.com/uc?export=download&id=1l1MuBLMYueHEunmcP5mGdzGo6sR2eLxi",
-        poster: "https://via.placeholder.com/300x180?text=Google+Drive+Movie"
+        poster: "https://via.placeholder.com/300x180/000000/FFFFFF?text=Google+Drive"
       }
     ];
 
     const movieGrid = document.getElementById("movieGrid");
     const modal = document.getElementById("videoModal");
     const closeBtn = document.getElementById("closeBtn");
-
     let player = videojs('videoPlayer');
 
     movies.forEach((movie) => {
