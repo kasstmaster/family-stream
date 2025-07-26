@@ -59,6 +59,17 @@
       font-size: 16px;
       font-weight: bold;
     }
+    .back-btn {
+      display: none;
+      margin: 10px 20px;
+      padding: 10px 15px;
+      font-size: 16px;
+      background: #e50914;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
     /* Modal */
     .modal {
       display: none;
@@ -107,8 +118,11 @@
   
   <!-- Search Bar -->
   <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="Search movies..." />
+    <input type="text" id="searchInput" placeholder="Search movies or shows..." />
   </div>
+
+  <!-- Back Button -->
+  <button class="back-btn" id="backBtn">⬅ Back</button>
 
   <!-- Movie Grid -->
   <div class="grid" id="movieGrid"></div>
@@ -123,9 +137,10 @@
   </div>
 
   <script>
-    // ✅ Your Movie Library
-    const movies = [
+    // ✅ Library with Movies and TV Shows
+    const library = [
       {
+        type: "movie",
         title: "Blessing of the Bikers",
         url: "https://drive.google.com/file/d/1l1MuBLMYueHEunmcP5mGdzGo6sR2eLxi/preview",
         poster: "https://cdn.fliki.ai/image/page/660ba680adaa44a37532fd97/6663112070e1cfda27f86585.jpg",
@@ -133,11 +148,15 @@
         description: "A documentary capturing the heart and soul of the Biker community."
       },
       {
-        title: "Another Great Movie",
-        url: "https://drive.google.com/file/d/YOUR_FILE_ID/preview",
-        poster: "https://via.placeholder.com/300x450?text=Movie+Poster",
+        type: "tv",
+        title: "My TV Show",
+        poster: "https://via.placeholder.com/300x450?text=TV+Show+Poster",
         year: "2023",
-        description: "An epic adventure that keeps you on the edge of your seat."
+        description: "An exciting series full of surprises.",
+        episodes: [
+          { title: "Episode 1", url: "https://drive.google.com/file/d/FILE_ID_1/preview", poster: "https://via.placeholder.com/300x200?text=Episode+1" },
+          { title: "Episode 2", url: "https://drive.google.com/file/d/FILE_ID_2/preview", poster: "https://via.placeholder.com/300x200?text=Episode+2" }
+        ]
       }
     ];
 
@@ -147,39 +166,67 @@
     const searchInput = document.getElementById("searchInput");
     const detailsDiv = document.getElementById("movieDetails");
     const videoFrame = document.getElementById("videoFrame");
+    const backBtn = document.getElementById("backBtn");
 
-    // ✅ Render movies
-    function renderMovies(list) {
+    let currentView = "main"; // main or episodes
+    let currentEpisodes = [];
+
+    // ✅ Render Main Library
+    function renderMain(list) {
       movieGrid.innerHTML = "";
-      list.forEach((movie) => {
+      backBtn.style.display = "none";
+      currentView = "main";
+
+      list.forEach((item) => {
         const card = document.createElement('div');
         card.classList.add('movie-card');
         card.innerHTML = `
-          <img src="${movie.poster}" alt="${movie.title}" />
-          <div class="movie-title">${movie.title}</div>
+          <img src="${item.poster}" alt="${item.title}" />
+          <div class="movie-title">${item.title}</div>
         `;
         card.addEventListener('click', () => {
-          modal.classList.add('active');
-          videoFrame.src = movie.url; // No autoplay
-          detailsDiv.innerHTML = `<strong>${movie.title}</strong> (${movie.year})<br>${movie.description}`;
+          if (item.type === "movie") {
+            openVideo(item.url, item.title, item.year, item.description);
+          } else if (item.type === "tv") {
+            showEpisodes(item);
+          }
         });
         movieGrid.appendChild(card);
       });
     }
 
-    renderMovies(movies);
+    // ✅ Render Episodes for a TV Show
+    function showEpisodes(show) {
+      movieGrid.innerHTML = "";
+      backBtn.style.display = "inline-block";
+      currentView = "episodes";
+      currentEpisodes = show.episodes;
 
-    // ✅ Search function
-    searchInput.addEventListener('input', () => {
-      const query = searchInput.value.toLowerCase();
-      const filtered = movies.filter(movie => movie.title.toLowerCase().includes(query));
-      renderMovies(filtered);
-    });
+      show.episodes.forEach((ep) => {
+        const card = document.createElement('div');
+        card.classList.add('movie-card');
+        card.innerHTML = `
+          <img src="${ep.poster}" alt="${ep.title}" />
+          <div class="movie-title">${ep.title}</div>
+        `;
+        card.addEventListener('click', () => {
+          openVideo(ep.url, `${show.title} - ${ep.title}`, show.year, show.description);
+        });
+        movieGrid.appendChild(card);
+      });
+    }
+
+    // ✅ Open Video Modal
+    function openVideo(url, title, year, description) {
+      modal.classList.add('active');
+      videoFrame.src = url; // Manual play
+      detailsDiv.innerHTML = `<strong>${title}</strong> (${year})<br>${description}`;
+    }
 
     // ✅ Close Modal
     closeBtn.addEventListener('click', () => {
       modal.classList.remove('active');
-      videoFrame.src = ""; // stop video
+      videoFrame.src = "";
     });
 
     // ✅ ESC Key to close
@@ -189,6 +236,33 @@
         videoFrame.src = "";
       }
     });
+
+    // ✅ Back Button
+    backBtn.addEventListener('click', () => {
+      renderMain(library);
+    });
+
+    // ✅ Search
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      if (currentView === "main") {
+        const filtered = library.filter(item => item.title.toLowerCase().includes(query));
+        renderMain(filtered);
+      } else {
+        const filtered = currentEpisodes.filter(ep => ep.title.toLowerCase().includes(query));
+        movieGrid.innerHTML = "";
+        filtered.forEach(ep => {
+          const card = document.createElement('div');
+          card.classList.add('movie-card');
+          card.innerHTML = `<img src="${ep.poster}" alt="${ep.title}" /><div class="movie-title">${ep.title}</div>`;
+          card.addEventListener('click', () => openVideo(ep.url, ep.title, "", ""));
+          movieGrid.appendChild(card);
+        });
+      }
+    });
+
+    // ✅ Initial Render
+    renderMain(library);
   </script>
 </body>
 </html>
