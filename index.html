@@ -185,39 +185,7 @@
   </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec"; // From Google Apps Script
-
-async function loadLibrary() {
-  const response = await fetch(API_URL);
-  const data = await response.json();
-  const library = [...data.movies, ...data.tv]; // Combine Movies & TV
-  shuffleArray(library);
-  renderMain(library);
-}
-
-const searchInput = document.getElementById("searchInput");
-
-searchInput.addEventListener("input", (e) => {
-  const query = e.target.value.toLowerCase();
-
-  // Combine all movies and TV shows again
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(data => {
-      const library = [...data.movies, ...data.tv];
-      const filtered = library.filter(item =>
-        item.title.toLowerCase().includes(query)
-      );
-      renderMain(filtered);
-    });
-});
-
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
+const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
 
 const movieGrid = document.getElementById("movieGrid");
 const modal = document.getElementById("videoModal");
@@ -227,11 +195,28 @@ const videoFrame = document.getElementById("videoFrame");
 const backBtn = document.getElementById("backBtn");
 const nextBtn = document.getElementById("nextBtn");
 const sectionTitle = document.getElementById("sectionTitle");
+const searchInput = document.getElementById("searchInput");
 
 let currentView = "main";
 let currentEpisodes = [];
 let currentIndex = -1;
 let currentShowTitle = "";
+let fullLibrary = []; // ✅ Store all movies/TV here
+
+async function loadLibrary() {
+  const response = await fetch(API_URL);
+  const data = await response.json();
+  fullLibrary = [...data.movies, ...data.tv]; // ✅ Save full list
+  shuffleArray(fullLibrary);
+  renderMain(fullLibrary);
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
 
 function renderMain(list) {
   movieGrid.innerHTML = "";
@@ -242,7 +227,7 @@ function renderMain(list) {
     const card = document.createElement("div");
     card.classList.add("movie-card");
     card.innerHTML = `
-      <img src="${item.poster}" alt="${item.title}">
+      <img src="${item.poster}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/300x450?text=${encodeURIComponent(item.title)}';">
       <div class="movie-title">${item.title}</div>
     `;
     card.addEventListener("click", () => {
@@ -307,7 +292,16 @@ closeBtn.addEventListener("click", () => {
   videoFrame.src = "";
 });
 
-backBtn.addEventListener("click", () => loadLibrary());
+backBtn.addEventListener("click", () => renderMain(fullLibrary));
+
+// ✅ Instant Search
+searchInput.addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
+  const filtered = fullLibrary.filter(item =>
+    item.title.toLowerCase().includes(query)
+  );
+  renderMain(filtered);
+});
 
 loadLibrary();
 </script>
