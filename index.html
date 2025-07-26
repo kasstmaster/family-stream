@@ -117,7 +117,7 @@
   <div class="modal" id="videoModal">
     <span class="close-btn" id="closeBtn">&times;</span>
     <div class="modal-content">
-      <iframe id="videoFrame" allow="autoplay; fullscreen"></iframe>
+      <iframe id="videoFrame" allow="fullscreen"></iframe>
       <div class="movie-details" id="movieDetails"></div>
     </div>
   </div>
@@ -160,9 +160,7 @@
         `;
         card.addEventListener('click', () => {
           modal.classList.add('active');
-          // Add autoplay parameter to URL
-          const autoplayURL = movie.url.includes("?") ? movie.url + "&autoplay=1" : movie.url + "?autoplay=1";
-          videoFrame.src = autoplayURL;
+          videoFrame.src = movie.url; // No autoplay
           detailsDiv.innerHTML = `<strong>${movie.title}</strong> (${movie.year})<br>${movie.description}`;
         });
         movieGrid.appendChild(card);
