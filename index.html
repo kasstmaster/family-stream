@@ -6,6 +6,7 @@
 
   <!-- Video.js CSS -->
   <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -100,6 +101,7 @@
   <script src="https://unpkg.com/videojs-airplay/dist/videojs-airplay.min.js"></script>
 
   <script>
+    // ✅ Your movie list (with Dropbox direct links)
     const movies = [
       {
         title: "Blessing of the Bikers",
@@ -107,9 +109,9 @@
         poster: "https://via.placeholder.com/300x180/000000/FFFFFF?text=Bikers"
       },
       {
-        title: "Drive Video Example",
-        url: "https://drive.google.com/uc?export=download&id=1l1MuBLMYueHEunmcP5mGdzGo6sR2eLxi",
-        poster: "https://via.placeholder.com/300x180/000000/FFFFFF?text=Google+Drive"
+        title: "Family BBQ Memories",
+        url: "https://dl.dropboxusercontent.com/scl/fi/examplelink/family-bbq.mp4",
+        poster: "https://via.placeholder.com/300x180/000000/FFFFFF?text=Family+BBQ"
       }
     ];
 
@@ -118,6 +120,7 @@
     const closeBtn = document.getElementById("closeBtn");
     let player = videojs('videoPlayer');
 
+    // ✅ Create movie cards dynamically
     movies.forEach((movie) => {
       const card = document.createElement('div');
       card.classList.add('movie-card');
