@@ -55,6 +55,7 @@
       overflow: hidden;
       cursor: pointer;
       transition: transform 0.3s ease;
+      position: relative;
     }
     .movie-card:hover {
       transform: scale(1.05);
@@ -70,6 +71,20 @@
       text-align: center;
       font-size: 16px;
       font-weight: bold;
+    }
+    .continue-watching {
+      border: 3px solid #e50914;
+    }
+    .continue-watching::after {
+      content: "Continue Watching";
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: #e50914;
+      color: #fff;
+      font-size: 12px;
+      padding: 3px 6px;
+      border-radius: 3px;
     }
     .back-btn {
       display: none;
@@ -205,6 +220,7 @@
     let currentView = "main";
     let currentEpisodes = [];
     let currentIndex = -1;
+    let currentShowTitle = "";
 
     // ✅ Shuffle function
     function shuffleArray(array) {
@@ -243,12 +259,18 @@
       backBtn.style.display = "inline-block";
       currentView = "episodes";
       currentEpisodes = show.episodes;
+      currentShowTitle = show.title;
       sectionTitle.textContent = show.title;
+
+      const lastWatchedIndex = localStorage.getItem(`progress_${show.title}`);
 
       show.episodes.forEach((ep, index) => {
         const epPoster = ep.poster || show.poster;
         const card = document.createElement('div');
         card.classList.add('movie-card');
+        if (lastWatchedIndex && parseInt(lastWatchedIndex) === index) {
+          card.classList.add('continue-watching');
+        }
         card.innerHTML = `
           <img src="${epPoster}" alt="${ep.title}" />
           <div class="movie-title">${ep.title}</div>
@@ -266,6 +288,10 @@
       videoFrame.src = url;
       detailsDiv.innerHTML = `<strong>${title}</strong> (${year})<br>${description}`;
       nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
+
+      if (isTV) {
+        localStorage.setItem(`progress_${currentShowTitle}`, currentIndex);
+      }
     }
 
     nextBtn.addEventListener('click', () => {
