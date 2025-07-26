@@ -83,6 +83,8 @@
     }
     .modal.active {
       display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     .modal-content {
       background: #1f1f1f;
@@ -111,6 +113,20 @@
       font-size: 14px;
       color: #ccc;
     }
+    .next-btn {
+      display: none;
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #e50914;
+      color: #fff;
+      border: none;
+      font-size: 18px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .next-btn:hover {
+      background: #f6121d;
+    }
   </style>
 </head>
 <body>
@@ -134,10 +150,10 @@
       <iframe id="videoFrame" allow="fullscreen"></iframe>
       <div class="movie-details" id="movieDetails"></div>
     </div>
+    <button class="next-btn" id="nextBtn">Next Episode ➡</button>
   </div>
 
   <script>
-    // ✅ Library with Movies and TV Shows
     const library = [
       {
         type: "movie",
@@ -167,11 +183,12 @@
     const detailsDiv = document.getElementById("movieDetails");
     const videoFrame = document.getElementById("videoFrame");
     const backBtn = document.getElementById("backBtn");
+    const nextBtn = document.getElementById("nextBtn");
 
-    let currentView = "main"; // main or episodes
+    let currentView = "main";
     let currentEpisodes = [];
+    let currentIndex = -1;
 
-    // ✅ Render Main Library
     function renderMain(list) {
       movieGrid.innerHTML = "";
       backBtn.style.display = "none";
@@ -186,8 +203,8 @@
         `;
         card.addEventListener('click', () => {
           if (item.type === "movie") {
-            openVideo(item.url, item.title, item.year, item.description);
-          } else if (item.type === "tv") {
+            openVideo(item.url, item.title, item.year, item.description, false);
+          } else {
             showEpisodes(item);
           }
         });
@@ -195,14 +212,13 @@
       });
     }
 
-    // ✅ Render Episodes for a TV Show
     function showEpisodes(show) {
       movieGrid.innerHTML = "";
       backBtn.style.display = "inline-block";
       currentView = "episodes";
       currentEpisodes = show.episodes;
 
-      show.episodes.forEach((ep) => {
+      show.episodes.forEach((ep, index) => {
         const card = document.createElement('div');
         card.classList.add('movie-card');
         card.innerHTML = `
@@ -210,26 +226,37 @@
           <div class="movie-title">${ep.title}</div>
         `;
         card.addEventListener('click', () => {
-          openVideo(ep.url, `${show.title} - ${ep.title}`, show.year, show.description);
+          currentIndex = index;
+          openVideo(ep.url, `${show.title} - ${ep.title}`, show.year, show.description, true);
         });
         movieGrid.appendChild(card);
       });
     }
 
-    // ✅ Open Video Modal
-    function openVideo(url, title, year, description) {
+    function openVideo(url, title, year, description, isTV) {
       modal.classList.add('active');
-      videoFrame.src = url; // Manual play
+      videoFrame.src = url;
       detailsDiv.innerHTML = `<strong>${title}</strong> (${year})<br>${description}`;
+      if (isTV) {
+        nextBtn.style.display = (currentIndex < currentEpisodes.length - 1) ? "block" : "none";
+      } else {
+        nextBtn.style.display = "none";
+      }
     }
 
-    // ✅ Close Modal
+    nextBtn.addEventListener('click', () => {
+      if (currentIndex < currentEpisodes.length - 1) {
+        currentIndex++;
+        const ep = currentEpisodes[currentIndex];
+        openVideo(ep.url, ep.title, "", "", true);
+      }
+    });
+
     closeBtn.addEventListener('click', () => {
       modal.classList.remove('active');
       videoFrame.src = "";
     });
 
-    // ✅ ESC Key to close
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         modal.classList.remove('active');
@@ -237,12 +264,8 @@
       }
     });
 
-    // ✅ Back Button
-    backBtn.addEventListener('click', () => {
-      renderMain(library);
-    });
+    backBtn.addEventListener('click', () => renderMain(library));
 
-    // ✅ Search
     searchInput.addEventListener('input', () => {
       const query = searchInput.value.toLowerCase();
       if (currentView === "main") {
@@ -251,17 +274,19 @@
       } else {
         const filtered = currentEpisodes.filter(ep => ep.title.toLowerCase().includes(query));
         movieGrid.innerHTML = "";
-        filtered.forEach(ep => {
+        filtered.forEach((ep, index) => {
           const card = document.createElement('div');
           card.classList.add('movie-card');
           card.innerHTML = `<img src="${ep.poster}" alt="${ep.title}" /><div class="movie-title">${ep.title}</div>`;
-          card.addEventListener('click', () => openVideo(ep.url, ep.title, "", ""));
+          card.addEventListener('click', () => {
+            currentIndex = index;
+            openVideo(ep.url, ep.title, "", "", true);
+          });
           movieGrid.appendChild(card);
         });
       }
     });
 
-    // ✅ Initial Render
     renderMain(library);
   </script>
 </body>
