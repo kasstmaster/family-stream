@@ -195,6 +195,23 @@ async function loadLibrary() {
   renderMain(library);
 }
 
+const searchInput = document.getElementById("searchInput");
+
+searchInput.addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
+
+  // Combine all movies and TV shows again
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      const library = [...data.movies, ...data.tv];
+      const filtered = library.filter(item =>
+        item.title.toLowerCase().includes(query)
+      );
+      renderMain(filtered);
+    });
+});
+
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
