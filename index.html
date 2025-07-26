@@ -139,6 +139,9 @@
     <input type="text" id="searchInput" placeholder="Search movies or shows..." />
   </div>
 
+  <!-- TV Show Title -->
+  <div id="sectionTitle" style="text-align:center; font-size:22px; font-weight:bold; margin-top:10px;"></div>
+
   <!-- Back Button -->
   <button class="back-btn" id="backBtn">⬅ Back</button>
 
@@ -199,50 +202,52 @@
       }
     }
 
-    function renderMain(list) {
-      movieGrid.innerHTML = "";
-      backBtn.style.display = "none";
-      currentView = "main";
+function renderMain(list) {
+  movieGrid.innerHTML = "";
+  backBtn.style.display = "none";
+  currentView = "main";
+  document.getElementById("sectionTitle").textContent = "All Titles";
 
-      list.forEach((item) => {
-        const card = document.createElement('div');
-        card.classList.add('movie-card');
-        card.innerHTML = `
-          <img src="${item.poster}" alt="${item.title}" />
-          <div class="movie-title">${item.title}</div>
-        `;
-        card.addEventListener('click', () => {
-          if (item.type === "movie") {
-            openVideo(item.url, item.title, item.year, item.description, false);
-          } else {
-            showEpisodes(item);
-          }
-        });
-        movieGrid.appendChild(card);
-      });
-    }
+  list.forEach((item) => {
+    const card = document.createElement('div');
+    card.classList.add('movie-card');
+    card.innerHTML = `
+      <img src="${item.poster}" alt="${item.title}" />
+      <div class="movie-title">${item.title}</div>
+    `;
+    card.addEventListener('click', () => {
+      if (item.type === "movie") {
+        openVideo(item.url, item.title, item.year, item.description, false);
+      } else {
+        showEpisodes(item);
+      }
+    });
+    movieGrid.appendChild(card);
+  });
+}
 
-    function showEpisodes(show) {
-      movieGrid.innerHTML = "";
-      backBtn.style.display = "inline-block";
-      currentView = "episodes";
-      currentEpisodes = show.episodes;
+function showEpisodes(show) {
+  movieGrid.innerHTML = "";
+  backBtn.style.display = "inline-block";
+  currentView = "episodes";
+  currentEpisodes = show.episodes;
+  document.getElementById("sectionTitle").textContent = show.title;
 
-      show.episodes.forEach((ep, index) => {
-        const epPoster = ep.poster || show.poster; // fallback
-        const card = document.createElement('div');
-        card.classList.add('movie-card');
-        card.innerHTML = `
-          <img src="${epPoster}" alt="${ep.title}" />
-          <div class="movie-title">${ep.title}</div>
-        `;
-        card.addEventListener('click', () => {
-          currentIndex = index;
-          openVideo(ep.url, `${show.title} - ${ep.title}`, show.year, show.description, true);
-        });
-        movieGrid.appendChild(card);
-      });
-    }
+  show.episodes.forEach((ep, index) => {
+    const epPoster = ep.poster || show.poster;
+    const card = document.createElement('div');
+    card.classList.add('movie-card');
+    card.innerHTML = `
+      <img src="${epPoster}" alt="${ep.title}" />
+      <div class="movie-title">${ep.title}</div>
+    `;
+    card.addEventListener('click', () => {
+      currentIndex = index;
+      openVideo(ep.url, `${show.title} - ${ep.title}`, show.year, show.description, true);
+    });
+    movieGrid.appendChild(card);
+  });
+}
 
     function openVideo(url, title, year, description, isTV) {
       modal.classList.add('active');
