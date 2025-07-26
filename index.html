@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>RDMN+</title>
+
+  <!-- Google Fonts for Netflix-like styling -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #141414;
+      color: #fff;
+      margin: 0;
+    }
+    header {
+      text-align: center;
+      padding: 10px;
+      background: #000;
+    }
+    header img {
+      max-width: 300px;
+      height: auto;
+    }
+    .search-bar {
+      text-align: center;
+      padding: 15px;
+    }
+    .search-bar input {
+      padding: 10px;
+      width: 90%;
+      max-width: 500px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+    }
+    #sectionTitle {
+      text-align: center;
+      font-size: 50px;
+      font-weight: bold;
+      margin-top: 10px;
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 2px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    .movie-card {
+      background: #1f1f1f;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      position: relative;
+    }
+    .movie-card:hover {
+      transform: scale(1.05);
+    }
+    .movie-card img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      display: block;
+    }
+    .movie-title {
+      padding: 10px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .continue-watching {
+      border: 3px solid #e50914;
+    }
+    .continue-watching::after {
+      content: "Continue Watching";
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: #e50914;
+      color: #fff;
+      font-size: 12px;
+      padding: 3px 6px;
+      border-radius: 3px;
+    }
+    .back-btn {
+      display: none;
+      margin: 10px 20px;
+      padding: 10px 15px;
+      font-size: 16px;
+      background: #e50914;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      flex-direction: column;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #1f1f1f;
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 90%;
+      width: 900px;
+      position: relative;
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 28px;
+      cursor: pointer;
+      color: #fff;
+    }
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: none;
+      border-radius: 10px;
+    }
+    .movie-details {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #ccc;
+    }
+    .next-btn {
+      display: none;
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #e50914;
+      color: #fff;
+      border: none;
+      font-size: 18px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .next-btn:hover {
+      background: #f6121d;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" />
+  </header>
+  
+  <!-- Search Bar -->
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search movies or shows..." />
+  </div>
+
+  <!-- Section Title -->
+  <div id="sectionTitle"></div>
+
+  <!-- Back Button -->
+  <button class="back-btn" id="backBtn">⬅ Back</button>
+
+  <!-- Movie Grid -->
+  <div class="grid" id="movieGrid"></div>
+
+  <!-- Modal -->
+  <div class="modal" id="videoModal">
+    <span class="close-btn" id="closeBtn">&times;</span>
+    <div class="modal-content">
+      <iframe id="videoFrame" allow="fullscreen"></iframe>
+      <div class="movie-details" id="movieDetails"></div>
+    </div>
+    <button class="next-btn" id="nextBtn">Next Episode ➡</button>
+  </div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxW-ptcpv_Z0ox_E3EGiZC96jvBe3YFrWLBhIf9whQSVB46jlg3C0ww54SkyZoivPICHg/exec"; // From Google Apps Script
+
+async function loadLibrary() {
+  const response = await fetch(API_URL);
+  const data = await response.json();
+  const library = [...data.movies, ...data.tv]; // Combine Movies & TV
+  shuffleArray(library);
+  renderMain(library);
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+const movieGrid = document.getElementById("movieGrid");
+const modal = document.getElementById("videoModal");
+const closeBtn = document.getElementById("closeBtn");
+const detailsDiv = document.getElementById("movieDetails");
+const videoFrame = document.getElementById("videoFrame");
+const backBtn = document.getElementById("backBtn");
+const nextBtn = document.getElementById("nextBtn");
+const sectionTitle = document.getElementById("sectionTitle");
+
+let currentView = "main";
+let currentEpisodes = [];
+let currentIndex = -1;
+let currentShowTitle = "";
+
+function renderMain(list) {
+  movieGrid.innerHTML = "";
+  backBtn.style.display = "none";
+  sectionTitle.textContent = "";
+
+  list.forEach(item => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    card.innerHTML = `
+      <img src="${item.poster}" alt="${item.title}">
+      <div class="movie-title">${item.title}</div>
+    `;
+    card.addEventListener("click", () => {
+      if (item.type === "movie") {
+        openVideo(item.episodes[0].url, item.title, "", "", false);
+      } else {
+        showEpisodes(item);
+      }
+    });
+    movieGrid.appendChild(card);
+  });
+}
+
+function showEpisodes(show) {
+  movieGrid.innerHTML = "";
+  backBtn.style.display = "inline-block";
+  sectionTitle.textContent = show.title;
+  currentEpisodes = show.episodes;
+  currentShowTitle = show.title;
+
+  const lastWatchedIndex = localStorage.getItem(`progress_${show.title}`);
+
+  show.episodes.forEach((ep, index) => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    if (lastWatchedIndex && parseInt(lastWatchedIndex) === index) {
+      card.classList.add("continue-watching");
+    }
+    card.innerHTML = `
+      <img src="${show.poster}" alt="${ep.title}">
+      <div class="movie-title">${ep.title}</div>
+    `;
+    card.addEventListener("click", () => {
+      currentIndex = index;
+      openVideo(ep.url, `${show.title} - ${ep.title}`, "", "", true);
+    });
+    movieGrid.appendChild(card);
+  });
+}
+
+function openVideo(url, title, year, description, isTV) {
+  modal.classList.add("active");
+  videoFrame.src = url;
+  detailsDiv.innerHTML = `<strong>${title}</strong><br>${description || ""}`;
+  nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
+
+  if (isTV) {
+    localStorage.setItem(`progress_${currentShowTitle}`, currentIndex);
+  }
+}
+
+nextBtn.addEventListener("click", () => {
+  if (currentIndex < currentEpisodes.length - 1) {
+    currentIndex++;
+    const ep = currentEpisodes[currentIndex];
+    openVideo(ep.url, ep.title, "", "", true);
+  }
+});
+
+closeBtn.addEventListener("click", () => {
+  modal.classList.remove("active");
+  videoFrame.src = "";
+});
+
+backBtn.addEventListener("click", () => loadLibrary());
+
+loadLibrary();
+</script>
+
+</body>
+</html>
