@@ -217,12 +217,14 @@
       backBtn.style.display = "inline-block";
       currentView = "episodes";
       currentEpisodes = show.episodes;
-
+    
       show.episodes.forEach((ep, index) => {
         const card = document.createElement('div');
         card.classList.add('movie-card');
+        // Use episode poster if available, otherwise use show poster
+        const epPoster = ep.poster ? ep.poster : show.poster;
         card.innerHTML = `
-          <img src="${ep.poster}" alt="${ep.title}" />
+          <img src="${epPoster}" alt="${ep.title}" />
           <div class="movie-title">${ep.title}</div>
         `;
         card.addEventListener('click', () => {
