@@ -1,142 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Family Movie Library</title>
+  <meta charset="UTF-8" />
+  <title>Family Movie Library</title>
 
-<!-- Video.js CSS -->
-<link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+  <!-- Video.js CSS -->
+  <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
 
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #141414;
-    color: #fff;
-    margin: 0;
-  }
-  header {
-    text-align: center;
-    padding: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    background: #000;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.7);
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 20px;
-    padding: 20px;
-  }
-  .movie-card {
-    background: #1f1f1f;
-    border-radius: 10px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.3s ease;
-  }
-  .movie-card:hover {
-    transform: scale(1.05);
-  }
-  .movie-card img {
-    width: 100%;
-    display: block;
-  }
-  .movie-title {
-    padding: 10px;
-    text-align: center;
-    font-size: 16px;
-    font-weight: bold;
-  }
-  /* Modal */
-  .modal {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-  .modal.active {
-    display: flex;
-  }
-  .modal-content {
-    background: #1f1f1f;
-    padding: 15px;
-    border-radius: 10px;
-    max-width: 90%;
-  }
-  .close-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    font-size: 28px;
-    cursor: pointer;
-    color: #fff;
-  }
-  .video-js {
-    width: 100%;
-    max-height: 70vh;
-    border-radius: 10px;
-  }
-</style>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #141414;
+      color: #fff;
+      margin: 0;
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      background: #000;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.7);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    .movie-card {
+      background: #1f1f1f;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    .movie-card:hover {
+      transform: scale(1.05);
+    }
+    .movie-card img {
+      width: 100%;
+      display: block;
+    }
+    .movie-title {
+      padding: 10px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #1f1f1f;
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 90%;
+    }
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 28px;
+      cursor: pointer;
+      color: #fff;
+    }
+    .video-js {
+      width: 100%;
+      max-height: 70vh;
+      border-radius: 10px;
+    }
+  </style>
 </head>
 <body>
-<header>🍿 Family Movie Library</header>
-<div class="grid" id="movieGrid"></div>
+  <header>🍿 Family Movie Library</header>
+  <div class="grid" id="movieGrid"></div>
 
-<!-- Modal -->
-<div class="modal" id="videoModal">
-  <span class="close-btn" id="closeBtn">&times;</span>
-  <div class="modal-content">
-    <video id="videoPlayer" class="video-js vjs-big-play-centered" controls preload="auto"></video>
+  <!-- Modal -->
+  <div class="modal" id="videoModal">
+    <span class="close-btn" id="closeBtn">&times;</span>
+    <div class="modal-content">
+      <video id="videoPlayer" class="video-js vjs-big-play-centered" controls preload="auto"></video>
+    </div>
   </div>
-</div>
 
-<!-- Scripts -->
-<script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
-<script src="https://unpkg.com/videojs-chromecast/dist/videojs-chromecast.min.js"></script>
-<script src="https://unpkg.com/videojs-airplay/dist/videojs-airplay.min.js"></script>
+  <!-- Scripts -->
+  <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+  <script src="https://unpkg.com/videojs-chromecast/dist/videojs-chromecast.min.js"></script>
+  <script src="https://unpkg.com/videojs-airplay/dist/videojs-airplay.min.js"></script>
 
-<script>
-  // ✅ Your movie list (with Dropbox direct links)
-  const movies = [
-    {
-      title: "Blessing of the Bikers",
-      url: "https://dl.dropboxusercontent.com/scl/fi/n05iz3jvca14atleqvvak/20250616_1001-Blessing-of-the-Bikers.mp4?rlkey=y4sp0nemmwokpktk9jqoq70hx&st=hanrdic7",
-      poster: "https://cdn.fliki.ai/image/page/660ba680adaa44a37532fd97/6663112070e1cfda27f86585.jpg"
-    }
-  ];
+  <script>
+    // ✅ Movie list with Dropbox direct link
+    const movies = [
+      {
+        title: "Blessing of the Bikers",
+        url: "https://dl.dropboxusercontent.com/scl/fi/n05iz3jvca14atleqvvak/20250616_1001-Blessing-of-the-Bikers.mp4?rlkey=y4sp0nemmwokpktk9jqoq70hx&st=hanrdic7",
+        poster: "https://via.placeholder.com/300x180/000000/FFFFFF?text=Bikers"
+      }
+    ];
 
-  const movieGrid = document.getElementById("movieGrid");
-  const modal = document.getElementById("videoModal");
-  const closeBtn = document.getElementById("closeBtn");
-  let player = videojs('videoPlayer');
+    const movieGrid = document.getElementById("movieGrid");
+    const modal = document.getElementById("videoModal");
+    const closeBtn = document.getElementById("closeBtn");
+    let player = videojs('videoPlayer');
 
-  // ✅ Create movie cards dynamically
-  movies.forEach((movie) => {
-    const card = document.createElement('div');
-    card.classList.add('movie-card');
-    card.innerHTML = `
-      <img src="${movie.poster}" alt="${movie.title}" />
-      <div class="movie-title">${movie.title}</div>
-    `;
-    card.addEventListener('click', () => {
-      modal.classList.add('active');
-      player.src({ type: 'video/mp4', src: movie.url });
-      player.chromecast({ addButtonToControlBar: true });
-      player.airPlay();
-      player.play();
+    // ✅ Render movies dynamically
+    movies.forEach((movie) => {
+      const card = document.createElement('div');
+      card.classList.add('movie-card');
+      card.innerHTML = `
+        <img src="${movie.poster}" alt="${movie.title}" />
+        <div class="movie-title">${movie.title}</div>
+      `;
+      card.addEventListener('click', () => {
+        modal.classList.add('active');
+        player.src({ type: 'video/mp4', src: movie.url });
+        player.chromecast({ addButtonToControlBar: true });
+        player.airPlay();
+        player.play();
+      });
+      movieGrid.appendChild(card);
     });
-    movieGrid.appendChild(card);
-  });
 
-  closeBtn.addEventListener('click', () => {
-    modal.classList.remove('active');
-    player.pause();
-  });
-</script>
+    closeBtn.addEventListener('click', () => {
+      modal.classList.remove('active');
+      player.pause();
+    });
+  </script>
 </body>
 </html>
