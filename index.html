@@ -8,7 +8,7 @@
   <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
   <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 
-  <!-- Chromecast & AirPlay plugins -->
+  <!-- Chromecast & AirPlay Plugins -->
   <script src="https://unpkg.com/videojs-contrib-quality-levels@2.1.0/dist/videojs-contrib-quality-levels.min.js"></script>
   <script src="https://unpkg.com/videojs-chromecast/dist/videojs-chromecast.min.js"></script>
   <link href="https://unpkg.com/videojs-chromecast/dist/videojs-chromecast.css" rel="stylesheet" />
@@ -19,19 +19,24 @@
       font-family: Arial, sans-serif;
       background: #121212;
       color: #fff;
-      text-align: center;
       margin: 0;
       padding: 20px;
     }
     h1 {
+      text-align: center;
       margin-bottom: 30px;
+    }
+    .movie-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      justify-items: center;
     }
     .movie {
       background: #1e1e1e;
       border-radius: 10px;
       padding: 15px;
       width: 320px;
-      margin: 0 auto;
       box-shadow: 0 4px 8px rgba(0,0,0,0.4);
     }
     .movie p {
@@ -48,26 +53,46 @@
 </head>
 <body>
   <h1>Family Movie Library</h1>
-  <div class="movie">
-    <p>Blessing of the Bikers</p>
-    <video
-      id="video1"
-      class="video-js vjs-big-play-centered"
-      controls
-      preload="auto"
-      width="320"
-      height="180"
-      data-setup="{}"
-    >
-      <source src="https://drive.google.com/uc?export=download&id=1l1MuBLMYueHEunmcP5mGdzGo6sR2eLxi" type="video/mp4" />
-  </div>
+  <div class="movie-grid" id="movieGrid"></div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      var player1 = videojs('video1');
-      player1.ready(function () {
-        player1.chromecast({ addButtonToControlBar: true });
-        player1.airPlay();
+    // ✅ Your movie list
+    const movies = [
+      {
+        title: "Blessing of the Bikers (Dropbox)",
+        url: "https://dl.dropboxusercontent.com/scl/fi/n05iz3jvca14atleqvvak/20250616_1001-Blessing-of-the-Bikers.mp4?rlkey=y4sp0nemmwokpktk9jqoq70hx"
+      },
+      {
+        title: "Drive Video Example",
+        url: "https://drive.google.com/uc?export=download&id=1l1MuBLMYueHEunmcP5mGdzGo6sR2eLxi"
+      }
+    ];
+
+    const movieGrid = document.getElementById("movieGrid");
+
+    // ✅ Build movie cards dynamically
+    movies.forEach((movie, index) => {
+      const div = document.createElement("div");
+      div.classList.add("movie");
+      div.innerHTML = `
+        <p>${movie.title}</p>
+        <video
+          id="video${index}"
+          class="video-js vjs-big-play-centered"
+          controls
+          preload="auto"
+          data-setup="{}"
+        >
+          <source src="${movie.url}" type="video/mp4" />
+        </video>
+      `;
+      movieGrid.appendChild(div);
+
+      // Initialize Video.js with Chromecast & AirPlay
+      const player = videojs(`video${index}`);
+      player.ready(() => {
+        player.chromecast({ addButtonToControlBar: true });
+        player.airPlay();
       });
     });
   </script>
