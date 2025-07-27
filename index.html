@@ -15,6 +15,9 @@
     margin: 0;
     font-size: 22px; /* Base font size for all text */
   }
+  #appContent {
+    padding-bottom: 90px; /* same as bar height + some space */
+  }
 
   /* HEADER */
   header {
@@ -220,6 +223,33 @@
   }
   .scroll-btn:hover {
     background: rgba(0, 0, 0, 0.9);
+  }
+  /* BOTTOM BAR */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #000;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 15px 0;
+    border-top: 2px solid #222;
+    z-index: 10000;
+  }
+  .bottom-bar button {
+    background: #e50914;
+    color: #fff;
+    font-size: 24px;
+    padding: 18px 36px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .bottom-bar button:hover {
+    background: #f6121d;
   }
 </style>
 </head>
