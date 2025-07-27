@@ -570,6 +570,7 @@ async function loadNetflixContent() {
 }
 
 // Helper: Shuffle function
+// ✅ Shuffle helper function
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -577,21 +578,8 @@ function shuffleArray(array) {
   }
 }
 
-  allMovies.forEach(movie => {
-    const card = document.createElement("div");
-    card.classList.add("movie-card");
-    const poster = movie.poster_path 
-      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
-      : "https://via.placeholder.com/300x450?text=No+Image";
-    card.innerHTML = `
-      <img src="${poster}" alt="${movie.title}">
-      <div class="movie-title">${movie.title}</div>
-    `;
-    netflixRow.appendChild(card);
-  });
-}
-
-const APP_PASSWORD = "YourSecretPassword"; // Change this
+// ✅ App password (change this to your desired password)
+const APP_PASSWORD = "YourSecretPassword";
 
 function checkPassword() {
   const input = document.getElementById("passwordInput").value;
