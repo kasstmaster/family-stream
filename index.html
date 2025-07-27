@@ -324,7 +324,7 @@ function createCard(item) {
   `;
   card.addEventListener("click", () => {
     if (item.type === "movie") {
-      openVideo(item.episodes[0].url, item.title, "", "", false);
+      showMovieDetails(item);
     } else {
       showEpisodes(item);
     }
@@ -472,6 +472,30 @@ function renderContinueWatching() {
     document.getElementById("continueSection").style.display = "none";
   }
 }
+
+function showMovieDetails(movie) {
+  // Hide Movies and TV sections
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
+
+  // Show Episodes section but repurpose it for movie
+  document.getElementById("episodesSection").style.display = "block";
+  const episodesTitle = document.getElementById("episodesTitle");
+  episodesTitle.textContent = movie.title;
+
+  const episodesGrid = document.getElementById("episodesGrid");
+  episodesGrid.innerHTML = `
+    <div style="text-align:center;">
+      <img src="${movie.poster}" style="max-width:300px;border-radius:10px;" /><br><br>
+      <button onclick="openVideo('${movie.episodes[0]?.url || ''}', '${movie.title}', '', '', false)" style="padding:10px 20px;font-size:18px;background:#e50914;color:white;border:none;border-radius:5px;cursor:pointer;">
+        ▶ Play Movie
+      </button>
+    </div>
+  `;
+
+  backBtn.style.display = "inline-block";
+}
+
 
 loadLibrary();
 </script>
