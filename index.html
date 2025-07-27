@@ -202,6 +202,14 @@
   </style>
 </head>
 <body>
+  <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;color:white;flex-direction:column;">
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;">Enter Password</h2>
+    <input type="password" id="passwordInput" placeholder="Password" style="padding:10px;font-size:16px;border-radius:5px;border:none;margin-top:10px;">
+    <button onclick="checkPassword()" style="margin-top:10px;padding:10px 20px;font-size:18px;background:#e50914;color:white;border:none;border-radius:5px;cursor:pointer;">Login</button>
+    <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Incorrect password</p>
+  </div>
+  <div id="appContent" style="display:none;">
+  
   <header>
     <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" />
   </header>
@@ -267,7 +275,7 @@
     </div>
     <button class="next-btn" id="nextBtn">Next Episode ➡</button>
   </div>
-
+</div>
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
 
