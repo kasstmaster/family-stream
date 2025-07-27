@@ -597,7 +597,7 @@ async function loadNetflixContent() {
   const allMovies = movieData.results;
 
   // Pick 4 random items
-  const randomMovies = allMovies.sort(() => 0.5 - Math.random()).slice(0, 4);
+  const randomMovies = allMovies.sort(() => 0.5 - Math.random()).slice(0, 5);
 
   // Render only 4 cards
   randomMovies.forEach(item => {
