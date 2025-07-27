@@ -3,8 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>RDMN+</title>
-
-  <!-- Google Fonts for Netflix-like styling -->
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 
 <style>
@@ -13,10 +11,9 @@
     background: #141414;
     color: #fff;
     margin: 0;
-    font-size: 22px; /* Base font size for all text */
+    font-size: 22px;
   }
 
-  /* HEADER */
   header {
     background: #000;
     width: 100%;
@@ -25,16 +22,14 @@
     position: relative;
   }
   header img {
-    max-width: 450px; /* Larger logo */
+    max-width: 450px;
     height: auto;
   }
-
-  /* LOGOUT BUTTON */
   .logout-btn {
     position: absolute;
     right: 20px;
-    padding: 18px 36px; /* Bigger padding */
-    font-size: 26px; /* Bigger text */
+    padding: 18px 36px;
+    font-size: 26px;
     background: #e50914;
     color: #fff;
     border: none;
@@ -42,25 +37,16 @@
     cursor: pointer;
     font-weight: bold;
   }
-  .logout-btn:hover {
-    background: #f6121d;
-  }
+  .logout-btn:hover { background: #f6121d; }
 
-  /* SEARCH BAR */
-  .search-bar {
-    text-align: center;
-    padding: 30px;
-  }
+  .search-bar { text-align: center; padding: 30px; }
   .search-bar input {
-    padding: 26px 24px; /* Taller input */
-    width: 95%;
-    max-width: 750px;   /* Wider */
-    font-size: 28px;    /* Bigger text */
-    border-radius: 12px;
-    border: none;
+    padding: 26px 24px;
+    width: 95%; max-width: 750px;
+    font-size: 28px;
+    border-radius: 12px; border: none;
   }
 
-  /* SECTION TITLE */
   #sectionTitle {
     text-align: center;
     font-size: 70px;
@@ -70,277 +56,158 @@
     letter-spacing: 3px;
   }
 
-  /* GRID */
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 30px;
-    padding: 35px;
+    gap: 30px; padding: 35px;
   }
 
-  /* MOVIE CARDS */
   .movie-card {
-    background: #1f1f1f;
-    border-radius: 12px;
-    overflow: hidden;
-    cursor: pointer;
+    background: #1f1f1f; border-radius: 12px;
+    overflow: hidden; cursor: pointer;
     transition: transform 0.3s ease;
-    position: relative;
-    flex: 0 0 auto;
-    width: 250px;
+    flex: 0 0 auto; width: 250px;
   }
-  .movie-card:hover {
-    transform: scale(1.08);
-  }
+  .movie-card:hover { transform: scale(1.08); }
   .movie-card img {
-    width: 100%;
-    height: 360px; /* Bigger posters */
+    width: 100%; height: 360px;
     object-fit: cover;
-    display: block;
   }
   .movie-title {
-    padding: 14px;
-    text-align: center;
-    font-size: 26px; /* Bigger text */
-    font-weight: bold;
+    padding: 14px; text-align: center;
+    font-size: 26px; font-weight: bold;
   }
 
-  /* BUTTONS (Global) */
-  button {
-    font-size: 26px;
-    padding: 18px 36px;
-    border-radius: 10px;
-    cursor: pointer;
-  }
-  .back-btn {
-    display: none;
-    margin: 20px 30px;
-    background: #e50914;
-    color: #fff;
-    border: none;
-  }
-  .next-btn {
-    display: none;
-    margin-top: 25px;
-    background: #e50914;
-    color: #fff;
-    border: none;
-    font-size: 26px;
-    border-radius: 10px;
-  }
-  .next-btn:hover {
-    background: #f6121d;
-  }
+  button { font-size: 26px; padding: 18px 36px; border-radius: 10px; cursor: pointer; }
+  .back-btn, .next-btn { display: none; background: #e50914; color: #fff; border: none; }
+  .next-btn:hover, .back-btn:hover { background: #f6121d; }
 
-  /* MODAL */
   .modal {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
+    display: none; position: fixed; top: 0; left: 0;
     width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.9);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    flex-direction: column;
+    justify-content: center; align-items: center;
+    z-index: 1000; flex-direction: column;
   }
-  .modal.active {
-    display: flex;
-  }
+  .modal.active { display: flex; }
   .modal-content {
-    background: #1f1f1f;
-    padding: 25px;
-    border-radius: 14px;
-    max-width: 95%;
-    width: 1200px;
-    position: relative;
+    background: #1f1f1f; padding: 25px;
+    border-radius: 14px; max-width: 95%;
+    width: 1200px; position: relative;
   }
-  .close-btn {
-    position: absolute;
-    top: 20px;
-    right: 25px;
-    font-size: 40px;
-    cursor: pointer;
-    color: #fff;
-  }
-  iframe {
-    width: 100%;
-    height: 800px;
-    border: none;
-    border-radius: 12px;
-  }
-  .movie-details {
-    margin-top: 20px;
-    font-size: 24px;
-    color: #ccc;
-  }
+  .close-btn { position: absolute; top: 20px; right: 25px; font-size: 40px; cursor: pointer; color: #fff; }
+  iframe { width: 100%; height: 800px; border: none; border-radius: 12px; }
+  .movie-details { margin-top: 20px; font-size: 24px; color: #ccc; }
 
-  /* SECTION TITLES */
-  .section-title {
-    font-size: 44px;
-    margin-left: 30px;
-    font-family: 'Bebas Neue', sans-serif;
-  }
+  .section-title { font-size: 44px; margin-left: 30px; font-family: 'Bebas Neue', sans-serif; }
 
-  /* SCROLL CONTAINERS */
-  .scroll-container {
-    display: flex;
-    gap: 25px;
-    padding: 30px;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-  }
-  .scroll-container::-webkit-scrollbar {
-    display: none;
-  }
+  .scroll-container { display: flex; gap: 25px; padding: 30px; overflow-x: auto; scroll-behavior: smooth; }
+  .scroll-container::-webkit-scrollbar { display: none; }
 
-  /* SCROLL BUTTONS */
-  .row-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
+  .row-wrapper { position: relative; display: flex; align-items: center; }
   .scroll-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    font-size: 50px;
-    border: none;
-    cursor: pointer;
-    padding: 22px;
-    z-index: 10;
-    border-radius: 50%;
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(0,0,0,0.7); color: white; font-size: 50px; border: none; cursor: pointer;
+    padding: 22px; z-index: 10; border-radius: 50%;
   }
-  .scroll-btn.left {
-    left: 15px;
-  }
-  .scroll-btn.right {
-    right: 15px;
-  }
-  .scroll-btn:hover {
-    background: rgba(0, 0, 0, 0.9);
-  }
+  .scroll-btn.left { left: 15px; }
+  .scroll-btn.right { right: 15px; }
+  .scroll-btn:hover { background: rgba(0,0,0,0.9); }
 </style>
 </head>
 <body>
-  <!-- Loading Screen -->
-  <div id="loadingScreen" style="
-    position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: #141414; color: white;
-    display: flex; justify-content: center; align-items: center;
-    flex-direction: column; font-family: 'Bebas Neue', sans-serif;
-    font-size: 40px; z-index: 9999;">
-    <p>Loading...</p>
-    <div class="loader" style="
-      border: 8px solid #333;
-      border-top: 8px solid #e50914;
-      border-radius: 50%;
-      width: 70px; height: 70px;
-      animation: spin 1s linear infinite;"></div>
-  </div>
-  <style>
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
+<div id="loadingScreen" style="
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: #141414; color: white; display: flex; justify-content: center; align-items: center;
+  flex-direction: column; font-family: 'Bebas Neue', sans-serif; font-size: 40px; z-index: 9999;">
+  <p>Loading...</p>
+  <div class="loader" style="border: 8px solid #333; border-top: 8px solid #e50914; border-radius: 50%; width: 70px; height: 70px; animation: spin 1s linear infinite;"></div>
+</div>
+<style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
 
-  <!-- Login Screen -->
-  <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;color:white;flex-direction:column;">
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;">Enter Password</h2>
-    <input type="password" id="passwordInput" placeholder="Password" style="padding:10px;font-size:16px;border-radius:5px;border:none;margin-top:10px;">
-    <button onclick="checkPassword()" style="margin-top:10px;padding:10px 20px;font-size:18px;background:#e50914;color:white;border:none;border-radius:5px;cursor:pointer;">Login</button>
-    <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Incorrect password</p>
-  </div>
+<div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;color:white;flex-direction:column;">
+  <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;">Enter Password</h2>
+  <input type="password" id="passwordInput" placeholder="Password" style="padding:10px;font-size:16px;border-radius:5px;border:none;margin-top:10px;">
+  <button onclick="checkPassword()" style="margin-top:10px;padding:10px 20px;font-size:18px;background:#e50914;color:white;border:none;border-radius:5px;cursor:pointer;">Login</button>
+  <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Incorrect password</p>
+</div>
 
-  <!-- App Content -->
-  <div id="appContent" style="display:none;">
-    <header>
-      <div style="display:flex;justify-content:center;align-items:center;position:relative;height:80px;">
-        <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" style="max-width:300px;height:auto;" />
-        <button onclick="logout()" class="logout-btn">Logout</button>
-      </div>
-    </header>
-
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search movies or shows..." />
+<div id="appContent" style="display:none;">
+  <header>
+    <div style="display:flex;justify-content:center;align-items:center;position:relative;height:80px;">
+      <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" style="max-width:300px;height:auto;" />
+      <button onclick="logout()" class="logout-btn">Logout</button>
     </div>
+  </header>
 
-    <div id="sectionTitle"></div>
-    <button class="back-btn" id="backBtn">⬅ Back</button>
+  <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..." /></div>
+  <div id="sectionTitle"></div>
+  <button class="back-btn" id="backBtn">⬅ Back</button>
 
-    <!-- Continue Watching -->
-    <div id="continueSection" style="display:none;">
-      <h2 class="section-title">Continue Watching</h2>
-      <div class="scroll-container" id="continueRow"></div>
-    </div>
-
-    <!-- Movies -->
-    <div id="moviesSection">
-      <h2 class="section-title">Movies</h2>
-      <div class="row-wrapper">
-        <button class="scroll-btn left" onclick="scrollRow('moviesRow', -1)">&#10094;</button>
-        <div class="scroll-container" id="moviesRow"></div>
-        <button class="scroll-btn right" onclick="scrollRow('moviesRow', 1)">&#10095;</button>
-      </div>
-    </div>
-
-    <!-- TV -->
-    <div id="tvSection">
-      <h2 class="section-title">TV Shows</h2>
-      <div class="row-wrapper">
-        <button class="scroll-btn left" onclick="scrollRow('tvRow', -1)">&#10094;</button>
-        <div class="scroll-container" id="tvRow"></div>
-        <button class="scroll-btn right" onclick="scrollRow('tvRow', 1)">&#10095;</button>
-      </div>
-    </div>
-
-    <!-- Episodes -->
-    <div id="episodesSection" style="display:none; padding:20px;">
-      <h2 class="section-title" id="episodesTitle"></h2>
-      <div class="grid" id="episodesGrid"></div>
-    </div>
-
-    <!-- Netflix -->
-    <div id="netflixSection">
-      <h2 class="section-title">Currently on Netflix</h2>
-      <div class="row-wrapper">
-        <button class="scroll-btn left" onclick="scrollRow('netflixRow', -1)">&#10094;</button>
-        <div class="scroll-container" id="netflixRow"></div>
-        <button class="scroll-btn right" onclick="scrollRow('netflixRow', 1)">&#10095;</button>
-      </div>
-    </div>
-
-    <!-- Search Results -->
-    <div id="searchResultsSection" style="display:none;">
-      <h2 class="section-title">Search Results</h2>
-      <div class="grid" id="searchResultsGrid"></div>
-    </div>
-
-    <!-- Modal -->
-    <div class="modal" id="videoModal">
-      <span class="close-btn" id="closeBtn">&times;</span>
-      <div class="modal-content">
-        <iframe id="videoFrame" allow="fullscreen"></iframe>
-        <div class="movie-details" id="movieDetails"></div>
-      </div>
-      <button class="next-btn" id="nextBtn">Next Episode ➡</button>
-    </div>
-  </div>
+  <div id="continueSection" style="display:none;"><h2 class="section-title">Continue Watching</h2><div class="scroll-container" id="continueRow"></div></div>
+  <div id="moviesSection"><h2 class="section-title">Movies</h2><div class="row-wrapper"><button class="scroll-btn left" onclick="scrollRow('moviesRow', -1)">&#10094;</button><div class="scroll-container" id="moviesRow"></div><button class="scroll-btn right" onclick="scrollRow('moviesRow', 1)">&#10095;</button></div></div>
+  <div id="tvSection"><h2 class="section-title">TV Shows</h2><div class="row-wrapper"><button class="scroll-btn left" onclick="scrollRow('tvRow', -1)">&#10094;</button><div class="scroll-container" id="tvRow"></div><button class="scroll-btn right" onclick="scrollRow('tvRow', 1)">&#10095;</button></div></div>
+  <div id="episodesSection" style="display:none; padding:20px;"><h2 class="section-title" id="episodesTitle"></h2><div class="grid" id="episodesGrid"></div></div>
+  <div id="netflixSection"><h2 class="section-title">Currently on Netflix</h2><div class="row-wrapper"><button class="scroll-btn left" onclick="scrollRow('netflixRow', -1)">&#10094;</button><div class="scroll-container" id="netflixRow"></div><button class="scroll-btn right" onclick="scrollRow('netflixRow', 1)">&#10095;</button></div></div>
+  <div id="searchResultsSection" style="display:none;"><h2 class="section-title">Search Results</h2><div class="grid" id="searchResultsGrid"></div></div>
+  <div class="modal" id="videoModal"><span class="close-btn" id="closeBtn">&times;</span><div class="modal-content"><iframe id="videoFrame" allow="fullscreen"></iframe><div class="movie-details" id="movieDetails"></div></div><button class="next-btn" id="nextBtn">Next Episode ➡</button></div>
+</div>
 
 <script>
-// ✅ Your existing JS with wishlist-related code completely removed
-// Includes: loadLibrary(), loadNetflixContent() but without add/remove buttons
-
 const API_URL = "YOUR_SCRIPT_URL"; // Replace with your Apps Script URL
+const modal = document.getElementById("videoModal");
+const closeBtn = document.getElementById("closeBtn");
+const videoFrame = document.getElementById("videoFrame");
+const detailsDiv = document.getElementById("movieDetails");
+const nextBtn = document.getElementById("nextBtn");
+const backBtn = document.getElementById("backBtn");
+const sectionTitle = document.getElementById("sectionTitle");
+const searchInput = document.getElementById("searchInput");
 
-// All your current JS logic for video modal, scrolling, search, etc.
-// Just REMOVE addToWishlist, removeFromWishlist, fetchWishlist, and their calls.
-// In Netflix section, REMOVE the "+" button in createCard for Netflix items.
+let currentEpisodes = [], currentIndex = -1, currentShowTitle = "", fullLibrary = [];
+
+window.onload = () => { if (localStorage.getItem("loggedIn") === "true") showApp(); };
+
+function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
+function createCard(item) {
+  const card = document.createElement("div");
+  card.classList.add("movie-card");
+  card.innerHTML = `<img src="${item.poster}" alt="${item.title}"><div class="movie-title">${item.title}</div>`;
+  card.addEventListener("click", () => { item.type === "movie" ? openVideo(item.episodes[0].url, item.title, false) : showEpisodes(item); });
+  return card;
+}
+function openVideo(url, title, isTV) {
+  modal.classList.add("active"); videoFrame.src = url;
+  detailsDiv.innerHTML = `<strong>${title}</strong>`;
+  nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
+  if (isTV) localStorage.setItem(`progress_${currentShowTitle}`, currentIndex);
+}
+function showEpisodes(show) {
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
+  document.getElementById("episodesSection").style.display = "block";
+  document.getElementById("episodesTitle").textContent = show.title;
+  const episodesGrid = document.getElementById("episodesGrid");
+  episodesGrid.innerHTML = "";
+  show.episodes.forEach((ep, index) => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    card.innerHTML = `<img src="${show.poster}" alt="${ep.title}"><div class="movie-title">${ep.title}</div>`;
+    card.addEventListener("click", () => { videoFrame.src = ep.url; modal.classList.add("active"); currentIndex = index; currentEpisodes = show.episodes; currentShowTitle = show.title; });
+    episodesGrid.appendChild(card);
+  });
+  backBtn.style.display = "inline-block";
+}
+backBtn.addEventListener("click", () => { document.getElementById("episodesSection").style.display = "none"; document.getElementById("moviesSection").style.display = "block"; document.getElementById("tvSection").style.display = "block"; backBtn.style.display = "none"; });
+closeBtn.addEventListener("click", () => { modal.classList.remove("active"); videoFrame.src = ""; });
+nextBtn.addEventListener("click", () => { if (currentIndex < currentEpisodes.length - 1) { currentIndex++; const ep = currentEpisodes[currentIndex]; openVideo(ep.url, ep.title, true); } });
+searchInput.addEventListener("input", e => { const query = e.target.value.toLowerCase(); if (query === "") { ["moviesSection","tvSection","netflixSection","continueSection"].forEach(id=>document.getElementById(id).style.display="block"); document.getElementById("searchResultsSection").style.display="none"; sectionTitle.textContent=""; } else { ["moviesSection","tvSection","netflixSection","continueSection"].forEach(id=>document.getElementById(id).style.display="none"); const filtered = fullLibrary.filter(item=>item.title.toLowerCase().includes(query)); sectionTitle.textContent="Search Results"; showSearchResults(filtered); document.getElementById("searchResultsSection").style.display="block"; } });
+function showSearchResults(list) { const container = document.getElementById("searchResultsGrid"); container.innerHTML = ""; list.forEach(item => container.appendChild(createCard(item))); }
+function scrollRow(id, dir) { document.getElementById(id).scrollBy({left: document.getElementById(id).offsetWidth * dir, behavior: "smooth"}); }
+async function loadLibrary() { const response = await fetch(API_URL); const data = await response.json(); fullLibrary = [...data.movies, ...data.tv]; shuffleArray(data.movies); shuffleArray(data.tv); render("moviesRow", data.movies); render("tvRow", data.tv); document.getElementById("loadingScreen").style.display="none"; }
+function render(id, list) { const container = document.getElementById(id); container.innerHTML=""; list.forEach(item => container.appendChild(createCard(item))); }
+async function loadNetflixContent() { const API_KEY = "YOUR_TMDB_KEY"; const netflixRow=document.getElementById("netflixRow"); netflixRow.innerHTML=""; let allContent=[]; for(let page=1;page<=2;page++){const movieEndpoint=`https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&page=${page}&api_key=${API_KEY}`; const tvEndpoint=`https://api.themoviedb.org/3/discover/tv?with_watch_providers=8&watch_region=US&page=${page}&api_key=${API_KEY}`; const [movieData,tvData]=await Promise.all([fetch(movieEndpoint).then(r=>r.json()),fetch(tvEndpoint).then(r=>r.json())]); allContent=allContent.concat(movieData.results,tvData.results);} shuffleArray(allContent); allContent.forEach(item=>{const card=document.createElement("div");card.classList.add("movie-card");const poster=item.poster_path?`https://image.tmdb.org/t/p/w500${item.poster_path}`:"https://via.placeholder.com/300x450?text=No+Image";const title=item.title||item.name;card.innerHTML=`<img src="${poster}" alt="${title}"><div class="movie-title">${title}</div>`;netflixRow.appendChild(card);}); }
+const APP_PASSWORD="YourSecretPassword"; function checkPassword(){if(document.getElementById("passwordInput").value===APP_PASSWORD){localStorage.setItem("loggedIn","true");showApp();}else{document.getElementById("errorMsg").style.display="block";}} function showApp(){document.getElementById("loginScreen").style.display="none";document.getElementById("appContent").style.display="block";loadLibrary();loadNetflixContent();} function logout(){localStorage.removeItem("loggedIn");document.getElementById("appContent").style.display="none";document.getElementById("loginScreen").style.display="flex";}
 </script>
-
 </body>
 </html>
