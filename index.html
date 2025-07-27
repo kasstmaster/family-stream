@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <title>RDMN+</title>
+
+  <!-- Google Fonts for Netflix-like styling -->
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 
 <style>
@@ -11,9 +13,10 @@
     background: #141414;
     color: #fff;
     margin: 0;
-    font-size: 22px;
+    font-size: 22px; /* Base font size for all text */
   }
 
+  /* HEADER */
   header {
     background: #000;
     width: 100%;
@@ -21,103 +24,233 @@
     text-align: center;
     position: relative;
   }
+  header img {
+    max-width: 450px; /* Larger logo */
+    height: auto;
+  }
 
-  header img { max-width: 450px; height: auto; }
-
+  /* LOGOUT BUTTON */
   .logout-btn {
-    position: absolute; right: 20px;
-    padding: 18px 36px; font-size: 26px;
-    background: #e50914; color: #fff;
-    border: none; border-radius: 8px;
-    cursor: pointer; font-weight: bold;
+    position: absolute;
+    right: 20px;
+    padding: 18px 36px; /* Bigger padding */
+    font-size: 26px; /* Bigger text */
+    background: #e50914;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .logout-btn:hover {
+    background: #f6121d;
   }
 
-  .logout-btn:hover { background: #f6121d; }
-
-  .search-bar { text-align: center; padding: 30px; }
+  /* SEARCH BAR */
+  .search-bar {
+    text-align: center;
+    padding: 30px;
+  }
   .search-bar input {
-    padding: 26px 24px; width: 95%; max-width: 750px;
-    font-size: 28px; border-radius: 12px; border: none;
+    padding: 26px 24px; /* Taller input */
+    width: 95%;
+    max-width: 750px;   /* Wider */
+    font-size: 28px;    /* Bigger text */
+    border-radius: 12px;
+    border: none;
   }
 
+  /* SECTION TITLE */
   #sectionTitle {
-    text-align: center; font-size: 70px; font-weight: bold;
-    margin-top: 25px; font-family: 'Bebas Neue', sans-serif;
+    text-align: center;
+    font-size: 70px;
+    font-weight: bold;
+    margin-top: 25px;
+    font-family: `Bebas Neue`, sans-serif;
     letter-spacing: 3px;
   }
 
+  /* GRID */
   .grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 30px; padding: 35px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 30px;
+    padding: 35px;
   }
 
+  /* MOVIE CARDS */
   .movie-card {
-    background: #1f1f1f; border-radius: 12px; overflow: hidden;
-    cursor: pointer; transition: transform 0.3s ease; width: 250px;
+    background: #1f1f1f;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    position: relative;
+    flex: 0 0 auto;
+    width: 250px;
   }
-
-  .movie-card:hover { transform: scale(1.08); }
-
+  .movie-card:hover {
+    transform: scale(1.08);
+  }
   .movie-card img {
-    width: 100%; height: 360px; object-fit: cover; display: block;
+    width: 100%;
+    height: 360px; /* Bigger posters */
+    object-fit: cover;
+    display: block;
+  }
+  .movie-title {
+    padding: 14px;
+    text-align: center;
+    font-size: 26px; /* Bigger text */
+    font-weight: bold;
   }
 
-  .movie-title { padding: 14px; text-align: center; font-size: 26px; font-weight: bold; }
-
-  button { font-size: 26px; padding: 18px 36px; border-radius: 10px; cursor: pointer; }
-  .back-btn, .next-btn {
-    background: #e50914; color: #fff; border: none;
+  /* BUTTONS (Global) */
+  button {
+    font-size: 26px;
+    padding: 18px 36px;
+    border-radius: 10px;
+    cursor: pointer;
   }
-  .next-btn:hover { background: #f6121d; }
+  .back-btn {
+    display: none;
+    margin: 20px 30px;
+    background: #e50914;
+    color: #fff;
+    border: none;
+  }
+  .next-btn {
+    display: none;
+    margin-top: 25px;
+    background: #e50914;
+    color: #fff;
+    border: none;
+    font-size: 26px;
+    border-radius: 10px;
+  }
+  .next-btn:hover {
+    background: #f6121d;
+  }
 
+  /* MODAL */
   .modal {
-    display: none; position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9);
-    justify-content: center; align-items: center; z-index: 1000; flex-direction: column;
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    flex-direction: column;
   }
-  .modal.active { display: flex; }
-
+  .modal.active {
+    display: flex;
+  }
   .modal-content {
-    background: #1f1f1f; padding: 25px; border-radius: 14px;
-    max-width: 95%; width: 1200px; position: relative;
+    background: #1f1f1f;
+    padding: 25px;
+    border-radius: 14px;
+    max-width: 95%;
+    width: 1200px;
+    position: relative;
   }
-
   .close-btn {
-    position: absolute; top: 20px; right: 25px;
-    font-size: 40px; cursor: pointer; color: #fff;
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    font-size: 40px;
+    cursor: pointer;
+    color: #fff;
+  }
+  iframe {
+    width: 100%;
+    height: 800px;
+    border: none;
+    border-radius: 12px;
+  }
+  .movie-details {
+    margin-top: 20px;
+    font-size: 24px;
+    color: #ccc;
   }
 
-  iframe { width: 100%; height: 800px; border: none; border-radius: 12px; }
+  /* SECTION TITLES */
+  .section-title {
+    font-size: 44px;
+    margin-left: 30px;
+    font-family: `Bebas Neue`, sans-serif;
+  }
 
-  .movie-details { margin-top: 20px; font-size: 24px; color: #ccc; }
-
-  .section-title { font-size: 44px; margin-left: 30px; font-family: 'Bebas Neue', sans-serif; }
-
+  /* SCROLL CONTAINERS */
   .scroll-container {
-    display: flex; gap: 25px; padding: 30px; overflow-x: auto; scroll-behavior: smooth;
+    display: flex;
+    gap: 25px;
+    padding: 30px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
   }
-  .scroll-container::-webkit-scrollbar { display: none; }
+  .scroll-container::-webkit-scrollbar {
+    display: none;
+  }
 
+  /* SCROLL BUTTONS */
+  .row-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
   .scroll-btn {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.7); color: white; font-size: 50px;
-    border: none; cursor: pointer; padding: 22px; border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 50px;
+    border: none;
+    cursor: pointer;
+    padding: 22px;
+    z-index: 10;
+    border-radius: 50%;
   }
-
-  /* Loading Spinner */
-  @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
+  .scroll-btn.left {
+    left: 15px;
+  }
+  .scroll-btn.right {
+    right: 15px;
+  }
+  .scroll-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
+  }
 </style>
 </head>
 <body>
   <!-- Loading Screen -->
-  <div id="loadingScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#141414;color:white;display:flex;justify-content:center;align-items:center;flex-direction:column;font-family:'Bebas Neue',sans-serif;font-size:40px;z-index:9999;">
+  <div id="loadingScreen" style="
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #141414; color: white;
+    display: flex; justify-content: center; align-items: center;
+    flex-direction: column; font-family: `Bebas Neue`, sans-serif;
+    font-size: 40px; z-index: 9999;">
     <p>Loading...</p>
-    <div class="loader" style="border:8px solid #333;border-top:8px solid #e50914;border-radius:50%;width:70px;height:70px;animation:spin 1s linear infinite;"></div>
+    <div class="loader" style="
+      border: 8px solid #333;
+      border-top: 8px solid #e50914;
+      border-radius: 50%;
+      width: 70px; height: 70px;
+      animation: spin 1s linear infinite;"></div>
   </div>
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 
   <!-- Login Screen -->
   <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;color:white;flex-direction:column;">
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;">Enter Password</h2>
+    <h2 style="font-family:`Bebas Neue`,sans-serif;font-size:32px;">Enter Password</h2>
     <input type="password" id="passwordInput" placeholder="Password" style="padding:10px;font-size:16px;border-radius:5px;border:none;margin-top:10px;">
     <button onclick="checkPassword()" style="margin-top:10px;padding:10px 20px;font-size:18px;background:#e50914;color:white;border:none;border-radius:5px;cursor:pointer;">Login</button>
     <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Incorrect password</p>
@@ -132,52 +265,62 @@
       </div>
     </header>
 
-    <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..." /></div>
-    <div id="sectionTitle"></div>
-    <button class="back-btn" id="backBtn" style="display:none;">⬅ Back</button>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search movies or shows..." />
+    </div>
 
+    <div id="sectionTitle"></div>
+    <button class="back-btn" id="backBtn">⬅ Back</button>
+
+    <!-- Continue Watching -->
     <div id="continueSection" style="display:none;">
       <h2 class="section-title">Continue Watching</h2>
       <div class="scroll-container" id="continueRow"></div>
     </div>
 
+    <!-- Movies -->
     <div id="moviesSection">
       <h2 class="section-title">Movies</h2>
       <div class="row-wrapper">
-        <button class="scroll-btn" onclick="scrollRow('moviesRow', -1)">&#10094;</button>
+        <button class="scroll-btn left" onclick="scrollRow(`moviesRow`, -1)">&#10094;</button>
         <div class="scroll-container" id="moviesRow"></div>
-        <button class="scroll-btn" onclick="scrollRow('moviesRow', 1)">&#10095;</button>
+        <button class="scroll-btn right" onclick="scrollRow(`moviesRow`, 1)">&#10095;</button>
       </div>
     </div>
 
+    <!-- TV -->
     <div id="tvSection">
       <h2 class="section-title">TV Shows</h2>
       <div class="row-wrapper">
-        <button class="scroll-btn" onclick="scrollRow('tvRow', -1)">&#10094;</button>
+        <button class="scroll-btn left" onclick="scrollRow(`tvRow`, -1)">&#10094;</button>
         <div class="scroll-container" id="tvRow"></div>
-        <button class="scroll-btn" onclick="scrollRow('tvRow', 1)">&#10095;</button>
+        <button class="scroll-btn right" onclick="scrollRow(`tvRow`, 1)">&#10095;</button>
       </div>
     </div>
 
-    <div id="episodesSection" style="display:none;padding:20px;">
+    <!-- Episodes -->
+    <div id="episodesSection" style="display:none; padding:20px;">
       <h2 class="section-title" id="episodesTitle"></h2>
       <div class="grid" id="episodesGrid"></div>
     </div>
 
+    <!-- Netflix -->
     <div id="netflixSection">
       <h2 class="section-title">Currently on Netflix</h2>
       <div class="row-wrapper">
-        <button class="scroll-btn" onclick="scrollRow('netflixRow', -1)">&#10094;</button>
+        <button class="scroll-btn left" onclick="scrollRow(`netflixRow`, -1)">&#10094;</button>
         <div class="scroll-container" id="netflixRow"></div>
-        <button class="scroll-btn" onclick="scrollRow('netflixRow', 1)">&#10095;</button>
+        <button class="scroll-btn right" onclick="scrollRow(`netflixRow`, 1)">&#10095;</button>
       </div>
     </div>
 
+    <!-- Search Results -->
     <div id="searchResultsSection" style="display:none;">
       <h2 class="section-title">Search Results</h2>
       <div class="grid" id="searchResultsGrid"></div>
     </div>
 
+    <!-- Modal -->
     <div class="modal" id="videoModal">
       <span class="close-btn" id="closeBtn">&times;</span>
       <div class="modal-content">
@@ -190,132 +333,310 @@
 
 <script>
 window.onload = () => {
-  if (localStorage.getItem("loggedIn") === "true") showApp();
+  if (localStorage.getItem("loggedIn") === "true") {
+    showApp();
+  }
 };
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec"; // Your Google Apps Script URL
-const APP_PASSWORD = "YourSecretPassword"; // Change this
-const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // TMDB API Key
+const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
 
+const movieGrid = document.getElementById("movieGrid");
 const modal = document.getElementById("videoModal");
 const closeBtn = document.getElementById("closeBtn");
 const detailsDiv = document.getElementById("movieDetails");
 const videoFrame = document.getElementById("videoFrame");
 const backBtn = document.getElementById("backBtn");
 const nextBtn = document.getElementById("nextBtn");
-const searchInput = document.getElementById("searchInput");
 const sectionTitle = document.getElementById("sectionTitle");
+const searchInput = document.getElementById("searchInput");
 
-let fullLibrary = [], currentEpisodes = [], currentIndex = -1, currentShowTitle = "";
+let currentView = "main";
+let currentEpisodes = [];
+let currentIndex = -1;
+let currentShowTitle = "";
+let fullLibrary = []; // ✅ Store all movies/TV here
 
-function shuffleArray(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}}
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
 
-function createCard(item){
-  const card=document.createElement("div");
+function renderMovies(movies) {
+  const moviesRow = document.getElementById("moviesRow");
+  moviesRow.innerHTML = "";
+  movies.forEach(item => {
+    const card = createCard(item);
+    moviesRow.appendChild(card);
+  });
+}
+
+function renderTV(tvShows) {
+  const tvRow = document.getElementById("tvRow");
+  tvRow.innerHTML = "";
+  tvShows.forEach(item => {
+    const card = createCard(item);
+    tvRow.appendChild(card);
+  });
+}
+
+function createCard(item) {
+  const card = document.createElement("div");
   card.classList.add("movie-card");
-  card.innerHTML=`<img src="${item.poster}" alt="${item.title}"><div class="movie-title">${item.title}</div>`;
-  card.addEventListener("click",()=>item.type==="movie"?openVideo(item.episodes[0].url,item.title,"","",false):showEpisodes(item));
+  card.innerHTML = `
+    <img src="${item.poster}" alt="${item.title}">
+    <div class="movie-title">${item.title}</div>
+  `;
+  card.addEventListener("click", () => {
+    if (item.type === "movie") {
+      openVideo(item.episodes[0].url, item.title, "", "", false);
+    } else {
+      showEpisodes(item);
+    }
+  });
   return card;
 }
 
-function renderMovies(movies){const moviesRow=document.getElementById("moviesRow");moviesRow.innerHTML="";movies.forEach(i=>moviesRow.appendChild(createCard(i)));}
+function showEpisodes(show) {
+  // Hide Movies and TV sections
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
 
-function renderTV(tvShows){const tvRow=document.getElementById("tvRow");tvRow.innerHTML="";tvShows.forEach(i=>tvRow.appendChild(createCard(i)));}
+  // Show Episodes section
+  document.getElementById("episodesSection").style.display = "block";
 
-function showEpisodes(show){
-  document.getElementById("moviesSection").style.display="none";
-  document.getElementById("tvSection").style.display="none";
-  document.getElementById("episodesSection").style.display="block";
-  document.getElementById("episodesTitle").textContent=show.title;
-  const episodesGrid=document.getElementById("episodesGrid");episodesGrid.innerHTML="";
-  show.episodes.forEach((ep,index)=>{
-    const card=document.createElement("div");
+  // Set the title
+  document.getElementById("episodesTitle").textContent = show.title;
+
+  // Fill episodes grid
+  const episodesGrid = document.getElementById("episodesGrid");
+  episodesGrid.innerHTML = "";
+
+  show.episodes.forEach((ep, index) => {
+    const card = document.createElement("div");
     card.classList.add("movie-card");
-    card.innerHTML=`<img src="${show.poster}" alt="${ep.title}"><div class="movie-title">${ep.title}</div>`;
-    card.addEventListener("click",()=>{
-      videoFrame.src=ep.url;
-      detailsDiv.innerHTML=`<strong>${show.title} - ${ep.title}</strong>`;
+    card.innerHTML = `
+      <img src="${show.poster}" alt="${ep.title}">
+      <div class="movie-title">${ep.title}</div>
+    `;
+    card.addEventListener("click", () => {
+      // Open the video directly in iframe
+      videoFrame.src = ep.url;
+      detailsDiv.innerHTML = `<strong>${show.title} - ${ep.title}</strong>`;
       modal.classList.add("active");
-      currentIndex=index;currentEpisodes=show.episodes;currentShowTitle=show.title;
+      currentIndex = index;
+      currentEpisodes = show.episodes;
+      currentShowTitle = show.title;
     });
     episodesGrid.appendChild(card);
   });
-  backBtn.style.display="inline-block";
+
+  // Show Back button to return to main layout
+  backBtn.style.display = "inline-block";
 }
 
-function openVideo(url,title,year,description,isTV){
-  modal.classList.add("active");videoFrame.src=url;
-  detailsDiv.innerHTML=`<strong>${title}</strong><br>${description||""}`;
-  nextBtn.style.display=isTV&&currentIndex<currentEpisodes.length-1?"block":"none";
-  if(isTV)localStorage.setItem(`progress_${currentShowTitle}`,currentIndex);
+function openVideo(url, title, year, description, isTV) {
+  console.log("Opening video:", url);
+  modal.classList.add("active");
+  videoFrame.src = url;
+  detailsDiv.innerHTML = `<strong>${title}</strong><br>${description || ""}`;
+  nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
+
+  if (isTV) {
+    localStorage.setItem(`progress_${currentShowTitle}`, currentIndex);
+  }
 }
 
-nextBtn.addEventListener("click",()=>{if(currentIndex<currentEpisodes.length-1){currentIndex++;const ep=currentEpisodes[currentIndex];openVideo(ep.url,ep.title,"","",true);}});
-closeBtn.addEventListener("click",()=>{modal.classList.remove("active");videoFrame.src="";});
-backBtn.addEventListener("click",()=>{document.getElementById("episodesSection").style.display="none";document.getElementById("moviesSection").style.display="block";document.getElementById("tvSection").style.display="block";backBtn.style.display="none";});
+nextBtn.addEventListener("click", () => {
+  if (currentIndex < currentEpisodes.length - 1) {
+    currentIndex++;
+    const ep = currentEpisodes[currentIndex];
+    openVideo(ep.url, ep.title, "", "", true);
+  }
+});
 
-searchInput.addEventListener("input",e=>{
-  const query=e.target.value.toLowerCase();
-  if(query===""){document.getElementById("moviesSection").style.display="block";document.getElementById("tvSection").style.display="block";document.getElementById("netflixSection").style.display="block";document.getElementById("continueSection").style.display="block";sectionTitle.textContent="";document.getElementById("searchResultsSection").style.display="none";}
-  else{document.getElementById("moviesSection").style.display="none";document.getElementById("tvSection").style.display="none";document.getElementById("netflixSection").style.display="none";document.getElementById("continueSection").style.display="none";const filtered=fullLibrary.filter(i=>i.title.toLowerCase().includes(query));sectionTitle.textContent="Search Results";const container=document.getElementById("searchResultsGrid");container.innerHTML="";filtered.forEach(i=>container.appendChild(createCard(i)));document.getElementById("searchResultsSection").style.display="block";}});
+closeBtn.addEventListener("click", () => {
+  modal.classList.remove("active");
+  videoFrame.src = "";
+});
 
-function scrollRow(rowId,direction){const container=document.getElementById(rowId);container.scrollBy({left:container.offsetWidth*direction,behavior:"smooth"});}
+backBtn.addEventListener("click", () => {
+  document.getElementById("episodesSection").style.display = "none";
+  document.getElementById("moviesSection").style.display = "block";
+  document.getElementById("tvSection").style.display = "block";
+  backBtn.style.display = "none";
+});
 
-function renderContinueWatching(){const continueRow=document.getElementById("continueRow");continueRow.innerHTML="";const keys=Object.keys(localStorage).filter(k=>k.startsWith("progress_"));if(keys.length===0){document.getElementById("continueSection").style.display="none";return;}const items=[];keys.forEach(k=>{const title=k.replace("progress_","");const item=fullLibrary.find(i=>i.title===title);if(item)items.push(item);});if(items.length>0){document.getElementById("continueSection").style.display="block";items.forEach(i=>continueRow.appendChild(createCard(i)));}else{document.getElementById("continueSection").style.display="none";}}
+// ✅ Instant Search
+searchInput.addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
 
-function checkPassword(){const input=document.getElementById("passwordInput").value;if(input===APP_PASSWORD){localStorage.setItem("loggedIn","true");showApp();}else{document.getElementById("errorMsg").style.display="block";}}
-function showApp(){document.getElementById("loginScreen").style.display="none";document.getElementById("appContent").style.display="block";}
-function logout(){localStorage.removeItem("loggedIn");document.getElementById("appContent").style.display="none";document.getElementById("loginScreen").style.display="flex";}
+  if (query === "") {
+    // ✅ Restore all sections when search is empty
+    document.getElementById("moviesSection").style.display = "block";
+    document.getElementById("tvSection").style.display = "block";
+    document.getElementById("netflixSection").style.display = "block";
+    document.getElementById("continueSection").style.display = "block";
+    sectionTitle.textContent = "";
+    document.getElementById("searchResultsSection").style.display = "none";
+  } else {
+    // ✅ Hide everything else
+    document.getElementById("moviesSection").style.display = "none";
+    document.getElementById("tvSection").style.display = "none";
+    document.getElementById("netflixSection").style.display = "none";
+    document.getElementById("continueSection").style.display = "none";
 
-async function loadLibrary(){
-  try{
-    const response=await fetch(API_URL);
-    const data=await response.json();
-    fullLibrary=[...data.movies,...data.tv];
-    shuffleArray(data.movies);
-    shuffleArray(data.tv);
-    renderMovies(data.movies);
-    renderTV(data.tv);
-    renderContinueWatching();
-  }catch(err){console.error("Library fetch failed:",err);}
-  checkIfLoadingComplete();
+    // ✅ Show Search Results
+    const filtered = fullLibrary.filter(item =>
+      item.title.toLowerCase().includes(query)
+    );
+    sectionTitle.textContent = "Search Results";
+    showSearchResults(filtered);
+    document.getElementById("searchResultsSection").style.display = "block";
+  }
+});
+
+function showSearchResults(list) {
+  const container = document.getElementById("searchResultsGrid");
+  container.innerHTML = "";
+  list.forEach(item => {
+    const card = createCard(item);
+    container.appendChild(card);
+  });
 }
 
-async function loadNetflixContent(){
-  try{
-    const netflixRow=document.getElementById("netflixRow");
-    netflixRow.innerHTML="";
-    let allContent=[];
-    for(let page=1;page<=2;page++){
-      const movieEndpoint=`https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
-      const movieResponse=await fetch(movieEndpoint);
-      const movieData=await movieResponse.json();
-      allContent=allContent.concat(movieData.results);
-    }
-    shuffleArray(allContent);
-    allContent.forEach(item=>{
-      const card=document.createElement("div");
-      card.classList.add("movie-card");
-      const poster=item.poster_path?`https://image.tmdb.org/t/p/w500${item.poster_path}`:"https://via.placeholder.com/300x450?text=No+Image";
-      const title=item.title||item.name;
-      card.innerHTML=`<img src="${poster}" alt="${title}"><div class="movie-title">${title}</div>`;
-      netflixRow.appendChild(card);
+function scrollRow(rowId, direction) {
+  const container = document.getElementById(rowId);
+  const scrollAmount = container.offsetWidth; // Scroll by one row width
+  container.scrollBy({
+    left: scrollAmount * direction,
+    behavior: "smooth"
+  });
+}
+
+function renderContinueWatching() {
+  const continueRow = document.getElementById("continueRow");
+  continueRow.innerHTML = "";
+
+  const keys = Object.keys(localStorage).filter(key => key.startsWith("progress_"));
+  if (keys.length === 0) {
+    document.getElementById("continueSection").style.display = "none";
+    return;
+  }
+
+  // Find matching items in fullLibrary
+  const items = [];
+  keys.forEach(key => {
+    const title = key.replace("progress_", "");
+    const item = fullLibrary.find(i => i.title === title);
+    if (item) items.push(item);
+  });
+
+  if (items.length > 0) {
+    document.getElementById("continueSection").style.display = "block";
+    items.forEach(item => {
+      const card = createCard(item);
+      continueRow.appendChild(card);
     });
-  }catch(err){console.error("Netflix fetch failed:",err);}
-  checkIfLoadingComplete();
+  } else {
+    document.getElementById("continueSection").style.display = "none";
+  }
 }
 
-let loadingCompleted=0;
-function checkIfLoadingComplete(){
+// ✅ App password (change this to your desired password)
+const APP_PASSWORD = "YourSecretPassword";
+
+function checkPassword() {
+  const input = document.getElementById("passwordInput").value;
+  if (input === APP_PASSWORD) {
+    localStorage.setItem("loggedIn", "true"); // ✅ Save login state
+    showApp();
+  } else {
+    document.getElementById("errorMsg").style.display = "block";
+  }
+}
+
+function showApp() {
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("appContent").style.display = "block";
+}
+  
+function logout() {
+  localStorage.removeItem("loggedIn");
+  document.getElementById("appContent").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+}
+
+async function loadLibrary() {
+  const response = await fetch(API_URL);
+  const data = await response.json();
+  fullLibrary = [...data.movies, ...data.tv];
+
+  shuffleArray(data.movies);
+  shuffleArray(data.tv);
+
+  renderMovies(data.movies);
+  renderTV(data.tv);
+  renderContinueWatching();
+
+  checkIfLoadingComplete(); // ✅ NEW
+}
+
+async function loadNetflixContent() {
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Replace with TMDb key
+  const netflixRow = document.getElementById("netflixRow");
+  netflixRow.innerHTML = "";
+
+  let allContent = [];
+
+  for (let page = 1; page <= 3; page++) {
+    const movieEndpoint = https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY};
+    const movieResponse = await fetch(movieEndpoint);
+    const movieData = await movieResponse.json();
+    allContent = allContent.concat(movieData.results);
+  }
+
+  for (let page = 1; page <= 3; page++) {
+    const tvEndpoint = https://api.themoviedb.org/3/discover/tv?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY};
+    const tvResponse = await fetch(tvEndpoint);
+    const tvData = await tvResponse.json();
+    allContent = allContent.concat(tvData.results);
+  }
+
+  shuffleArray(allContent);
+
+  allContent.forEach(item => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    const poster = item.poster_path
+      ? https://image.tmdb.org/t/p/w500${item.poster_path}
+      : "https://via.placeholder.com/300x450?text=No+Image";
+    const title = item.title || item.name;
+    
+    card.innerHTML = 
+      <img src="${poster}" alt="${title}">
+      <div class="movie-title">${title}</div>
+    ;
+  
+    netflixRow.appendChild(card);
+  });
+
+  checkIfLoadingComplete(); // ✅ NEW
+}
+  
+// ✅ Function to hide loading screen after everything loads
+let loadingCompleted = 0;
+function checkIfLoadingComplete() {
   loadingCompleted++;
-  if(loadingCompleted===2)document.getElementById("loadingScreen").style.display="none";
+  if (loadingCompleted === 2) { // Both library + Netflix loaded
+    document.getElementById("loadingScreen").style.display = "none";
+  }
 }
-
-// ✅ Fallback: Hide loader after 10s no matter what
-setTimeout(()=>{document.getElementById("loadingScreen").style.display="none";},10000);
 
 loadLibrary();
 loadNetflixContent();
 </script>
+
 </body>
 </html>
