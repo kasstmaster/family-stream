@@ -304,13 +304,16 @@
       <div class="grid" id="episodesGrid"></div>
     </div>
 
-    <!-- Netflix -->
+    <!-- Netflix Section -->
     <div id="netflixSection">
-      <h2 class="section-title">Currently on Netflix</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 30px;">
+        <h2 class="section-title">Currently on Netflix</h2>
+        <button id="refreshNetflix" style="background:#e50914;color:white;border:none;border-radius:8px;padding:10px 20px;font-size:20px;cursor:pointer;">
+          Refresh ↻
+        </button>
+      </div>
       <div class="row-wrapper">
-        <button class="scroll-btn left" onclick="scrollRow(`netflixRow`, -1)">&#10094;</button>
         <div class="scroll-container" id="netflixRow"></div>
-        <button class="scroll-btn right" onclick="scrollRow(`netflixRow`, 1)">&#10095;</button>
       </div>
     </div>
 
@@ -579,34 +582,28 @@ async function loadLibrary() {
   renderMovies(data.movies);
   renderTV(data.tv);
   renderContinueWatching();
-
-  checkIfLoadingComplete(); // ✅ NEW
+// ✅ Hide loading screen
+document.getElementById("loadingScreen").style.display = "none";
 }
 
 async function loadNetflixContent() {
-  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Replace with TMDb key
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Your TMDb key
   const netflixRow = document.getElementById("netflixRow");
-  netflixRow.innerHTML = "";
+  netflixRow.innerHTML = ""; // Clear previous content
 
-  let allContent = [];
+  // Fetch ONE random page of Netflix movies
+  const randomPage = Math.floor(Math.random() * 10) + 1; // Pages 1–10
+  const movieEndpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${randomPage}&api_key=${API_KEY}`;
+  
+  const movieResponse = await fetch(movieEndpoint);
+  const movieData = await movieResponse.json();
+  const allMovies = movieData.results;
 
-  for (let page = 1; page <= 3; page++) {
-    const movieEndpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
-    const movieResponse = await fetch(movieEndpoint);
-    const movieData = await movieResponse.json();
-    allContent = allContent.concat(movieData.results);
-  }
+  // Pick 4 random items
+  const randomMovies = allMovies.sort(() => 0.5 - Math.random()).slice(0, 4);
 
-  for (let page = 1; page <= 3; page++) {
-    const tvEndpoint = `https://api.themoviedb.org/3/discover/tv?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
-    const tvResponse = await fetch(tvEndpoint);
-    const tvData = await tvResponse.json();
-    allContent = allContent.concat(tvData.results);
-  }
-
-  shuffleArray(allContent);
-
-  allContent.forEach(item => {
+  // Render only 4 cards
+  randomMovies.forEach(item => {
     const card = document.createElement("div");
     card.classList.add("movie-card");
     const poster = item.poster_path
@@ -621,18 +618,9 @@ async function loadNetflixContent() {
 
     netflixRow.appendChild(card);
   });
+}
 
-  checkIfLoadingComplete();
-}
-  
-// ✅ Function to hide loading screen after everything loads
-let loadingCompleted = 0;
-function checkIfLoadingComplete() {
-  loadingCompleted++;
-  if (loadingCompleted === 2) { // Both library + Netflix loaded
-    document.getElementById("loadingScreen").style.display = "none";
-  }
-}
+document.getElementById("refreshNetflix").addEventListener("click", loadNetflixContent);
 
 loadLibrary();
 loadNetflixContent();
