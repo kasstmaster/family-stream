@@ -515,6 +515,18 @@ async function loadNetflixContent() {
   });
 }
 
+const APP_PASSWORD = "YourSecretPassword"; // Change this to your chosen password
+
+function checkPassword() {
+  const input = document.getElementById("passwordInput").value;
+  if (input === APP_PASSWORD) {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+  } else {
+    document.getElementById("errorMsg").style.display = "block";
+  }
+}
+
 loadNetflixContent();
 loadLibrary();
 </script>
