@@ -248,6 +248,16 @@
     <div class="grid" id="episodesGrid"></div>
   </div>
 
+  <!-- Netflix Grid -->
+  <div id="netflixSection">
+    <h2 class="section-title">Currently on Netflix</h2>
+    <div class="row-wrapper">
+      <button class="scroll-btn left" onclick="scrollRow('netflixRow', -1)">&#10094;</button>
+      <div class="scroll-container" id="netflixRow"></div>
+      <button class="scroll-btn right" onclick="scrollRow('netflixRow', 1)">&#10095;</button>
+    </div>
+  </div>
+
   <!-- Modal -->
   <div class="modal" id="videoModal">
     <span class="close-btn" id="closeBtn">&times;</span>
@@ -474,7 +484,30 @@ function renderContinueWatching() {
   }
 }
 
+async function loadNetflixContent() {
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Replace with your TMDb key
+  const endpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&api_key=${API_KEY}`;
+  
+  const response = await fetch(endpoint);
+  const data = await response.json();
+  const netflixRow = document.getElementById("netflixRow");
+  netflixRow.innerHTML = "";
 
+  data.results.forEach(movie => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    const poster = movie.poster_path 
+      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+      : "https://via.placeholder.com/300x450?text=No+Image";
+    card.innerHTML = `
+      <img src="${poster}" alt="${movie.title}">
+      <div class="movie-title">${movie.title}</div>
+    `;
+    netflixRow.appendChild(card);
+  });
+}
+
+loadNetflixContent();
 loadLibrary();
 </script>
 
