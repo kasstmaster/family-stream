@@ -425,9 +425,9 @@ function createCard(item) {
   const card = document.createElement("div");
   card.classList.add("movie-card");
   card.innerHTML = `
-    <img src="${poster}" alt="${title}">
-    <div class="movie-title">${title}</div>
-    <button class="add-btn" onclick="addToWishlist('${encodeURIComponent(title)}','${poster}')">+</button>
+    <img src="${item.poster}" alt="${item.title}">
+    <div class="movie-title">${item.title}</div>
+    <button class="add-btn" onclick="addToWishlist('${encodeURIComponent(item.title)}','${item.poster}')">+</button>
   `;
   card.addEventListener("click", () => {
     if (item.type === "movie") {
@@ -664,25 +664,29 @@ async function loadNetflixContent() {
   checkIfLoadingComplete(); // ✅ NEW
 }
 
-function addToWishlist(title, poster) {
-  // Decode title
+async function addToWishlist(title, poster) {
   title = decodeURIComponent(title);
 
-  // Get current wishlist from localStorage
-  let wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "addToWishlist",
+      title: title,
+      poster: poster
+    })
+  });
 
-  // Avoid duplicates
-  if (!wishlist.some(item => item.title === title)) {
-    wishlist.push({ title, poster });
-    localStorage.setItem("wishlist", JSON.stringify(wishlist));
-    renderWishlist();
-  }
+  const result = await response.json();
+  console.log(result.message);
+  fetchWishlist(); // Refresh the wishlist after adding
 }
 
-function renderWishlist() {
-  const wishlistRow = document.getElementById("wishlistRow");
-  const wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+async function fetchWishlist() {
+  const response = await fetch(`${API_URL}?action=getWishlist`);
+  const wishlist = await response.json();
 
+  const wishlistRow = document.getElementById("wishlistRow");
   wishlistRow.innerHTML = "";
 
   if (wishlist.length === 0) {
@@ -704,8 +708,8 @@ function renderWishlist() {
 }
 
 // Render wishlist on load
-renderWishlist();
-
+fetchWishlist();
+  
 // ✅ Function to hide loading screen after everything loads
 let loadingCompleted = 0;
 function checkIfLoadingComplete() {
