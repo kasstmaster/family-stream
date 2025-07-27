@@ -427,7 +427,6 @@ function createCard(item) {
   card.innerHTML = `
     <img src="${item.poster}" alt="${item.title}">
     <div class="movie-title">${item.title}</div>
-    <button class="add-btn" onclick="addToWishlist('${encodeURIComponent(item.title)}','${item.poster}')">+</button>
   `;
   card.addEventListener("click", () => {
     if (item.type === "movie") {
