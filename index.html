@@ -193,7 +193,7 @@ window.onload = () => {
   if (localStorage.getItem("loggedIn") === "true") showApp();
 };
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec"; // Your Google Apps Script URL
 const APP_PASSWORD = "YourSecretPassword"; // Change this
 const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // TMDB API Key
 
@@ -267,12 +267,55 @@ function checkPassword(){const input=document.getElementById("passwordInput").va
 function showApp(){document.getElementById("loginScreen").style.display="none";document.getElementById("appContent").style.display="block";}
 function logout(){localStorage.removeItem("loggedIn");document.getElementById("appContent").style.display="none";document.getElementById("loginScreen").style.display="flex";}
 
-async function loadLibrary(){const response=await fetch(API_URL);const data=await response.json();fullLibrary=[...data.movies,...data.tv];shuffleArray(data.movies);shuffleArray(data.tv);renderMovies(data.movies);renderTV(data.tv);renderContinueWatching();checkIfLoadingComplete();}
+async function loadLibrary(){
+  try{
+    const response=await fetch(API_URL);
+    const data=await response.json();
+    fullLibrary=[...data.movies,...data.tv];
+    shuffleArray(data.movies);
+    shuffleArray(data.tv);
+    renderMovies(data.movies);
+    renderTV(data.tv);
+    renderContinueWatching();
+  }catch(err){console.error("Library fetch failed:",err);}
+  checkIfLoadingComplete();
+}
 
-async function loadNetflixContent(){const netflixRow=document.getElementById("netflixRow");netflixRow.innerHTML="";let allContent=[];for(let page=1;page<=3;page++){const movieEndpoint=`https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;const movieResponse=await fetch(movieEndpoint);const movieData=await movieResponse.json();allContent=allContent.concat(movieData.results);}for(let page=1;page<=3;page++){const tvEndpoint=`https://api.themoviedb.org/3/discover/tv?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;const tvResponse=await fetch(tvEndpoint);const tvData=await tvResponse.json();allContent=allContent.concat(tvData.results);}shuffleArray(allContent);allContent.forEach(item=>{const card=document.createElement("div");card.classList.add("movie-card");const poster=item.poster_path?`https://image.tmdb.org/t/p/w500${item.poster_path}`:"https://via.placeholder.com/300x450?text=No+Image";const title=item.title||item.name;card.innerHTML=`<img src="${poster}" alt="${title}"><div class="movie-title">${title}</div>`;netflixRow.appendChild(card);});checkIfLoadingComplete();}
+async function loadNetflixContent(){
+  try{
+    const netflixRow=document.getElementById("netflixRow");
+    netflixRow.innerHTML="";
+    let allContent=[];
+    for(let page=1;page<=2;page++){
+      const movieEndpoint=`https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
+      const movieResponse=await fetch(movieEndpoint);
+      const movieData=await movieResponse.json();
+      allContent=allContent.concat(movieData.results);
+    }
+    shuffleArray(allContent);
+    allContent.forEach(item=>{
+      const card=document.createElement("div");
+      card.classList.add("movie-card");
+      const poster=item.poster_path?`https://image.tmdb.org/t/p/w500${item.poster_path}`:"https://via.placeholder.com/300x450?text=No+Image";
+      const title=item.title||item.name;
+      card.innerHTML=`<img src="${poster}" alt="${title}"><div class="movie-title">${title}</div>`;
+      netflixRow.appendChild(card);
+    });
+  }catch(err){console.error("Netflix fetch failed:",err);}
+  checkIfLoadingComplete();
+}
 
-let loadingCompleted=0;function checkIfLoadingComplete(){loadingCompleted++;if(loadingCompleted===2)document.getElementById("loadingScreen").style.display="none";}
-loadLibrary();loadNetflixContent();
+let loadingCompleted=0;
+function checkIfLoadingComplete(){
+  loadingCompleted++;
+  if(loadingCompleted===2)document.getElementById("loadingScreen").style.display="none";
+}
+
+// ✅ Fallback: Hide loader after 10s no matter what
+setTimeout(()=>{document.getElementById("loadingScreen").style.display="none";},10000);
+
+loadLibrary();
+loadNetflixContent();
 </script>
 </body>
 </html>
