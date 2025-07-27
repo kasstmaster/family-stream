@@ -210,9 +210,15 @@
   </div>
   <div id="appContent" style="display:none;">
   
-  <header>
-    <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" />
-  </header>
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:1200px;margin:0 auto;padding:0 20px;">
+    <div></div> <!-- Empty div to balance flex layout -->
+    <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" style="max-width:300px;height:auto;" />
+    <button onclick="logout()" style="padding:8px 16px;background:#e50914;color:#fff;border:none;border-radius:5px;cursor:pointer;">
+      Logout
+    </button>
+  </div>
+</header>
   
   <!-- Search Bar -->
   <div class="search-bar">
@@ -277,6 +283,12 @@
   </div>
 </div>
 <script>
+window.onload = () => {
+  if (localStorage.getItem("loggedIn") === "true") {
+    showApp();
+  }
+};
+
 const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
 
 const movieGrid = document.getElementById("movieGrid");
@@ -515,16 +527,27 @@ async function loadNetflixContent() {
   });
 }
 
-const APP_PASSWORD = "YourSecretPassword"; // Change this to your chosen password
+const APP_PASSWORD = "YourSecretPassword"; // Change this
 
 function checkPassword() {
   const input = document.getElementById("passwordInput").value;
   if (input === APP_PASSWORD) {
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("appContent").style.display = "block";
+    localStorage.setItem("loggedIn", "true"); // ✅ Save login state
+    showApp();
   } else {
     document.getElementById("errorMsg").style.display = "block";
   }
+}
+
+function showApp() {
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("appContent").style.display = "block";
+}
+  
+function logout() {
+  localStorage.removeItem("loggedIn");
+  document.getElementById("appContent").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
 }
 
 loadNetflixContent();
