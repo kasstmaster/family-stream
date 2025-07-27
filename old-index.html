@@ -66,7 +66,7 @@
     font-size: 70px;
     font-weight: bold;
     margin-top: 25px;
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: `Bebas Neue`, sans-serif;
     letter-spacing: 3px;
   }
 
@@ -179,7 +179,7 @@
   .section-title {
     font-size: 44px;
     margin-left: 30px;
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: `Bebas Neue`, sans-serif;
   }
 
   /* SCROLL CONTAINERS */
@@ -231,7 +231,7 @@
     width: 100%; height: 100%;
     background: #141414; color: white;
     display: flex; justify-content: center; align-items: center;
-    flex-direction: column; font-family: 'Bebas Neue', sans-serif;
+    flex-direction: column; font-family: `Bebas Neue`, sans-serif;
     font-size: 40px; z-index: 9999;">
     <p>Loading...</p>
     <div class="loader" style="
@@ -250,7 +250,7 @@
 
   <!-- Login Screen -->
   <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;color:white;flex-direction:column;">
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;">Enter Password</h2>
+    <h2 style="font-family:`Bebas Neue`,sans-serif;font-size:32px;">Enter Password</h2>
     <input type="password" id="passwordInput" placeholder="Password" style="padding:10px;font-size:16px;border-radius:5px;border:none;margin-top:10px;">
     <button onclick="checkPassword()" style="margin-top:10px;padding:10px 20px;font-size:18px;background:#e50914;color:white;border:none;border-radius:5px;cursor:pointer;">Login</button>
     <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Incorrect password</p>
@@ -282,9 +282,9 @@
     <div id="moviesSection">
       <h2 class="section-title">Movies</h2>
       <div class="row-wrapper">
-        <button class="scroll-btn left" onclick="scrollRow('moviesRow', -1)">&#10094;</button>
+        <button class="scroll-btn left" onclick="scrollRow(`moviesRow`, -1)">&#10094;</button>
         <div class="scroll-container" id="moviesRow"></div>
-        <button class="scroll-btn right" onclick="scrollRow('moviesRow', 1)">&#10095;</button>
+        <button class="scroll-btn right" onclick="scrollRow(`moviesRow`, 1)">&#10095;</button>
       </div>
     </div>
 
@@ -292,9 +292,9 @@
     <div id="tvSection">
       <h2 class="section-title">TV Shows</h2>
       <div class="row-wrapper">
-        <button class="scroll-btn left" onclick="scrollRow('tvRow', -1)">&#10094;</button>
+        <button class="scroll-btn left" onclick="scrollRow(`tvRow`, -1)">&#10094;</button>
         <div class="scroll-container" id="tvRow"></div>
-        <button class="scroll-btn right" onclick="scrollRow('tvRow', 1)">&#10095;</button>
+        <button class="scroll-btn right" onclick="scrollRow(`tvRow`, 1)">&#10095;</button>
       </div>
     </div>
 
@@ -308,9 +308,9 @@
     <div id="netflixSection">
       <h2 class="section-title">Currently on Netflix</h2>
       <div class="row-wrapper">
-        <button class="scroll-btn left" onclick="scrollRow('netflixRow', -1)">&#10094;</button>
+        <button class="scroll-btn left" onclick="scrollRow(`netflixRow`, -1)">&#10094;</button>
         <div class="scroll-container" id="netflixRow"></div>
-        <button class="scroll-btn right" onclick="scrollRow('netflixRow', 1)">&#10095;</button>
+        <button class="scroll-btn right" onclick="scrollRow(`netflixRow`, 1)">&#10095;</button>
       </div>
     </div>
 
@@ -332,14 +332,310 @@
   </div>
 
 <script>
-// ✅ Your existing JS with wishlist-related code completely removed
-// Includes: loadLibrary(), loadNetflixContent() but without add/remove buttons
+window.onload = () => {
+  if (localStorage.getItem("loggedIn") === "true") {
+    showApp();
+  }
+};
 
-const API_URL = "YOUR_SCRIPT_URL"; // Replace with your Apps Script URL
+const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
 
-// All your current JS logic for video modal, scrolling, search, etc.
-// Just REMOVE addToWishlist, removeFromWishlist, fetchWishlist, and their calls.
-// In Netflix section, REMOVE the "+" button in createCard for Netflix items.
+const movieGrid = document.getElementById("movieGrid");
+const modal = document.getElementById("videoModal");
+const closeBtn = document.getElementById("closeBtn");
+const detailsDiv = document.getElementById("movieDetails");
+const videoFrame = document.getElementById("videoFrame");
+const backBtn = document.getElementById("backBtn");
+const nextBtn = document.getElementById("nextBtn");
+const sectionTitle = document.getElementById("sectionTitle");
+const searchInput = document.getElementById("searchInput");
+
+let currentView = "main";
+let currentEpisodes = [];
+let currentIndex = -1;
+let currentShowTitle = "";
+let fullLibrary = []; // ✅ Store all movies/TV here
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function renderMovies(movies) {
+  const moviesRow = document.getElementById("moviesRow");
+  moviesRow.innerHTML = "";
+  movies.forEach(item => {
+    const card = createCard(item);
+    moviesRow.appendChild(card);
+  });
+}
+
+function renderTV(tvShows) {
+  const tvRow = document.getElementById("tvRow");
+  tvRow.innerHTML = "";
+  tvShows.forEach(item => {
+    const card = createCard(item);
+    tvRow.appendChild(card);
+  });
+}
+
+function createCard(item) {
+  const card = document.createElement("div");
+  card.classList.add("movie-card");
+  card.innerHTML = `
+    <img src="${item.poster}" alt="${item.title}">
+    <div class="movie-title">${item.title}</div>
+  `;
+  card.addEventListener("click", () => {
+    if (item.type === "movie") {
+      openVideo(item.episodes[0].url, item.title, "", "", false);
+    } else {
+      showEpisodes(item);
+    }
+  });
+  return card;
+}
+
+function showEpisodes(show) {
+  // Hide Movies and TV sections
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
+
+  // Show Episodes section
+  document.getElementById("episodesSection").style.display = "block";
+
+  // Set the title
+  document.getElementById("episodesTitle").textContent = show.title;
+
+  // Fill episodes grid
+  const episodesGrid = document.getElementById("episodesGrid");
+  episodesGrid.innerHTML = "";
+
+  show.episodes.forEach((ep, index) => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    card.innerHTML = `
+      <img src="${show.poster}" alt="${ep.title}">
+      <div class="movie-title">${ep.title}</div>
+    `;
+    card.addEventListener("click", () => {
+      // Open the video directly in iframe
+      videoFrame.src = ep.url;
+      detailsDiv.innerHTML = `<strong>${show.title} - ${ep.title}</strong>`;
+      modal.classList.add("active");
+      currentIndex = index;
+      currentEpisodes = show.episodes;
+      currentShowTitle = show.title;
+    });
+    episodesGrid.appendChild(card);
+  });
+
+  // Show Back button to return to main layout
+  backBtn.style.display = "inline-block";
+}
+
+function openVideo(url, title, year, description, isTV) {
+  console.log("Opening video:", url);
+  modal.classList.add("active");
+  videoFrame.src = url;
+  detailsDiv.innerHTML = `<strong>${title}</strong><br>${description || ""}`;
+  nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
+
+  if (isTV) {
+    localStorage.setItem(`progress_${currentShowTitle}`, currentIndex);
+  }
+}
+
+nextBtn.addEventListener("click", () => {
+  if (currentIndex < currentEpisodes.length - 1) {
+    currentIndex++;
+    const ep = currentEpisodes[currentIndex];
+    openVideo(ep.url, ep.title, "", "", true);
+  }
+});
+
+closeBtn.addEventListener("click", () => {
+  modal.classList.remove("active");
+  videoFrame.src = "";
+});
+
+backBtn.addEventListener("click", () => {
+  document.getElementById("episodesSection").style.display = "none";
+  document.getElementById("moviesSection").style.display = "block";
+  document.getElementById("tvSection").style.display = "block";
+  backBtn.style.display = "none";
+});
+
+// ✅ Instant Search
+searchInput.addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
+
+  if (query === "") {
+    // ✅ Restore all sections when search is empty
+    document.getElementById("moviesSection").style.display = "block";
+    document.getElementById("tvSection").style.display = "block";
+    document.getElementById("netflixSection").style.display = "block";
+    document.getElementById("continueSection").style.display = "block";
+    sectionTitle.textContent = "";
+    document.getElementById("searchResultsSection").style.display = "none";
+  } else {
+    // ✅ Hide everything else
+    document.getElementById("moviesSection").style.display = "none";
+    document.getElementById("tvSection").style.display = "none";
+    document.getElementById("netflixSection").style.display = "none";
+    document.getElementById("continueSection").style.display = "none";
+
+    // ✅ Show Search Results
+    const filtered = fullLibrary.filter(item =>
+      item.title.toLowerCase().includes(query)
+    );
+    sectionTitle.textContent = "Search Results";
+    showSearchResults(filtered);
+    document.getElementById("searchResultsSection").style.display = "block";
+  }
+});
+
+function showSearchResults(list) {
+  const container = document.getElementById("searchResultsGrid");
+  container.innerHTML = "";
+  list.forEach(item => {
+    const card = createCard(item);
+    container.appendChild(card);
+  });
+}
+
+function scrollRow(rowId, direction) {
+  const container = document.getElementById(rowId);
+  const scrollAmount = container.offsetWidth; // Scroll by one row width
+  container.scrollBy({
+    left: scrollAmount * direction,
+    behavior: "smooth"
+  });
+}
+
+function renderContinueWatching() {
+  const continueRow = document.getElementById("continueRow");
+  continueRow.innerHTML = "";
+
+  const keys = Object.keys(localStorage).filter(key => key.startsWith("progress_"));
+  if (keys.length === 0) {
+    document.getElementById("continueSection").style.display = "none";
+    return;
+  }
+
+  // Find matching items in fullLibrary
+  const items = [];
+  keys.forEach(key => {
+    const title = key.replace("progress_", "");
+    const item = fullLibrary.find(i => i.title === title);
+    if (item) items.push(item);
+  });
+
+  if (items.length > 0) {
+    document.getElementById("continueSection").style.display = "block";
+    items.forEach(item => {
+      const card = createCard(item);
+      continueRow.appendChild(card);
+    });
+  } else {
+    document.getElementById("continueSection").style.display = "none";
+  }
+}
+
+// ✅ App password (change this to your desired password)
+const APP_PASSWORD = "YourSecretPassword";
+
+function checkPassword() {
+  const input = document.getElementById("passwordInput").value;
+  if (input === APP_PASSWORD) {
+    localStorage.setItem("loggedIn", "true"); // ✅ Save login state
+    showApp();
+  } else {
+    document.getElementById("errorMsg").style.display = "block";
+  }
+}
+
+function showApp() {
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("appContent").style.display = "block";
+}
+  
+function logout() {
+  localStorage.removeItem("loggedIn");
+  document.getElementById("appContent").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+}
+
+async function loadLibrary() {
+  const response = await fetch(API_URL);
+  const data = await response.json();
+  fullLibrary = [...data.movies, ...data.tv];
+
+  shuffleArray(data.movies);
+  shuffleArray(data.tv);
+
+  renderMovies(data.movies);
+  renderTV(data.tv);
+  renderContinueWatching();
+
+  checkIfLoadingComplete(); // ✅ NEW
+}
+
+async function loadNetflixContent() {
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Replace with TMDb key
+  const netflixRow = document.getElementById("netflixRow");
+  netflixRow.innerHTML = "";
+
+  let allContent = [];
+
+  for (let page = 1; page <= 3; page++) {
+    const movieEndpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
+    const movieResponse = await fetch(movieEndpoint);
+    const movieData = await movieResponse.json();
+    allContent = allContent.concat(movieData.results);
+  }
+
+  for (let page = 1; page <= 3; page++) {
+    const tvEndpoint = `https://api.themoviedb.org/3/discover/tv?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
+    const tvResponse = await fetch(tvEndpoint);
+    const tvData = await tvResponse.json();
+    allContent = allContent.concat(tvData.results);
+  }
+
+  shuffleArray(allContent);
+
+  allContent.forEach(item => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    const poster = item.poster_path
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+      : "https://via.placeholder.com/300x450?text=No+Image";
+    const title = item.title || item.name;
+
+    card.innerHTML = `
+      <img src="${poster}" alt="${title}">
+      <div class="movie-title">${title}</div>
+    `;
+
+    netflixRow.appendChild(card);
+  });
+
+  checkIfLoadingComplete();
+}
+  
+// ✅ Function to hide loading screen after everything loads
+let loadingCompleted = 0;
+function checkIfLoadingComplete() {
+  loadingCompleted++;
+  if (loadingCompleted === 2) { // Both library + Netflix loaded
+    document.getElementById("loadingScreen").style.display = "none";
+  }
+}
+
+loadLibrary();
+loadNetflixContent();
 </script>
 
 </body>
