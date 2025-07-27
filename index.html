@@ -222,6 +222,26 @@ iframe {
 .scroll-btn:hover {
   background: rgba(0, 0, 0, 0.9);
 }
+  .add-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #e50914;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-btn:hover {
+  background: #f6121d;
+}
 </style>
 </head>
 <body>
@@ -328,6 +348,12 @@ iframe {
       <button class="scroll-btn right" onclick="scrollRow('netflixRow', 1)">&#10095;</button>
     </div>
   </div>
+    
+  <!-- Wish List Section -->
+  <div id="wishlistSection" style="display:none;">
+    <h2 class="section-title">My Wish List</h2>
+    <div class="scroll-container" id="wishlistRow"></div>
+  </div>
 
   <!-- Search Results Section -->
   <div id="searchResultsSection" style="display:none;">
@@ -399,8 +425,9 @@ function createCard(item) {
   const card = document.createElement("div");
   card.classList.add("movie-card");
   card.innerHTML = `
-    <img src="${item.poster}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/300x450?text=${encodeURIComponent(item.title)}';">
-    <div class="movie-title">${item.title}</div>
+    <img src="${poster}" alt="${title}">
+    <div class="movie-title">${title}</div>
+    <button class="add-btn" onclick="addToWishlist('${encodeURIComponent(title)}','${poster}')">+</button>
   `;
   card.addEventListener("click", () => {
     if (item.type === "movie") {
@@ -636,6 +663,48 @@ async function loadNetflixContent() {
 
   checkIfLoadingComplete(); // ✅ NEW
 }
+
+function addToWishlist(title, poster) {
+  // Decode title
+  title = decodeURIComponent(title);
+
+  // Get current wishlist from localStorage
+  let wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+
+  // Avoid duplicates
+  if (!wishlist.some(item => item.title === title)) {
+    wishlist.push({ title, poster });
+    localStorage.setItem("wishlist", JSON.stringify(wishlist));
+    renderWishlist();
+  }
+}
+
+function renderWishlist() {
+  const wishlistRow = document.getElementById("wishlistRow");
+  const wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+
+  wishlistRow.innerHTML = "";
+
+  if (wishlist.length === 0) {
+    document.getElementById("wishlistSection").style.display = "none";
+    return;
+  }
+
+  document.getElementById("wishlistSection").style.display = "block";
+
+  wishlist.forEach(item => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    card.innerHTML = `
+      <img src="${item.poster}" alt="${item.title}">
+      <div class="movie-title">${item.title}</div>
+    `;
+    wishlistRow.appendChild(card);
+  });
+}
+
+// Render wishlist on load
+renderWishlist();
 
 // ✅ Function to hide loading screen after everything loads
 let loadingCompleted = 0;
