@@ -297,6 +297,12 @@ iframe {
     </div>
   </div>
 
+  <!-- Search Results Section -->
+  <div id="searchResultsSection" style="display:none;">
+    <h2 class="section-title">Search Results</h2>
+    <div class="grid" id="searchResultsGrid"></div>
+  </div>
+
   <!-- Modal -->
   <div class="modal" id="videoModal">
     <span class="close-btn" id="closeBtn">&times;</span>
@@ -462,33 +468,37 @@ searchInput.addEventListener("input", (e) => {
   const query = e.target.value.toLowerCase();
 
   if (query === "") {
-    // Show Movies + TV sections again
+    // ✅ Restore all sections when search is empty
     document.getElementById("moviesSection").style.display = "block";
     document.getElementById("tvSection").style.display = "block";
+    document.getElementById("netflixSection").style.display = "block";
+    document.getElementById("continueSection").style.display = "block";
     sectionTitle.textContent = "";
+    document.getElementById("searchResultsSection").style.display = "none";
   } else {
-    // Hide Movies + TV sections
+    // ✅ Hide everything else
     document.getElementById("moviesSection").style.display = "none";
     document.getElementById("tvSection").style.display = "none";
+    document.getElementById("netflixSection").style.display = "none";
+    document.getElementById("continueSection").style.display = "none";
 
+    // ✅ Show Search Results
     const filtered = fullLibrary.filter(item =>
       item.title.toLowerCase().includes(query)
     );
-
-    // Show results in a temporary grid
     sectionTitle.textContent = "Search Results";
     showSearchResults(filtered);
+    document.getElementById("searchResultsSection").style.display = "block";
   }
 });
 
 function showSearchResults(list) {
-  const container = document.getElementById("moviesRow"); // Reuse moviesRow for now
+  const container = document.getElementById("searchResultsGrid");
   container.innerHTML = "";
   list.forEach(item => {
     const card = createCard(item);
     container.appendChild(card);
   });
-  document.getElementById("moviesSection").style.display = "block"; // Show this as result container
 }
 
 function scrollRow(rowId, direction) {
