@@ -528,15 +528,56 @@ function renderContinueWatching() {
 }
 
 async function loadNetflixContent() {
-  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Replace with your TMDb key
-  const endpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&api_key=${API_KEY}`;
-  
-  const response = await fetch(endpoint);
-  const data = await response.json();
+  const API_KEY = "YOUR_API_KEY"; // Replace with your TMDb key
   const netflixRow = document.getElementById("netflixRow");
   netflixRow.innerHTML = "";
 
-  data.results.forEach(movie => {
+  let allContent = [];
+
+  // Fetch Netflix Movies (3 pages)
+  for (let page = 1; page <= 3; page++) {
+    const movieEndpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
+    const movieResponse = await fetch(movieEndpoint);
+    const movieData = await movieResponse.json();
+    allContent = allContent.concat(movieData.results);
+  }
+
+  // Fetch Netflix TV Shows (3 pages)
+  for (let page = 1; page <= 3; page++) {
+    const tvEndpoint = `https://api.themoviedb.org/3/discover/tv?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
+    const tvResponse = await fetch(tvEndpoint);
+    const tvData = await tvResponse.json();
+    allContent = allContent.concat(tvData.results);
+  }
+
+  // Shuffle combined list for variety
+  shuffleArray(allContent);
+
+  // Display combined Movies + TV
+  allContent.forEach(item => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    const poster = item.poster_path
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+      : "https://via.placeholder.com/300x450?text=No+Image";
+    const title = item.title || item.name; // Movies use title, TV uses name
+    card.innerHTML = `
+      <img src="${poster}" alt="${title}">
+      <div class="movie-title">${title}</div>
+    `;
+    netflixRow.appendChild(card);
+  });
+}
+
+// Helper: Shuffle function
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+  allMovies.forEach(movie => {
     const card = document.createElement("div");
     card.classList.add("movie-card");
     const poster = movie.poster_path 
