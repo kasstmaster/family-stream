@@ -6,6 +6,7 @@
 
   <!-- Google Fonts for Netflix-like styling -->
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
   body {
@@ -251,6 +252,36 @@
   .bottom-bar button:hover {
     background: #f6121d;
   }
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #000;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid #222;
+    z-index: 9999;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  .nav-item i {
+    font-size: 24px;
+    margin-bottom: 5px;
+  }
+  .nav-item:hover {
+    color: #aaa;
+  }
 </style>
 </head>
 <body>
@@ -363,8 +394,18 @@
 
   <!-- Bottom Navigation Bar -->
   <div class="bottom-bar">
-    <button onclick="logout()">Logout</button>
-    <button onclick="loadNetflixContent()">Refresh Netflix</button>
+    <div class="nav-item" onclick="logout()">
+      <i class="fa-solid fa-right-from-bracket"></i>
+      <span>Logout</span>
+    </div>
+    <div class="nav-item" onclick="loadNetflixContent()">
+      <i class="fa-solid fa-rotate-right"></i>
+      <span>Refresh</span>
+    </div>
+    <div class="nav-item" onclick="scrollToTop()">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </div>
   </div>
 
 <script>
@@ -397,6 +438,10 @@ function shuffleArray(array) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
   }
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderMovies(movies) {
