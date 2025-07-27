@@ -242,6 +242,26 @@ iframe {
 .add-btn:hover {
   background: #f6121d;
 }
+  .remove-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #e50914;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.remove-btn:hover {
+  background: #f6121d;
+}
 </style>
 </head>
 <body>
@@ -684,6 +704,23 @@ async function addToWishlist(title, poster) {
   fetchWishlist(); // Refresh the wishlist after adding
 }
 
+async function removeFromWishlist(title) {
+  title = decodeURIComponent(title);
+
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "removeFromWishlist",
+      title: title
+    })
+  });
+
+  const result = await response.json();
+  console.log(result.message);
+  fetchWishlist(); // Refresh the wishlist after removal
+}
+
 async function fetchWishlist() {
   const response = await fetch(`${API_URL}?action=getWishlist`);
   const wishlist = await response.json();
@@ -704,6 +741,7 @@ async function fetchWishlist() {
     card.innerHTML = `
       <img src="${item.poster}" alt="${item.title}">
       <div class="movie-title">${item.title}</div>
+      <button class="remove-btn" onclick="removeFromWishlist('${encodeURIComponent(item.title)}')">–</button>
     `;
     wishlistRow.appendChild(card);
   });
