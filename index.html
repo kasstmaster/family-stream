@@ -217,6 +217,12 @@
   <!-- Back Button -->
   <button class="back-btn" id="backBtn">⬅ Back</button>
 
+  <!-- Continue Watching Grid -->
+  <div id="continueSection" style="display:none;">
+    <h2 class="section-title">Continue Watching</h2>
+    <div class="scroll-container" id="continueRow"></div>
+  </div>
+
   <!-- Movie Grid -->
   <div id="moviesSection">
   <h2 class="section-title">Movies</h2>
@@ -281,6 +287,7 @@ async function loadLibrary() {
 
   renderMovies(data.movies);
   renderTV(data.tv);
+  renderContinueWatching(); // ✅ Show Continue Watching row if there’s progress
 }
 
 function shuffleArray(array) {
@@ -435,6 +442,35 @@ function scrollRow(rowId, direction) {
     left: scrollAmount * direction,
     behavior: "smooth"
   });
+}
+
+function renderContinueWatching() {
+  const continueRow = document.getElementById("continueRow");
+  continueRow.innerHTML = "";
+
+  const keys = Object.keys(localStorage).filter(key => key.startsWith("progress_"));
+  if (keys.length === 0) {
+    document.getElementById("continueSection").style.display = "none";
+    return;
+  }
+
+  // Find matching items in fullLibrary
+  const items = [];
+  keys.forEach(key => {
+    const title = key.replace("progress_", "");
+    const item = fullLibrary.find(i => i.title === title);
+    if (item) items.push(item);
+  });
+
+  if (items.length > 0) {
+    document.getElementById("continueSection").style.display = "block";
+    items.forEach(item => {
+      const card = createCard(item);
+      continueRow.appendChild(card);
+    });
+  } else {
+    document.getElementById("continueSection").style.display = "none";
+  }
 }
 
 loadLibrary();
