@@ -384,10 +384,10 @@ function renderTV(tvShows) {
 function createCard(item) {
   const card = document.createElement("div");
   card.classList.add("movie-card");
-  card.innerHTML = 
+  card.innerHTML = '
     <img src="${item.poster}" alt="${item.title}">
     <div class="movie-title">${item.title}</div>
-  ;
+  ';
   card.addEventListener("click", () => {
     if (item.type === "movie") {
       openVideo(item.episodes[0].url, item.title, "", "", false);
@@ -416,14 +416,14 @@ function showEpisodes(show) {
   show.episodes.forEach((ep, index) => {
     const card = document.createElement("div");
     card.classList.add("movie-card");
-    card.innerHTML = 
+    card.innerHTML = '
       <img src="${show.poster}" alt="${ep.title}">
       <div class="movie-title">${ep.title}</div>
-    ;
+    ';
     card.addEventListener("click", () => {
       // Open the video directly in iframe
       videoFrame.src = ep.url;
-      detailsDiv.innerHTML = <strong>${show.title} - ${ep.title}</strong>;
+      detailsDiv.innerHTML = `<strong>${show.title} - ${ep.title}</strong>`;
       modal.classList.add("active");
       currentIndex = index;
       currentEpisodes = show.episodes;
@@ -440,11 +440,11 @@ function openVideo(url, title, year, description, isTV) {
   console.log("Opening video:", url);
   modal.classList.add("active");
   videoFrame.src = url;
-  detailsDiv.innerHTML = <strong>${title}</strong><br>${description || ""};
+  detailsDiv.innerHTML = `<strong>${title}</strong><br>${description || ""}`;
   nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
 
   if (isTV) {
-    localStorage.setItem(progress_${currentShowTitle}, currentIndex);
+    localStorage.setItem(`progress_${currentShowTitle}`, currentIndex);
   }
 }
 
@@ -617,7 +617,6 @@ async function loadNetflixContent() {
     card.innerHTML = 
       <img src="${poster}" alt="${title}">
       <div class="movie-title">${title}</div>
-      <button class="add-btn" onclick="addToWishlist('${encodeURIComponent(title)}','${poster}')">+</button>
     ;
   
     netflixRow.appendChild(card);
