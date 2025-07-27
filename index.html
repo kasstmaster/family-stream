@@ -225,6 +225,38 @@ iframe {
 </style>
 </head>
 <body>
+  <div id="loadingScreen" style="
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: #141414;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 40px;
+  z-index: 9999;
+">
+  <p>Loading...</p>
+  <div class="loader" style="
+    border: 8px solid #333;
+    border-top: 8px solid #e50914;
+    border-radius: 50%;
+    width: 70px;
+    height: 70px;
+    animation: spin 1s linear infinite;
+  "></div>
+</div>
+
+<style>
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+
   <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;color:white;flex-direction:column;">
     <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;">Enter Password</h2>
     <input type="password" id="passwordInput" placeholder="Password" style="padding:10px;font-size:16px;border-radius:5px;border:none;margin-top:10px;">
@@ -337,19 +369,6 @@ let currentEpisodes = [];
 let currentIndex = -1;
 let currentShowTitle = "";
 let fullLibrary = []; // ✅ Store all movies/TV here
-
-async function loadLibrary() {
-  const response = await fetch(API_URL);
-  const data = await response.json();
-  fullLibrary = [...data.movies, ...data.tv];
-
-  shuffleArray(data.movies);
-  shuffleArray(data.tv);
-
-  renderMovies(data.movies);
-  renderTV(data.tv);
-  renderContinueWatching(); // ✅ Show Continue Watching row if there’s progress
-}
 
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -539,57 +558,6 @@ function renderContinueWatching() {
   }
 }
 
-async function loadNetflixContent() {
-  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Replace with your TMDb key
-  const netflixRow = document.getElementById("netflixRow");
-  netflixRow.innerHTML = "";
-
-  let allContent = [];
-
-  // Fetch Netflix Movies (3 pages)
-  for (let page = 1; page <= 3; page++) {
-    const movieEndpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
-    const movieResponse = await fetch(movieEndpoint);
-    const movieData = await movieResponse.json();
-    allContent = allContent.concat(movieData.results);
-  }
-
-  // Fetch Netflix TV Shows (3 pages)
-  for (let page = 1; page <= 3; page++) {
-    const tvEndpoint = `https://api.themoviedb.org/3/discover/tv?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
-    const tvResponse = await fetch(tvEndpoint);
-    const tvData = await tvResponse.json();
-    allContent = allContent.concat(tvData.results);
-  }
-
-  // Shuffle combined list for variety
-  shuffleArray(allContent);
-
-  // Display combined Movies + TV
-  allContent.forEach(item => {
-    const card = document.createElement("div");
-    card.classList.add("movie-card");
-    const poster = item.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : "https://via.placeholder.com/300x450?text=No+Image";
-    const title = item.title || item.name; // Movies use title, TV uses name
-    card.innerHTML = `
-      <img src="${poster}" alt="${title}">
-      <div class="movie-title">${title}</div>
-    `;
-    netflixRow.appendChild(card);
-  });
-}
-
-// Helper: Shuffle function
-// ✅ Shuffle helper function
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
-
 // ✅ App password (change this to your desired password)
 const APP_PASSWORD = "YourSecretPassword";
 
@@ -614,8 +582,72 @@ function logout() {
   document.getElementById("loginScreen").style.display = "flex";
 }
 
-loadNetflixContent();
+async function loadLibrary() {
+  const response = await fetch(API_URL);
+  const data = await response.json();
+  fullLibrary = [...data.movies, ...data.tv];
+
+  shuffleArray(data.movies);
+  shuffleArray(data.tv);
+
+  renderMovies(data.movies);
+  renderTV(data.tv);
+  renderContinueWatching();
+
+  checkIfLoadingComplete(); // ✅ NEW
+}
+
+async function loadNetflixContent() {
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Replace with TMDb key
+  const netflixRow = document.getElementById("netflixRow");
+  netflixRow.innerHTML = "";
+
+  let allContent = [];
+
+  for (let page = 1; page <= 3; page++) {
+    const movieEndpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
+    const movieResponse = await fetch(movieEndpoint);
+    const movieData = await movieResponse.json();
+    allContent = allContent.concat(movieData.results);
+  }
+
+  for (let page = 1; page <= 3; page++) {
+    const tvEndpoint = `https://api.themoviedb.org/3/discover/tv?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${page}&api_key=${API_KEY}`;
+    const tvResponse = await fetch(tvEndpoint);
+    const tvData = await tvResponse.json();
+    allContent = allContent.concat(tvData.results);
+  }
+
+  shuffleArray(allContent);
+
+  allContent.forEach(item => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    const poster = item.poster_path
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+      : "https://via.placeholder.com/300x450?text=No+Image";
+    const title = item.title || item.name;
+    card.innerHTML = `
+      <img src="${poster}" alt="${title}">
+      <div class="movie-title">${title}</div>
+    `;
+    netflixRow.appendChild(card);
+  });
+
+  checkIfLoadingComplete(); // ✅ NEW
+}
+
+// ✅ Function to hide loading screen after everything loads
+let loadingCompleted = 0;
+function checkIfLoadingComplete() {
+  loadingCompleted++;
+  if (loadingCompleted === 2) { // Both library + Netflix loaded
+    document.getElementById("loadingScreen").style.display = "none";
+  }
+}
+
 loadLibrary();
+loadNetflixContent();
 </script>
 
 </body>
