@@ -201,6 +201,12 @@
     <div class="scroll-container" id="tvRow"></div>
   </div>
 
+  <!-- Episodes Grid -->
+  <div id="episodesSection" style="display:none; padding:20px;">
+    <h2 class="section-title" id="episodesTitle"></h2>
+    <div class="grid" id="episodesGrid"></div>
+  </div>
+
   <!-- Modal -->
   <div class="modal" id="videoModal">
     <span class="close-btn" id="closeBtn">&times;</span>
@@ -285,30 +291,41 @@ function createCard(item) {
 }
 
 function showEpisodes(show) {
-  movieGrid.innerHTML = "";
-  backBtn.style.display = "inline-block";
-  sectionTitle.textContent = show.title;
-  currentEpisodes = show.episodes;
-  currentShowTitle = show.title;
+  // Hide Movies and TV sections
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
 
-  const lastWatchedIndex = localStorage.getItem(`progress_${show.title}`);
+  // Show Episodes section
+  document.getElementById("episodesSection").style.display = "block";
+
+  // Set the title
+  document.getElementById("episodesTitle").textContent = show.title;
+
+  // Fill episodes grid
+  const episodesGrid = document.getElementById("episodesGrid");
+  episodesGrid.innerHTML = "";
 
   show.episodes.forEach((ep, index) => {
     const card = document.createElement("div");
     card.classList.add("movie-card");
-    if (lastWatchedIndex && parseInt(lastWatchedIndex) === index) {
-      card.classList.add("continue-watching");
-    }
     card.innerHTML = `
       <img src="${show.poster}" alt="${ep.title}">
       <div class="movie-title">${ep.title}</div>
     `;
     card.addEventListener("click", () => {
+      // Open the video directly in iframe
+      videoFrame.src = ep.url;
+      detailsDiv.innerHTML = `<strong>${show.title} - ${ep.title}</strong>`;
+      modal.classList.add("active");
       currentIndex = index;
-      openVideo(ep.url, `${show.title} - ${ep.title}`, "", "", true);
+      currentEpisodes = show.episodes;
+      currentShowTitle = show.title;
     });
-    movieGrid.appendChild(card);
+    episodesGrid.appendChild(card);
   });
+
+  // Show Back button to return to main layout
+  backBtn.style.display = "inline-block";
 }
 
 function openVideo(url, title, year, description, isTV) {
@@ -335,16 +352,46 @@ closeBtn.addEventListener("click", () => {
   videoFrame.src = "";
 });
 
-backBtn.addEventListener("click", () => renderMain(fullLibrary));
+backBtn.addEventListener("click", () => {
+  document.getElementById("episodesSection").style.display = "none";
+  document.getElementById("moviesSection").style.display = "block";
+  document.getElementById("tvSection").style.display = "block";
+  backBtn.style.display = "none";
+});
 
 // ✅ Instant Search
 searchInput.addEventListener("input", (e) => {
   const query = e.target.value.toLowerCase();
-  const filtered = fullLibrary.filter(item =>
-    item.title.toLowerCase().includes(query)
-  );
-  renderMain(filtered);
+
+  if (query === "") {
+    // Show Movies + TV sections again
+    document.getElementById("moviesSection").style.display = "block";
+    document.getElementById("tvSection").style.display = "block";
+    sectionTitle.textContent = "";
+  } else {
+    // Hide Movies + TV sections
+    document.getElementById("moviesSection").style.display = "none";
+    document.getElementById("tvSection").style.display = "none";
+
+    const filtered = fullLibrary.filter(item =>
+      item.title.toLowerCase().includes(query)
+    );
+
+    // Show results in a temporary grid
+    sectionTitle.textContent = "Search Results";
+    showSearchResults(filtered);
+  }
 });
+
+function showSearchResults(list) {
+  const container = document.getElementById("moviesRow"); // Reuse moviesRow for now
+  container.innerHTML = "";
+  list.forEach(item => {
+    const card = createCard(item);
+    container.appendChild(card);
+  });
+  document.getElementById("moviesSection").style.display = "block"; // Show this as result container
+}
 
 loadLibrary();
 </script>
