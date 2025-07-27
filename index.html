@@ -153,6 +153,25 @@
     .next-btn:hover {
       background: #f6121d;
     }
+    .section-title {
+      font-size: 28px;
+      margin-left: 20px;
+      font-family: 'Bebas Neue', sans-serif;
+    }
+    .scroll-container {
+      display: flex;
+      gap: 15px;
+      padding: 20px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+    }
+    .scroll-container::-webkit-scrollbar {
+      display: none; /* Hide scrollbars like Netflix */
+    }
+    .movie-card {
+      flex: 0 0 auto;
+      width: 160px;
+    }
   </style>
 </head>
 <body>
@@ -172,7 +191,15 @@
   <button class="back-btn" id="backBtn">⬅ Back</button>
 
   <!-- Movie Grid -->
-  <div class="grid" id="movieGrid"></div>
+  <div id="moviesSection">
+    <h2 class="section-title">Movies</h2>
+    <div class="scroll-container" id="moviesRow"></div>
+  </div>
+  <!-- TV Grid -->
+  <div id="tvSection">
+    <h2 class="section-title">TV Shows</h2>
+    <div class="scroll-container" id="tvRow"></div>
+  </div>
 
   <!-- Modal -->
   <div class="modal" id="videoModal">
@@ -206,9 +233,10 @@ let fullLibrary = []; // ✅ Store all movies/TV here
 async function loadLibrary() {
   const response = await fetch(API_URL);
   const data = await response.json();
-  fullLibrary = [...data.movies, ...data.tv]; // ✅ Save full list
-  shuffleArray(fullLibrary);
-  renderMain(fullLibrary);
+  fullLibrary = [...data.movies, ...data.tv];
+
+  renderMovies(data.movies);
+  renderTV(data.tv);
 }
 
 function shuffleArray(array) {
@@ -218,27 +246,39 @@ function shuffleArray(array) {
   }
 }
 
-function renderMain(list) {
-  movieGrid.innerHTML = "";
-  backBtn.style.display = "none";
-  sectionTitle.textContent = "";
-
-  list.forEach(item => {
-    const card = document.createElement("div");
-    card.classList.add("movie-card");
-    card.innerHTML = `
-      <img src="${item.poster}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/300x450?text=${encodeURIComponent(item.title)}';">
-      <div class="movie-title">${item.title}</div>
-    `;
-    card.addEventListener("click", () => {
-      if (item.type === "movie") {
-        openVideo(item.episodes[0].url, item.title, "", "", false);
-      } else {
-        showEpisodes(item);
-      }
-    });
-    movieGrid.appendChild(card);
+function renderMovies(movies) {
+  const moviesRow = document.getElementById("moviesRow");
+  moviesRow.innerHTML = "";
+  movies.forEach(item => {
+    const card = createCard(item);
+    moviesRow.appendChild(card);
   });
+}
+
+function renderTV(tvShows) {
+  const tvRow = document.getElementById("tvRow");
+  tvRow.innerHTML = "";
+  tvShows.forEach(item => {
+    const card = createCard(item);
+    tvRow.appendChild(card);
+  });
+}
+
+function createCard(item) {
+  const card = document.createElement("div");
+  card.classList.add("movie-card");
+  card.innerHTML = `
+    <img src="${item.poster}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/300x450?text=${encodeURIComponent(item.title)}';">
+    <div class="movie-title">${item.title}</div>
+  `;
+  card.addEventListener("click", () => {
+    if (item.type === "movie") {
+      openVideo(item.episodes[0].url, item.title, "", "", false);
+    } else {
+      showEpisodes(item);
+    }
+  });
+  return card;
 }
 
 function showEpisodes(show) {
