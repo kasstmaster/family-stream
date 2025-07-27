@@ -210,11 +210,13 @@
   </div>
   <div id="appContent" style="display:none;">
   
-<header>
-  <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:1200px;margin:0 auto;padding:0 20px;">
-    <div></div> <!-- Empty div to balance flex layout -->
+<header style="background:#000;width:100%;">
+  <div style="display:flex;justify-content:center;align-items:center;position:relative;height:80px;">
+    <!-- Logo -->
     <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" style="max-width:300px;height:auto;" />
-    <button onclick="logout()" style="padding:8px 16px;background:#e50914;color:#fff;border:none;border-radius:5px;cursor:pointer;">
+    
+    <!-- Logout Button -->
+    <button onclick="logout()" style="position:absolute;right:20px;padding:8px 16px;background:#e50914;color:#fff;border:none;border-radius:5px;cursor:pointer;">
       Logout
     </button>
   </div>
