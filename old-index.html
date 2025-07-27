@@ -184,163 +184,127 @@
     <button class="next-btn" id="nextBtn">Next Episode ➡</button>
   </div>
 
-  <script>
-    const library = [
-      {
-        type: "movie",
-        title: "Blessing of the Bikers",
-        url: "https://drive.google.com/file/d/1l1MuBLMYueHEunmcP5mGdzGo6sR2eLxi/preview",
-        poster: "https://i.postimg.cc/15nNjM59/Movie-poster-placeholder.png",
-        year: "2024",
-        description: "A documentary capturing the heart and soul of the Biker community."
-      },
-      {
-        type: "tv",
-        title: "My TV Show",
-        poster: "https://i.postimg.cc/bYMZkb04/TV-poster-placeholder.png",
-        year: "2023",
-        description: "An exciting series full of surprises.",
-        episodes: [
-          { title: "Episode 1", url: "https://drive.google.com/file/d/FILE_ID_1/preview" },
-          { title: "Episode 2", url: "https://drive.google.com/file/d/FILE_ID_2/preview" }
-        ]
-      }
-    ];
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
 
-    const movieGrid = document.getElementById("movieGrid");
-    const modal = document.getElementById("videoModal");
-    const closeBtn = document.getElementById("closeBtn");
-    const searchInput = document.getElementById("searchInput");
-    const detailsDiv = document.getElementById("movieDetails");
-    const videoFrame = document.getElementById("videoFrame");
-    const backBtn = document.getElementById("backBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const sectionTitle = document.getElementById("sectionTitle");
+const movieGrid = document.getElementById("movieGrid");
+const modal = document.getElementById("videoModal");
+const closeBtn = document.getElementById("closeBtn");
+const detailsDiv = document.getElementById("movieDetails");
+const videoFrame = document.getElementById("videoFrame");
+const backBtn = document.getElementById("backBtn");
+const nextBtn = document.getElementById("nextBtn");
+const sectionTitle = document.getElementById("sectionTitle");
+const searchInput = document.getElementById("searchInput");
 
-    let currentView = "main";
-    let currentEpisodes = [];
-    let currentIndex = -1;
-    let currentShowTitle = "";
+let currentView = "main";
+let currentEpisodes = [];
+let currentIndex = -1;
+let currentShowTitle = "";
+let fullLibrary = []; // ✅ Store all movies/TV here
 
-    // ✅ Shuffle function
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-    }
+async function loadLibrary() {
+  const response = await fetch(API_URL);
+  const data = await response.json();
+  fullLibrary = [...data.movies, ...data.tv]; // ✅ Save full list
+  shuffleArray(fullLibrary);
+  renderMain(fullLibrary);
+}
 
-    function renderMain(list) {
-      movieGrid.innerHTML = "";
-      backBtn.style.display = "none";
-      currentView = "main";
-      sectionTitle.textContent = "";
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
 
-      list.forEach((item) => {
-        const card = document.createElement('div');
-        card.classList.add('movie-card');
-        card.innerHTML = `
-          <img src="${item.poster}" alt="${item.title}" />
-          <div class="movie-title">${item.title}</div>
-        `;
-        card.addEventListener('click', () => {
-          if (item.type === "movie") {
-            openVideo(item.url, item.title, item.year, item.description, false);
-          } else {
-            showEpisodes(item);
-          }
-        });
-        movieGrid.appendChild(card);
-      });
-    }
+function renderMain(list) {
+  movieGrid.innerHTML = "";
+  backBtn.style.display = "none";
+  sectionTitle.textContent = "";
 
-    function showEpisodes(show) {
-      movieGrid.innerHTML = "";
-      backBtn.style.display = "inline-block";
-      currentView = "episodes";
-      currentEpisodes = show.episodes;
-      currentShowTitle = show.title;
-      sectionTitle.textContent = show.title;
-
-      const lastWatchedIndex = localStorage.getItem(`progress_${show.title}`);
-
-      show.episodes.forEach((ep, index) => {
-        const epPoster = ep.poster || show.poster;
-        const card = document.createElement('div');
-        card.classList.add('movie-card');
-        if (lastWatchedIndex && parseInt(lastWatchedIndex) === index) {
-          card.classList.add('continue-watching');
-        }
-        card.innerHTML = `
-          <img src="${epPoster}" alt="${ep.title}" />
-          <div class="movie-title">${ep.title}</div>
-        `;
-        card.addEventListener('click', () => {
-          currentIndex = index;
-          openVideo(ep.url, `${show.title} - ${ep.title}`, show.year, show.description, true);
-        });
-        movieGrid.appendChild(card);
-      });
-    }
-
-    function openVideo(url, title, year, description, isTV) {
-      modal.classList.add('active');
-      videoFrame.src = url;
-      detailsDiv.innerHTML = `<strong>${title}</strong> (${year})<br>${description}`;
-      nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
-
-      if (isTV) {
-        localStorage.setItem(`progress_${currentShowTitle}`, currentIndex);
-      }
-    }
-
-    nextBtn.addEventListener('click', () => {
-      if (currentIndex < currentEpisodes.length - 1) {
-        currentIndex++;
-        const ep = currentEpisodes[currentIndex];
-        openVideo(ep.url, ep.title, "", "", true);
-      }
-    });
-
-    closeBtn.addEventListener('click', () => {
-      modal.classList.remove('active');
-      videoFrame.src = "";
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        modal.classList.remove('active');
-        videoFrame.src = "";
-      }
-    });
-
-    backBtn.addEventListener('click', () => renderMain(library));
-
-    searchInput.addEventListener('input', () => {
-      const query = searchInput.value.toLowerCase();
-      if (currentView === "main") {
-        const filtered = library.filter(item => item.title.toLowerCase().includes(query));
-        renderMain(filtered);
+  list.forEach(item => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    card.innerHTML = `
+      <img src="${item.poster}" alt="${item.title}" onerror="this.src='https://via.placeholder.com/300x450?text=${encodeURIComponent(item.title)}';">
+      <div class="movie-title">${item.title}</div>
+    `;
+    card.addEventListener("click", () => {
+      if (item.type === "movie") {
+        openVideo(item.episodes[0].url, item.title, "", "", false);
       } else {
-        const filtered = currentEpisodes.filter(ep => ep.title.toLowerCase().includes(query));
-        movieGrid.innerHTML = "";
-        filtered.forEach((ep, index) => {
-          const epPoster = ep.poster || show.poster;
-          const card = document.createElement('div');
-          card.classList.add('movie-card');
-          card.innerHTML = `<img src="${epPoster}" alt="${ep.title}" /><div class="movie-title">${ep.title}</div>`;
-          card.addEventListener('click', () => {
-            currentIndex = index;
-            openVideo(ep.url, ep.title, "", "", true);
-          });
-          movieGrid.appendChild(card);
-        });
+        showEpisodes(item);
       }
     });
+    movieGrid.appendChild(card);
+  });
+}
 
-    // ✅ Shuffle before rendering
-    shuffleArray(library);
-    renderMain(library);
-  </script>
+function showEpisodes(show) {
+  movieGrid.innerHTML = "";
+  backBtn.style.display = "inline-block";
+  sectionTitle.textContent = show.title;
+  currentEpisodes = show.episodes;
+  currentShowTitle = show.title;
+
+  const lastWatchedIndex = localStorage.getItem(`progress_${show.title}`);
+
+  show.episodes.forEach((ep, index) => {
+    const card = document.createElement("div");
+    card.classList.add("movie-card");
+    if (lastWatchedIndex && parseInt(lastWatchedIndex) === index) {
+      card.classList.add("continue-watching");
+    }
+    card.innerHTML = `
+      <img src="${show.poster}" alt="${ep.title}">
+      <div class="movie-title">${ep.title}</div>
+    `;
+    card.addEventListener("click", () => {
+      currentIndex = index;
+      openVideo(ep.url, `${show.title} - ${ep.title}`, "", "", true);
+    });
+    movieGrid.appendChild(card);
+  });
+}
+
+function openVideo(url, title, year, description, isTV) {
+  modal.classList.add("active");
+  videoFrame.src = url;
+  detailsDiv.innerHTML = `<strong>${title}</strong><br>${description || ""}`;
+  nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
+
+  if (isTV) {
+    localStorage.setItem(`progress_${currentShowTitle}`, currentIndex);
+  }
+}
+
+nextBtn.addEventListener("click", () => {
+  if (currentIndex < currentEpisodes.length - 1) {
+    currentIndex++;
+    const ep = currentEpisodes[currentIndex];
+    openVideo(ep.url, ep.title, "", "", true);
+  }
+});
+
+closeBtn.addEventListener("click", () => {
+  modal.classList.remove("active");
+  videoFrame.src = "";
+});
+
+backBtn.addEventListener("click", () => renderMain(fullLibrary));
+
+// ✅ Instant Search
+searchInput.addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
+  const filtered = fullLibrary.filter(item =>
+    item.title.toLowerCase().includes(query)
+  );
+  renderMain(filtered);
+});
+
+loadLibrary();
+</script>
+
 </body>
 </html>
