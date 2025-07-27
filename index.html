@@ -235,6 +235,9 @@ async function loadLibrary() {
   const data = await response.json();
   fullLibrary = [...data.movies, ...data.tv];
 
+  shuffleArray(data.movies);
+  shuffleArray(data.tv);
+
   renderMovies(data.movies);
   renderTV(data.tv);
 }
