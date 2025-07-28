@@ -295,35 +295,41 @@ async function loadLibrary() {
 }
 
 async function loadNetflixContent() {
-  const API_KEY = "your_tmdb_api_key";
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Your real API key
   const netflixRow = document.getElementById("netflixRow");
   netflixRow.innerHTML = "";
 
   const randomPage = Math.floor(Math.random() * 20) + 1;
   const url = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${randomPage}&api_key=${API_KEY}`;
+  
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const movies = data.results.slice(0, 5); // Show 5 movies like before
 
-  const res = await fetch(url);
-  const data = await res.json();
+    movies.forEach(item => {
+      const poster = item.poster_path
+        ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+        : "https://via.placeholder.com/250x350";
 
-  data.results.forEach(item => {
-    const poster = item.poster_path 
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}` 
-      : "https://via.placeholder.com/250x350";
+      const card = document.createElement("div");
+      card.classList.add("movie-card");
+      card.innerHTML = `
+        <img src="${poster}" loading="lazy">
+        <div class="movie-title">${item.title}</div>
+        <p style="font-size:16px;color:#ccc;margin:0;">⭐ ${item.vote_average}/10</p>
+        <p style="font-size:14px;color:#aaa;margin:0;">${item.release_date}</p>
+      `;
 
-    const card = document.createElement("div");
-    card.classList.add("movie-card");
-    card.innerHTML = `
-      <img src="${poster}" loading="lazy">
-      <div class="movie-title">${item.title}</div>
-      <p style="font-size:16px;color:#ccc;margin:0;">⭐ ${item.vote_average}/10</p>
-      <p style="font-size:14px;color:#aaa;margin:0;">${item.release_date}</p>
-    `;
+      // On click → open modal with description & trailer
+      card.addEventListener("click", () => openNetflixModal(item));
 
-    // On click → open modal with full details
-    card.addEventListener("click", () => openNetflixModal(item));
-
-    netflixRow.appendChild(card);
-  });
+      netflixRow.appendChild(card);
+    });
+  } catch (error) {
+    console.error("Netflix load error:", error);
+    netflixRow.innerHTML = `<p style="color:red;text-align:center;">Failed to load Netflix content.</p>`;
+  }
 }
 
 async function openNetflixModal(item) {
@@ -331,7 +337,7 @@ async function openNetflixModal(item) {
   const modalFrame = document.getElementById("videoFrame");
   const details = document.getElementById("movieDetails");
 
-  // Clear previous
+  // Reset modal content
   modalFrame.style.display = "none";
   details.innerHTML = `
     <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;">${item.title}</h2>
@@ -340,13 +346,14 @@ async function openNetflixModal(item) {
     <p style="color:#e50914;">Loading trailer...</p>
   `;
 
-  // Fetch Trailer
-  const API_KEY = "your_tmdb_api_key";
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Same API key
   const videoURL = `https://api.themoviedb.org/3/movie/${item.id}/videos?api_key=${API_KEY}`;
+
   try {
     const res = await fetch(videoURL);
     const videoData = await res.json();
     const trailer = videoData.results.find(v => v.type === "Trailer" && v.site === "YouTube");
+
     if (trailer) {
       modalFrame.style.display = "block";
       modalFrame.src = `https://www.youtube.com/embed/${trailer.key}`;
@@ -354,7 +361,8 @@ async function openNetflixModal(item) {
       details.innerHTML += `<p style="color:#888;">No trailer available.</p>`;
     }
   } catch (err) {
-    console.error("Error fetching trailer:", err);
+    console.error("Trailer fetch error:", err);
+    details.innerHTML += `<p style="color:#888;">Could not load trailer.</p>`;
   }
 }
 
