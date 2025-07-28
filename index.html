@@ -4,10 +4,9 @@
   <meta charset="UTF-8" />
   <title>RDMN+</title>
 
-  <!-- Google Fonts for Netflix-like styling -->
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
 <style>
   body {
@@ -15,304 +14,81 @@
     background: #141414;
     color: #fff;
     margin: 0;
-    font-size: 22px; /* Base font size for all text */
+    font-size: 22px;
   }
   #appContent {
-    padding-bottom: 120px; /* same as bar height + some space */
+    padding-bottom: 120px;
   }
 
   /* HEADER */
-  header {
-    background: #000;
-    width: 100%;
-    padding: 25px 0;
-    text-align: center;
-    position: relative;
-  }
-  header img {
-    max-width: 450px; /* Larger logo */
-    height: auto;
-  }
-
-  /* LOGOUT BUTTON */
-  .logout-btn {
-    position: absolute;
-    right: 20px;
-    padding: 18px 36px; /* Bigger padding */
-    font-size: 26px; /* Bigger text */
-    background: #e50914;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  .logout-btn:hover {
-    background: #f6121d;
-  }
+  header { background:#000; text-align:center; padding:25px 0; }
+  header img { max-width: 300px; height: auto; }
 
   /* SEARCH BAR */
-  .search-bar {
-    text-align: center;
-    padding: 30px;
-  }
+  .search-bar { text-align:center; padding:30px; }
   .search-bar input {
-    padding: 26px 24px; /* Taller input */
-    width: 95%;
-    max-width: 750px;   /* Wider */
-    font-size: 28px;    /* Bigger text */
-    border-radius: 12px;
-    border: none;
+    padding: 20px; width: 95%; max-width: 750px; font-size: 28px;
+    border-radius: 12px; border: none;
   }
 
   /* SECTION TITLE */
-  #sectionTitle {
-    text-align: center;
-    font-size: 70px;
-    font-weight: bold;
-    margin-top: 25px;
-    font-family: `Bebas Neue`, sans-serif;
-    letter-spacing: 3px;
-  }
+  .section-title { font-size: 44px; margin-left: 30px; font-family: 'Bebas Neue', sans-serif; }
 
-  /* GRID */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 30px;
-    padding: 35px;
-  }
+  /* SCROLL CONTAINER */
+  .scroll-container { display: flex; gap: 20px; padding: 20px; overflow-x: auto; }
+  .scroll-container::-webkit-scrollbar { display: none; }
 
   /* MOVIE CARDS */
-  .movie-card {
-    background: #1f1f1f;
-    border-radius: 12px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.3s ease;
-    position: relative;
-    flex: 0 0 auto;
-    width: 250px;
+  .movie-card { background:#1f1f1f; border-radius:12px; overflow:hidden; width:250px; flex:0 0 auto; cursor:pointer; }
+  .movie-card img { width:100%; display:block; border-radius:12px; }
+  .movie-title { padding:12px; text-align:center; font-size:20px; }
+
+  /* SKELETON LOADER */
+  .skeleton-card {
+    width: 250px; height: 350px;
+    background: #2c2c2c; border-radius: 12px;
+    animation: pulse 1.2s infinite;
   }
-  .movie-card:hover {
-    transform: scale(1.08);
-  }
-  .movie-card img {
-    width: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .movie-title {
-    padding: 14px;
-    text-align: center;
-    font-size: 26px; /* Bigger text */
-    font-weight: bold;
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
   }
 
-  /* BUTTONS (Global) */
-  button {
-    font-size: 26px;
-    padding: 18px 36px;
-    border-radius: 10px;
-    cursor: pointer;
+  /* LOADING SCREEN */
+  #loadingScreen {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:#141414; color:white; display:flex; justify-content:center; align-items:center; flex-direction:column;
+    font-family:'Bebas Neue',sans-serif; font-size:40px; z-index:9999;
   }
-  .back-btn {
-    display: none;
-    margin: 20px 30px;
-    background: #e50914;
-    color: #fff;
-    border: none;
+  .loader {
+    border:8px solid #333; border-top:8px solid #e50914;
+    border-radius:50%; width:70px; height:70px;
+    animation: spin 1s linear infinite;
   }
-  .next-btn {
-    display: none;
-    margin-top: 25px;
-    background: #e50914;
-    color: #fff;
-    border: none;
-    font-size: 26px;
-    border-radius: 10px;
-  }
-  .next-btn:hover {
-    background: #f6121d;
-  }
+  @keyframes spin { 0%{transform:rotate(0);}100%{transform:rotate(360deg);} }
 
-  /* MODAL */
-  .modal {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    flex-direction: column;
-  }
-  .modal.active {
-    display: flex;
-  }
-  .modal-content {
-    background: #1f1f1f;
-    padding: 25px;
-    border-radius: 14px;
-    max-width: 95%;
-    width: 1200px;
-    position: relative;
-  }
-  .close-btn {
-    position: absolute;
-    top: 20px;
-    right: 25px;
-    font-size: 40px;
-    cursor: pointer;
-    color: #fff;
-  }
-  iframe {
-    width: 100%;
-    height: 800px;
-    border: none;
-    border-radius: 12px;
-  }
-  .movie-details {
-    margin-top: 20px;
-    font-size: 24px;
-    color: #ccc;
-  }
-
-  /* SECTION TITLES */
-  .section-title {
-    font-size: 44px;
-    margin-left: 30px;
-    font-family: `Bebas Neue`, sans-serif;
-  }
-
-  /* SCROLL CONTAINERS */
-  .scroll-container {
-    display: flex;
-    gap: 25px;
-    padding: 30px;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-  }
-  .scroll-container::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* SCROLL BUTTONS */
-  .row-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-  .scroll-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    font-size: 50px;
-    border: none;
-    cursor: pointer;
-    padding: 22px;
-    z-index: 10;
-    border-radius: 50%;
-  }
-  .scroll-btn.left {
-    left: 15px;
-  }
-  .scroll-btn.right {
-    right: 15px;
-  }
-  .scroll-btn:hover {
-    background: rgba(0, 0, 0, 0.9);
-  }
-  /* BOTTOM BAR */
+  /* NAV BAR */
   .bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #000;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 15px 0;
-    border-top: 2px solid #222;
-    z-index: 10000;
+    position:fixed; bottom:0; left:0; width:100%;
+    background:#000; display:flex; justify-content:space-around; padding:10px 0;
+    border-top:1px solid #222;
   }
-  .bottom-bar button {
-    background: #e50914;
-    color: #fff;
-    font-size: 24px;
-    padding: 18px 36px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  .bottom-bar button:hover {
-    background: #f6121d;
-  }
-  .bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #000;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 10px 0;
-    border-top: 1px solid #222;
-    z-index: 9999;
-  }
-  .nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #fff;
-    font-size: 30px; /* Bigger text under icons */
-    cursor: pointer;
-    text-decoration: none;
-    transition: color 0.3s;
-    padding: 10px; /* Add space for better tapping */
-  }
-  .nav-item i {
-    font-size: 40px; /* Bigger icons */
-    margin-bottom: 6px; /* More space between icon and text */
-  }
-  .nav-item:hover {
-    color: #aaa;
-  }
+  .nav-item { display:flex; flex-direction:column; align-items:center; color:#fff; font-size:16px; cursor:pointer; }
+  .nav-item i { font-size:28px; margin-bottom:4px; }
+  .nav-item:hover { color:#aaa; }
 </style>
 </head>
 <body>
   <!-- Loading Screen -->
-  <div id="loadingScreen" style="
-    position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: #141414; color: white;
-    display: flex; justify-content: center; align-items: center;
-    flex-direction: column; font-family: `Bebas Neue`, sans-serif;
-    font-size: 40px; z-index: 9999;">
+  <div id="loadingScreen">
     <p>Loading...</p>
-    <div class="loader" style="
-      border: 8px solid #333;
-      border-top: 8px solid #e50914;
-      border-radius: 50%;
-      width: 70px; height: 70px;
-      animation: spin 1s linear infinite;"></div>
+    <div class="loader"></div>
   </div>
-  <style>
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
 
   <!-- Login Screen -->
-  <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;color:white;flex-direction:column;">
-    <h2 style="font-family:`Bebas Neue`,sans-serif;font-size:32px;">Enter Password</h2>
+  <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;flex-direction:column;">
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;">Enter Password</h2>
     <input type="password" id="passwordInput" placeholder="Password" style="padding:10px;font-size:16px;border-radius:5px;border:none;margin-top:10px;">
     <button onclick="checkPassword()" style="margin-top:10px;padding:10px 20px;font-size:18px;background:#e50914;color:white;border:none;border-radius:5px;cursor:pointer;">Login</button>
     <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Incorrect password</p>
@@ -320,394 +96,105 @@
 
   <!-- App Content -->
   <div id="appContent" style="display:none;">
-    
-    <header>
-      <div style="display:flex;justify-content:center;align-items:center;position:relative;height:80px;">
-        <img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo" style="max-width:300px;height:auto;" />
-      </div>
-    </header>
-
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search movies or shows..." />
-    </div>
-
-    <div id="sectionTitle"></div>
-    <button class="back-btn" id="backBtn">⬅ Back</button>
-
-    <!-- Continue Watching -->
-    <div id="continueSection" style="display:none;">
-      <h2 class="section-title">Continue Watching</h2>
-      <div class="scroll-container" id="continueRow"></div>
-    </div>
+    <header><img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo"></header>
+    <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
 
     <!-- Movies -->
-    <div id="moviesSection">
-      <h2 class="section-title">Movies</h2>
-      <div class="row-wrapper">
-        <button class="scroll-btn left" onclick="scrollRow(`moviesRow`, -1)">&#10094;</button>
-        <div class="scroll-container" id="moviesRow"></div>
-        <button class="scroll-btn right" onclick="scrollRow(`moviesRow`, 1)">&#10095;</button>
-      </div>
+    <h2 class="section-title">Movies</h2>
+    <div class="scroll-container" id="moviesRow">
+      <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
     </div>
 
     <!-- TV -->
-    <div id="tvSection">
-      <h2 class="section-title">TV Shows</h2>
-      <div class="row-wrapper">
-        <button class="scroll-btn left" onclick="scrollRow(`tvRow`, -1)">&#10094;</button>
-        <div class="scroll-container" id="tvRow"></div>
-        <button class="scroll-btn right" onclick="scrollRow(`tvRow`, 1)">&#10095;</button>
-      </div>
+    <h2 class="section-title">TV Shows</h2>
+    <div class="scroll-container" id="tvRow">
+      <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
     </div>
 
-    <!-- Episodes -->
-    <div id="episodesSection" style="display:none; padding:20px;">
-      <h2 class="section-title" id="episodesTitle"></h2>
-      <div class="grid" id="episodesGrid"></div>
+    <!-- Netflix -->
+    <h2 class="section-title">Currently on Netflix</h2>
+    <div class="scroll-container" id="netflixRow">
+      <div class="skeleton-card"></div><div class="skeleton-card"></div>
     </div>
-
-    <!-- Netflix Section -->
-    <div id="netflixSection">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 30px;">
-        <h2 class="section-title">Currently on Netflix</h2>
-      </div>
-      <div class="row-wrapper">
-        <div class="scroll-container" id="netflixRow"></div>
-      </div>
-    </div>
-
-    <!-- Search Results -->
-    <div id="searchResultsSection" style="display:none;">
-      <h2 class="section-title">Search Results</h2>
-      <div class="grid" id="searchResultsGrid"></div>
-    </div>
-
-    <!-- Modal -->
-    <div class="modal" id="videoModal">
-      <span class="close-btn" id="closeBtn">&times;</span>
-      <div class="modal-content">
-        <iframe id="videoFrame" allow="fullscreen"></iframe>
-        <div class="movie-details" id="movieDetails"></div>
-      </div>
-      <button class="next-btn" id="nextBtn">Next Episode ➡</button>
-    </div>
-
   </div>
 
   <!-- Bottom Navigation Bar -->
   <div class="bottom-bar">
-    <div class="nav-item" onclick="scrollToTop()">
-      <i class="fa-solid fa-house"></i>
-      <span>Home</span>
-    </div>
-    <div class="nav-item" onclick="loadNetflixContent()">
-      <i class="fa-solid fa-rotate-right"></i>
-      <span>Refresh Netflix</span>
-    </div>
-    <div class="nav-item" onclick="logout()">
-      <i class="fa-solid fa-right-from-bracket"></i>
-      <span>Logout</span>
-    </div>
+    <div class="nav-item" onclick="scrollToTop()"><i class="fa-solid fa-house"></i><span>Home</span></div>
+    <div class="nav-item" onclick="loadNetflixContent()"><i class="fa-solid fa-rotate-right"></i><span>Refresh</span></div>
+    <div class="nav-item" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
   </div>
 
 <script>
-window.onload = () => {
-  if (localStorage.getItem("loggedIn") === "true") {
-    showApp();
-  }
-};
-
 const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
+let fullLibrary = [];
 
-const movieGrid = document.getElementById("movieGrid");
-const modal = document.getElementById("videoModal");
-const closeBtn = document.getElementById("closeBtn");
-const detailsDiv = document.getElementById("movieDetails");
-const videoFrame = document.getElementById("videoFrame");
-const backBtn = document.getElementById("backBtn");
-const nextBtn = document.getElementById("nextBtn");
-const sectionTitle = document.getElementById("sectionTitle");
-const searchInput = document.getElementById("searchInput");
-
-let currentView = "main";
-let currentEpisodes = [];
-let currentIndex = -1;
-let currentShowTitle = "";
-let fullLibrary = []; // ✅ Store all movies/TV here
-
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
-
-function scrollToTop() {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function renderMovies(movies) {
-  const moviesRow = document.getElementById("moviesRow");
-  moviesRow.innerHTML = "";
-  movies.forEach(item => {
-    const card = createCard(item);
-    moviesRow.appendChild(card);
-  });
-}
-
-function renderTV(tvShows) {
-  const tvRow = document.getElementById("tvRow");
-  tvRow.innerHTML = "";
-  tvShows.forEach(item => {
-    const card = createCard(item);
-    tvRow.appendChild(card);
-  });
-}
+function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 function createCard(item) {
   const card = document.createElement("div");
   card.classList.add("movie-card");
-  card.innerHTML = `
-    <img src="${item.poster}" alt="${item.title}" loading="lazy">
-    <div class="movie-title">${item.title}</div>
-  `;
-  card.addEventListener("click", () => {
-    if (item.type === "movie") {
-      openVideo(item.episodes[0].url, item.title, "", "", false);
-    } else {
-      showEpisodes(item);
-    }
-  });
+  card.innerHTML = `<img src="${item.poster}" alt="${item.title}" loading="lazy"><div class="movie-title">${item.title}</div>`;
   return card;
 }
 
-function showEpisodes(show) {
-  // Hide Movies and TV sections
-  document.getElementById("moviesSection").style.display = "none";
-  document.getElementById("tvSection").style.display = "none";
+async function loadLibrary() {
+  const res = await fetch(API_URL);
+  const data = await res.json();
+  fullLibrary = [...data.movies, ...data.tv];
 
-  // Show Episodes section
-  document.getElementById("episodesSection").style.display = "block";
+  const moviesRow = document.getElementById("moviesRow");
+  moviesRow.innerHTML = "";
+  data.movies.forEach(m => moviesRow.appendChild(createCard(m)));
 
-  // Set the title
-  document.getElementById("episodesTitle").textContent = show.title;
+  const tvRow = document.getElementById("tvRow");
+  tvRow.innerHTML = "";
+  data.tv.forEach(t => tvRow.appendChild(createCard(t)));
 
-  // Fill episodes grid
-  const episodesGrid = document.getElementById("episodesGrid");
-  episodesGrid.innerHTML = "";
+  document.getElementById("loadingScreen").style.display = "none";
+  setTimeout(loadNetflixContent, 1500); // Lazy load Netflix
+}
 
-  show.episodes.forEach((ep, index) => {
+async function loadNetflixContent() {
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625";
+  const netflixRow = document.getElementById("netflixRow");
+  netflixRow.innerHTML = "";
+  const randomPage = Math.floor(Math.random() * 20) + 1;
+  const url = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${randomPage}&api_key=${API_KEY}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const randomMovies = data.results.slice(0, 5);
+  randomMovies.forEach(item => {
     const card = document.createElement("div");
     card.classList.add("movie-card");
-    card.innerHTML = `
-      <img src="${show.poster}" alt="${ep.title}">
-      <div class="movie-title">${ep.title}</div>
-    `;
-    card.addEventListener("click", () => {
-      // Open the video directly in iframe
-      videoFrame.src = ep.url;
-      detailsDiv.innerHTML = `<strong>${show.title} - ${ep.title}</strong>`;
-      modal.classList.add("active");
-      currentIndex = index;
-      currentEpisodes = show.episodes;
-      currentShowTitle = show.title;
-    });
-    episodesGrid.appendChild(card);
-  });
-
-  // Show Back button to return to main layout
-  backBtn.style.display = "inline-block";
-}
-
-function openVideo(url, title, year, description, isTV) {
-  console.log("Opening video:", url);
-  modal.classList.add("active");
-  videoFrame.src = url;
-  detailsDiv.innerHTML = `<strong>${title}</strong><br>${description || ""}`;
-  nextBtn.style.display = isTV && currentIndex < currentEpisodes.length - 1 ? "block" : "none";
-
-  if (isTV) {
-    localStorage.setItem(`progress_${currentShowTitle}`, currentIndex);
-  }
-}
-
-nextBtn.addEventListener("click", () => {
-  if (currentIndex < currentEpisodes.length - 1) {
-    currentIndex++;
-    const ep = currentEpisodes[currentIndex];
-    openVideo(ep.url, ep.title, "", "", true);
-  }
-});
-
-closeBtn.addEventListener("click", () => {
-  modal.classList.remove("active");
-  videoFrame.src = "";
-});
-
-backBtn.addEventListener("click", () => {
-  document.getElementById("episodesSection").style.display = "none";
-  document.getElementById("moviesSection").style.display = "block";
-  document.getElementById("tvSection").style.display = "block";
-  backBtn.style.display = "none";
-});
-
-// ✅ Instant Search
-searchInput.addEventListener("input", (e) => {
-  const query = e.target.value.toLowerCase();
-
-  if (query === "") {
-    // ✅ Restore all sections when search is empty
-    document.getElementById("moviesSection").style.display = "block";
-    document.getElementById("tvSection").style.display = "block";
-    document.getElementById("netflixSection").style.display = "block";
-    document.getElementById("continueSection").style.display = "block";
-    sectionTitle.textContent = "";
-    document.getElementById("searchResultsSection").style.display = "none";
-  } else {
-    // ✅ Hide everything else
-    document.getElementById("moviesSection").style.display = "none";
-    document.getElementById("tvSection").style.display = "none";
-    document.getElementById("netflixSection").style.display = "none";
-    document.getElementById("continueSection").style.display = "none";
-
-    // ✅ Show Search Results
-    const filtered = fullLibrary.filter(item =>
-      item.title.toLowerCase().includes(query)
-    );
-    sectionTitle.textContent = "Search Results";
-    showSearchResults(filtered);
-    document.getElementById("searchResultsSection").style.display = "block";
-  }
-});
-
-function showSearchResults(list) {
-  const container = document.getElementById("searchResultsGrid");
-  container.innerHTML = "";
-  list.forEach(item => {
-    const card = createCard(item);
-    container.appendChild(card);
+    const poster = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "https://via.placeholder.com/250x350";
+    card.innerHTML = `<img src="${poster}" loading="lazy"><div class="movie-title">${item.title}</div>`;
+    netflixRow.appendChild(card);
   });
 }
-
-function scrollRow(rowId, direction) {
-  const container = document.getElementById(rowId);
-  const scrollAmount = container.offsetWidth; // Scroll by one row width
-  container.scrollBy({
-    left: scrollAmount * direction,
-    behavior: "smooth"
-  });
-}
-
-function renderContinueWatching() {
-  const continueRow = document.getElementById("continueRow");
-  continueRow.innerHTML = "";
-
-  const keys = Object.keys(localStorage).filter(key => key.startsWith("progress_"));
-  if (keys.length === 0) {
-    document.getElementById("continueSection").style.display = "none";
-    return;
-  }
-
-  // Find matching items in fullLibrary
-  const items = [];
-  keys.forEach(key => {
-    const title = key.replace("progress_", "");
-    const item = fullLibrary.find(i => i.title === title);
-    if (item) items.push(item);
-  });
-
-  if (items.length > 0) {
-    document.getElementById("continueSection").style.display = "block";
-    items.forEach(item => {
-      const card = createCard(item);
-      continueRow.appendChild(card);
-    });
-  } else {
-    document.getElementById("continueSection").style.display = "none";
-  }
-}
-
-// ✅ App password (change this to your desired password)
-const APP_PASSWORD = "YourSecretPassword";
 
 function checkPassword() {
   const input = document.getElementById("passwordInput").value;
-  if (input === APP_PASSWORD) {
-    localStorage.setItem("loggedIn", "true"); // ✅ Save login state
-    showApp();
+  if (input === "YourSecretPassword") {
+    localStorage.setItem("loggedIn", "true");
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+    loadLibrary();
   } else {
     document.getElementById("errorMsg").style.display = "block";
   }
 }
 
-function showApp() {
-  document.getElementById("loginScreen").style.display = "none";
-  document.getElementById("appContent").style.display = "block";
-  document.getElementById("loadingScreen").style.display = "none"; // Hide loader immediately
-}
-  
 function logout() {
   localStorage.removeItem("loggedIn");
-  document.getElementById("appContent").style.display = "none";
-  document.getElementById("loginScreen").style.display = "flex";
+  location.reload();
 }
 
-async function loadLibrary() {
-  const response = await fetch(API_URL);
-  const data = await response.json();
-  fullLibrary = [...data.movies, ...data.tv];
-
-  shuffleArray(data.movies);
-  shuffleArray(data.tv);
-
-  renderMovies(data.movies);
-  renderTV(data.tv);
-  renderContinueWatching();
-
-  // ✅ Hide loading screen as soon as Movies & TV are ready
-  document.getElementById("loadingScreen").style.display = "none";
-
-  // ✅ Lazy load Netflix section after main UI appears
-  setTimeout(loadNetflixContent, 1500);
+if (localStorage.getItem("loggedIn") === "true") {
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("appContent").style.display = "block";
+  loadLibrary();
 }
-
-async function loadNetflixContent() {
-  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Your TMDb key
-  const netflixRow = document.getElementById("netflixRow");
-  netflixRow.innerHTML = ""; // Clear previous content
-
-  // Fetch ONE random page of Netflix movies
-  const randomPage = Math.floor(Math.random() * 20) + 1; // Pages 1–20
-  const movieEndpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${randomPage}&api_key=${API_KEY}`;
-  
-  const movieResponse = await fetch(movieEndpoint);
-  const movieData = await movieResponse.json();
-  const allMovies = movieData.results;
-
-  // Pick 4 random items
-  const randomMovies = allMovies.sort(() => 0.5 - Math.random()).slice(0, 5);
-
-  // Render only 4 cards
-  randomMovies.forEach(item => {
-    const card = document.createElement("div");
-    card.classList.add("movie-card");
-    const poster = item.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : "https://via.placeholder.com/300x450?text=No+Image";
-    const title = item.title || item.name;
-
-  card.innerHTML = `
-    <img src="${poster}" alt="${title}" loading="lazy">
-    <div class="movie-title">${title}</div>
-  `;
-
-    netflixRow.appendChild(card);
-  });
-}
-
-loadLibrary();
-loadNetflixContent();
 </script>
-
 </body>
 </html>
