@@ -10,173 +10,252 @@
 
 <style>
   body {
-    font-family: Arial, sans-serif;
-    background: #141414;
-    color: #fff;
-    margin: 0;
-    font-size: 22px;
-  }
-  #appContent {
-    padding-bottom: 120px;
-  }
+  font-family: Arial, sans-serif;
+  background: #141414;
+  color: #fff;
+  margin: 0;
+  font-size: 22px;
+}
 
-  /* HEADER */
-  header { background:#000; text-align:center; padding:25px 0; }
-  header img { max-width: 300px; height: auto; }
+#appContent {
+  padding-bottom: 120px;
+}
 
-  /* SEARCH BAR */
-  .search-bar { text-align:center; padding:30px; }
-  .search-bar input {
-    padding: 20px; width: 95%; max-width: 750px; font-size: 28px;
-    border-radius: 12px; border: none;
-  }
+/* HEADER */
+header {
+  background: #000;
+  text-align: center;
+  padding: 25px 0;
+}
+header img {
+  max-width: 300px;
+  height: auto;
+}
 
-  /* SECTION TITLE */
-  .section-title { font-size: 55px; margin-left: 30px; font-family: 'Bebas Neue', sans-serif; }
+/* SEARCH BAR */
+.search-bar {
+  text-align: center;
+  padding: 30px;
+}
+.search-bar input {
+  padding: 20px;
+  width: 95%;
+  max-width: 750px;
+  font-size: 28px;
+  border-radius: 12px;
+  border: none;
+}
 
-  /* SCROLL CONTAINER */
-  .scroll-container { display: flex; gap: 20px; padding: 20px; overflow-x: auto; }
-  .scroll-container::-webkit-scrollbar { display: none; }
+/* SECTION TITLE */
+.section-title {
+  font-size: 55px;
+  margin-left: 30px;
+  font-family: 'Bebas Neue', sans-serif;
+}
 
-  /* MOVIE CARDS */
-  .movie-card { background:#1f1f1f; border-radius:12px; overflow:hidden; width:250px; flex:0 0 auto; cursor:pointer; }
-  .movie-card img { width:100%; display:block; border-radius:12px; }
-  .movie-title { padding:12px; text-align:center; font-size:30px; }
+/* SCROLL CONTAINER */
+.scroll-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  overflow-x: auto;
+}
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
 
-  /* SKELETON LOADER */
-  .skeleton-card {
-    width: 250px; height: 350px;
-    background: #2c2c2c; border-radius: 12px;
-    animation: pulse 1.2s infinite;
-  }
-  @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.6; }
-    100% { opacity: 1; }
-  }
+/* MOVIE CARDS */
+.movie-card {
+  background: #1f1f1f;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 250px;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+.movie-card img {
+  width: 100%;
+  display: block;
+  border-radius: 12px;
+}
+.movie-title {
+  padding: 12px;
+  text-align: center;
+  font-size: 30px;
+}
 
-  /* LOADING SCREEN */
-  #loadingScreen {
-    position:fixed; top:0; left:0; width:100%; height:100%;
-    background:#141414; color:white; display:flex; justify-content:center; align-items:center; flex-direction:column;
-    font-family:'Bebas Neue',sans-serif; font-size:40px; z-index:9999;
+/* SKELETON LOADER */
+.skeleton-card {
+  width: 250px;
+  height: 350px;
+  background: #2c2c2c;
+  border-radius: 12px;
+  animation: pulse 1.2s infinite;
+}
+@keyframes pulse {
+  0% {
+    opacity: 1;
   }
-  .loader {
-    border:8px solid #333; border-top:8px solid #e50914;
-    border-radius:50%; width:70px; height:70px;
-    animation: spin 1s linear infinite;
+  50% {
+    opacity: 0.6;
   }
-  @keyframes spin { 0%{transform:rotate(0);}100%{transform:rotate(360deg);} }
+  100% {
+    opacity: 1;
+  }
+}
 
-  /* NAV BAR */
-  .bottom-bar {
-    position:fixed; bottom:0; left:0; width:100%;
-    background:#000; display:flex; justify-content:space-around; padding:10px 0;
-    border-top:1px solid #222;
+/* LOADING SCREEN */
+#loadingScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #141414;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 40px;
+  z-index: 9999;
+}
+.loader {
+  border: 8px solid #333;
+  border-top: 8px solid #e50914;
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% {
+    transform: rotate(0);
   }
-  .nav-item { display:flex; flex-direction:column; align-items:center; color:#fff; font-size:20px; cursor:pointer; }
-  .nav-item i { font-size:40px; margin-bottom:4px; }
-  .nav-item:hover { color:#aaa; }
-  .modal.active { display: flex; }
-  .movie-card:hover { transform: scale(1.08); transition: 0.3s ease; }
-    .modal {
-    display: none;
+  100% {
+    transform: rotate(360deg);
   }
-  .modal.active {
-    display: flex !important;
-  }
-  
-  #movieDetails h2 {
-    font-size: 48px !important; /* Big title */
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 10px;
-  }
-  
-  #movieDetails p {
-    font-size: 30px !important; /* Bigger description */
-    line-height: 1.6;
-    color: #ccc;
-  }
-  #closeBtn {
-    position: fixed; /* Always visible */
-    top: 20px;
-    right: 25px;
-    font-size: 70px; /* Bigger size */
-    cursor: pointer;
-    color: #fff;
-    z-index: 2000; /* Stay on top */
-    transition: transform 0.2s ease, color 0.2s ease;
-  }
-  #closeBtn:hover {
-    color: #e50914; /* Netflix red on hover */
-    transform: scale(1.2); /* Slight zoom effect */
-  }
-  .modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.95);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    flex-direction: column;
-    padding: 20px;
-  }
-  .modal-content {
-    background: #1f1f1f;
-    border-radius: 14px;
-    max-width: 95%;
-    width: 1200px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  #videoFrame {
-    width: 100%;
-    height: 500px;
-    border: none;
-    border-radius: 12px 12px 0 0;
-  }
-  .movie-info-scroll {
-    max-height: 300px; /* Scrollable height */
-    overflow-y: auto;
-    padding: 20px;
-    font-size: 24px;
-    color: #ccc;
-  }
-  .movie-info-scroll::-webkit-scrollbar {
-    width: 8px;
-  }
-  .movie-info-scroll::-webkit-scrollbar-thumb {
-    background: #e50914;
-    border-radius: 4px;
-  }
-  .movie-title-text {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 48px;
-    margin-bottom: 15px;
-    color: #fff;
-  }
-  .movie-rating {
-    font-size: 26px;
-    color: #ccc;
-    margin-bottom: 10px;
-  }
-  .movie-overview {
-    font-size: 22px;
-    line-height: 1.6;
-    color: #aaa;
-    margin-bottom: 20px;
-  }
-  .loading-text {
-    font-size: 20px;
-    color: #e50914;
-  }
+}
 
+/* NAV BAR */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #000;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  border-top: 1px solid #222;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+.nav-item i {
+  font-size: 40px;
+  margin-bottom: 4px;
+}
+.nav-item:hover {
+  color: #aaa;
+}
+
+/* Hover effect */
+.movie-card:hover {
+  transform: scale(1.08);
+  transition: 0.3s ease;
+}
+
+/* MODAL */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  flex-direction: column;
+  padding: 0;
+}
+.modal.active {
+  display: flex !important;
+}
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  height: 100%; /* Full height */
+  background: #1f1f1f;
+  overflow: hidden;
+  border-radius: 0;
+}
+#videoFrame {
+  width: 100%;
+  height: 50%; /* Top half for video */
+  border: none;
+}
+.movie-info-scroll {
+  height: 50%; /* Bottom half scrollable */
+  overflow-y: auto;
+  padding: 20px;
+}
+.movie-info-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.movie-info-scroll::-webkit-scrollbar-thumb {
+  background: #e50914;
+  border-radius: 4px;
+}
+
+/* Modal Close Button */
+#closeBtn {
+  position: fixed;
+  top: 20px;
+  right: 25px;
+  font-size: 70px;
+  cursor: pointer;
+  color: #fff;
+  z-index: 2000;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+#closeBtn:hover {
+  color: #e50914;
+  transform: scale(1.2);
+}
+
+/* Text Styling in Modal */
+.movie-title-text {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #fff;
+}
+.movie-rating {
+  font-size: 26px;
+  color: #ccc;
+  margin-bottom: 10px;
+}
+.movie-overview {
+  font-size: 22px;
+  line-height: 1.6;
+  color: #aaa;
+  margin-bottom: 20px;
+}
+.loading-text {
+  font-size: 20px;
+  color: #e50914;
+}
 </style>
 </head>
 <body>
