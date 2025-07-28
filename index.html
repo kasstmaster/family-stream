@@ -7,6 +7,7 @@
   <!-- Google Fonts for Netflix-like styling -->
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
 <style>
   body {
@@ -467,7 +468,7 @@ function createCard(item) {
   const card = document.createElement("div");
   card.classList.add("movie-card");
   card.innerHTML = `
-    <img src="${item.poster}" alt="${item.title}">
+    <img src="${item.poster}" alt="${item.title}" loading="lazy">
     <div class="movie-title">${item.title}</div>
   `;
   card.addEventListener("click", () => {
@@ -642,6 +643,7 @@ function checkPassword() {
 function showApp() {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appContent").style.display = "block";
+  document.getElementById("loadingScreen").style.display = "none"; // Hide loader immediately
 }
   
 function logout() {
@@ -661,8 +663,12 @@ async function loadLibrary() {
   renderMovies(data.movies);
   renderTV(data.tv);
   renderContinueWatching();
-// ✅ Hide loading screen
-document.getElementById("loadingScreen").style.display = "none";
+
+  // ✅ Hide loading screen as soon as Movies & TV are ready
+  document.getElementById("loadingScreen").style.display = "none";
+
+  // ✅ Lazy load Netflix section after main UI appears
+  setTimeout(loadNetflixContent, 1500);
 }
 
 async function loadNetflixContent() {
@@ -671,7 +677,7 @@ async function loadNetflixContent() {
   netflixRow.innerHTML = ""; // Clear previous content
 
   // Fetch ONE random page of Netflix movies
-  const randomPage = Math.floor(Math.random() * 10) + 1; // Pages 1–10
+  const randomPage = Math.floor(Math.random() * 20) + 1; // Pages 1–20
   const movieEndpoint = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&include_adult=false&language=en-US&sort_by=popularity.desc&page=${randomPage}&api_key=${API_KEY}`;
   
   const movieResponse = await fetch(movieEndpoint);
@@ -690,10 +696,10 @@ async function loadNetflixContent() {
       : "https://via.placeholder.com/300x450?text=No+Image";
     const title = item.title || item.name;
 
-    card.innerHTML = `
-      <img src="${poster}" alt="${title}">
-      <div class="movie-title">${title}</div>
-    `;
+  card.innerHTML = `
+    <img src="${poster}" alt="${title}" loading="lazy">
+    <div class="movie-title">${title}</div>
+  `;
 
     netflixRow.appendChild(card);
   });
