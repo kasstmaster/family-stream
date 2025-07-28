@@ -78,35 +78,40 @@
   .nav-item i { font-size:40px; margin-bottom:4px; }
   .nav-item:hover { color:#aaa; }
   .modal.active { display: flex; }
-.movie-card:hover { transform: scale(1.08); transition: 0.3s ease; }
-  .modal {
-  display: none;
-}
-.modal.active {
-  display: flex !important;
-}
-
-#movieDetails h2 {
-  font-size: 48px !important; /* Big title */
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 10px;
-}
-
-#movieDetails p {
-  font-size: 30px !important; /* Bigger description */
-  line-height: 1.6;
-  color: #ccc;
-}
-#closeBtn {
-  position: fixed; /* Instead of absolute */
-  top: 20px;
-  right: 25px;
-  font-size: 40px;
-  cursor: pointer;
-  color: #fff;
-  z-index: 2000; /* Make sure it's above everything */
-}
+  .movie-card:hover { transform: scale(1.08); transition: 0.3s ease; }
+    .modal {
+    display: none;
+  }
+  .modal.active {
+    display: flex !important;
+  }
+  
+  #movieDetails h2 {
+    font-size: 48px !important; /* Big title */
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  
+  #movieDetails p {
+    font-size: 30px !important; /* Bigger description */
+    line-height: 1.6;
+    color: #ccc;
+  }
+  #closeBtn {
+    position: fixed; /* Always visible */
+    top: 20px;
+    right: 25px;
+    font-size: 60px; /* Bigger size */
+    cursor: pointer;
+    color: #fff;
+    z-index: 2000; /* Stay on top */
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+  #closeBtn:hover {
+    color: #e50914; /* Netflix red on hover */
+    transform: scale(1.2); /* Slight zoom effect */
+  }
 </style>
 </head>
 <body>
