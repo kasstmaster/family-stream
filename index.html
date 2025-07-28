@@ -139,19 +139,34 @@ function createCard(item) {
 }
 
 async function loadLibrary() {
-  const response = await fetch(API_URL);
-  const data = await response.json();
-  
-  // Load first batch for quick display
-  renderMovies(data.movies.slice(0, 20));
-  renderTV(data.tv.slice(0, 20));
+  // ✅ Hide loading screen immediately
   document.getElementById("loadingScreen").style.display = "none";
 
-  // Lazy load the rest after 2s
-  setTimeout(() => {
-    renderMovies(data.movies);
-    renderTV(data.tv);
-  }, 2000);
+  // ✅ Show skeleton loaders while real data loads
+  const moviesRow = document.getElementById("moviesRow");
+  const tvRow = document.getElementById("tvRow");
+  moviesRow.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
+  tvRow.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
+
+  try {
+    // ✅ Fetch data in the background
+    const response = await fetch(API_URL);
+    const data = await response.json();
+
+    // ✅ Render first batch for instant UI feedback
+    renderMovies(data.movies.slice(0, 20));
+    renderTV(data.tv.slice(0, 20));
+
+    // ✅ Lazy load the rest in chunks
+    setTimeout(() => {
+      renderMovies(data.movies);
+      renderTV(data.tv);
+    }, 1500); // Load full library after 1.5s
+  } catch (error) {
+    console.error("Error loading library:", error);
+    moviesRow.innerHTML = `<p style="color:red;text-align:center;">Failed to load movies.</p>`;
+    tvRow.innerHTML = `<p style="color:red;text-align:center;">Failed to load TV shows.</p>`;
+  }
 }
 
 async function loadNetflixContent() {
