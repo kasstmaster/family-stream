@@ -247,7 +247,7 @@ header img {
   margin-bottom: 10px;
 }
 .movie-overview {
-  font-size: 30px;
+  font-size: 30px !important;
   line-height: 1.6;
   color: #aaa;
   margin-bottom: 20px;
@@ -374,7 +374,9 @@ function createCard(item) {
 function openVideo(url, title) {
   document.getElementById("videoModal").classList.add("active");
   document.getElementById("videoFrame").src = url;
-  document.getElementById("movieDetails").innerHTML = `<strong>${title}</strong>`;
+  document.getElementById("movieDetails").innerHTML = `
+  <h2 class="movie-title-text">${title}</h2>
+`;
 }
 
 function showEpisodes(show) {
