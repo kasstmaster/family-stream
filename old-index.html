@@ -32,7 +32,7 @@
   }
 
   /* SECTION TITLE */
-  .section-title { font-size: 44px; margin-left: 30px; font-family: 'Bebas Neue', sans-serif; }
+  .section-title { font-size: 55px; margin-left: 30px; font-family: 'Bebas Neue', sans-serif; }
 
   /* SCROLL CONTAINER */
   .scroll-container { display: flex; gap: 20px; padding: 20px; overflow-x: auto; }
@@ -41,7 +41,7 @@
   /* MOVIE CARDS */
   .movie-card { background:#1f1f1f; border-radius:12px; overflow:hidden; width:250px; flex:0 0 auto; cursor:pointer; }
   .movie-card img { width:100%; display:block; border-radius:12px; }
-  .movie-title { padding:12px; text-align:center; font-size:20px; }
+  .movie-title { padding:12px; text-align:center; font-size:30px; }
 
   /* SKELETON LOADER */
   .skeleton-card {
@@ -84,6 +84,19 @@
 }
 .modal.active {
   display: flex !important;
+}
+
+#movieDetails h2 {
+  font-size: 48px !important; /* Big title */
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+#movieDetails p {
+  font-size: 30px !important; /* Bigger description */
+  line-height: 1.6;
+  color: #ccc;
 }
 
 </style>
