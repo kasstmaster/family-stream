@@ -415,10 +415,10 @@ async function openNetflixModal(item) {
   // Reset modal content
   modalFrame.style.display = "none";
   details.innerHTML = `
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;">${item.title}</h2>
-    <p style="color:#ccc;font-size:18px;">⭐ ${item.vote_average}/10 | ${item.release_date}</p>
-    <p style="color:#aaa;font-size:18px;">${item.overview || "No description available."}</p>
-    <p style="color:#e50914;">Loading trailer...</p>
+    <h2 class="movie-title-text">${item.title}</h2>
+    <p class="movie-rating">⭐ ${item.vote_average}/10 | ${item.release_date}</p>
+    <p class="movie-overview">${item.overview || "No description available."}</p>
+    <p class="loading-text">Loading trailer...</p>
   `;
 
   const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Same API key
