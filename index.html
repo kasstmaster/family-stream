@@ -122,10 +122,16 @@
 
     <!-- Netflix -->
     <h2 class="section-title">Currently on Netflix</h2>
-    <div class="scroll-container" id="netflixRow">
-      <div class="skeleton-card"></div><div class="skeleton-card"></div>
+      <div class="scroll-container" id="netflixRow">
+        <div class="skeleton-card"></div><div class="skeleton-card"></div>
+      </div>
     </div>
-  </div>
+
+    <!-- Search Results -->
+    <div id="searchResultsSection" style="display:none;">
+      <h2 class="section-title">Search Results</h2>
+      <div class="scroll-container" id="searchResultsGrid"></div>
+    </div>
 
     <!-- Episodes -->
   <div id="episodesSection" style="display:none; padding:20px;">
@@ -274,6 +280,39 @@ async function loadLibrary() {
     document.getElementById("tvRow").innerHTML = `<p style="color:red;text-align:center;">Failed to load TV shows.</p>`;
   }
 }
+
+// Search Feature
+const searchInput = document.getElementById("searchInput");
+
+searchInput.addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
+
+  if (query === "") {
+    // Show default sections
+    document.getElementById("moviesRow").parentElement.style.display = "block";
+    document.getElementById("tvRow").parentElement.style.display = "block";
+    document.getElementById("netflixRow").parentElement.style.display = "block";
+    document.getElementById("searchResultsSection").style.display = "none";
+  } else {
+    // Hide default sections
+    document.getElementById("moviesRow").parentElement.style.display = "none";
+    document.getElementById("tvRow").parentElement.style.display = "none";
+    document.getElementById("netflixRow").parentElement.style.display = "none";
+
+    // Show Search Results
+    document.getElementById("searchResultsSection").style.display = "block";
+
+    const filtered = fullLibrary.filter(item =>
+      item.title.toLowerCase().includes(query)
+    );
+
+    const searchResultsGrid = document.getElementById("searchResultsGrid");
+    searchResultsGrid.innerHTML = "";
+    filtered.forEach(item => {
+      searchResultsGrid.appendChild(createCard(item));
+    });
+  }
+});
 
 // Netflix Section
 async function loadNetflixContent() {
