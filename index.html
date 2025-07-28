@@ -108,24 +108,37 @@
     <header><img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo"></header>
     <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
 
-    <!-- Movies -->
+  <!-- Movies Section -->
+  <div id="moviesSection">
     <h2 class="section-title">Movies</h2>
     <div class="scroll-container" id="moviesRow">
-      <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
     </div>
-
-    <!-- TV -->
+  </div>
+  
+  <!-- TV Shows Section -->
+  <div id="tvSection">
     <h2 class="section-title">TV Shows</h2>
     <div class="scroll-container" id="tvRow">
-      <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
     </div>
-
-    <!-- Netflix -->
+  </div>
+  
+  <!-- Netflix Section -->
+  <div id="netflixSection">
     <h2 class="section-title">Currently on Netflix</h2>
-      <div class="scroll-container" id="netflixRow">
-        <div class="skeleton-card"></div><div class="skeleton-card"></div>
-      </div>
+    <div class="scroll-container" id="netflixRow">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
     </div>
+  </div>
+
 
     <!-- Search Results -->
     <div id="searchResultsSection" style="display:none;">
@@ -281,39 +294,6 @@ async function loadLibrary() {
   }
 }
 
-// Search Feature
-const searchInput = document.getElementById("searchInput");
-
-searchInput.addEventListener("input", (e) => {
-  const query = e.target.value.toLowerCase();
-
-  if (query === "") {
-    // Show default sections
-    document.getElementById("moviesRow").parentElement.style.display = "block";
-    document.getElementById("tvRow").parentElement.style.display = "block";
-    document.getElementById("netflixRow").parentElement.style.display = "block";
-    document.getElementById("searchResultsSection").style.display = "none";
-  } else {
-    // Hide default sections
-    document.getElementById("moviesRow").parentElement.style.display = "none";
-    document.getElementById("tvRow").parentElement.style.display = "none";
-    document.getElementById("netflixRow").parentElement.style.display = "none";
-
-    // Show Search Results
-    document.getElementById("searchResultsSection").style.display = "block";
-
-    const filtered = fullLibrary.filter(item =>
-      item.title.toLowerCase().includes(query)
-    );
-
-    const searchResultsGrid = document.getElementById("searchResultsGrid");
-    searchResultsGrid.innerHTML = "";
-    filtered.forEach(item => {
-      searchResultsGrid.appendChild(createCard(item));
-    });
-  }
-});
-
 // Netflix Section
 async function loadNetflixContent() {
   const API_KEY = "48f719a14913f9d4ee92c684c2187625";
@@ -364,6 +344,45 @@ if (localStorage.getItem("loggedIn") === "true") {
   loadLibrary();
   loadNetflixContent();
 }
+
+// Search Feature
+document.getElementById("searchInput").addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
+  const searchResults = document.getElementById("searchResultsSection");
+  const searchGrid = document.getElementById("searchResultsGrid");
+
+  if (query === "") {
+    // Restore original sections when input is cleared
+    document.getElementById("moviesSection").style.display = "block";
+    document.getElementById("tvSection").style.display = "block";
+    document.getElementById("netflixSection").style.display = "block";
+    document.getElementById("episodesSection").style.display = "none"; // Hide episodes if open
+    searchResults.style.display = "none";
+    return;
+  }
+
+  // Hide everything except header and search bar
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
+  document.getElementById("netflixSection").style.display = "none";
+  document.getElementById("episodesSection").style.display = "none";
+
+  // Show search results container
+  searchResults.style.display = "block";
+  searchGrid.innerHTML = "";
+
+  // Filter full library
+  const filtered = fullLibrary.filter(item =>
+    item.title.toLowerCase().includes(query)
+  );
+
+  if (filtered.length > 0) {
+    filtered.forEach(item => searchGrid.appendChild(createCard(item)));
+  } else {
+    searchGrid.innerHTML = `<p style="text-align:center;color:#aaa;font-size:24px;">No results found.</p>`;
+  }
+});
+
 </script>
 </body>
 </html>
