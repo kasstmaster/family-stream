@@ -139,20 +139,19 @@ function createCard(item) {
 }
 
 async function loadLibrary() {
-  const res = await fetch(API_URL);
-  const data = await res.json();
-  fullLibrary = [...data.movies, ...data.tv];
-
-  const moviesRow = document.getElementById("moviesRow");
-  moviesRow.innerHTML = "";
-  data.movies.forEach(m => moviesRow.appendChild(createCard(m)));
-
-  const tvRow = document.getElementById("tvRow");
-  tvRow.innerHTML = "";
-  data.tv.forEach(t => tvRow.appendChild(createCard(t)));
-
+  const response = await fetch(API_URL);
+  const data = await response.json();
+  
+  // Load first batch for quick display
+  renderMovies(data.movies.slice(0, 20));
+  renderTV(data.tv.slice(0, 20));
   document.getElementById("loadingScreen").style.display = "none";
-  setTimeout(loadNetflixContent, 1500); // Lazy load Netflix
+
+  // Lazy load the rest after 2s
+  setTimeout(() => {
+    renderMovies(data.movies);
+    renderTV(data.tv);
+  }, 2000);
 }
 
 async function loadNetflixContent() {
