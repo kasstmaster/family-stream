@@ -294,23 +294,76 @@ async function loadLibrary() {
   }
 }
 
-// Netflix Section
 async function loadNetflixContent() {
-  const API_KEY = "48f719a14913f9d4ee92c684c2187625";
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Your real API key
   const netflixRow = document.getElementById("netflixRow");
   netflixRow.innerHTML = "";
+
   const randomPage = Math.floor(Math.random() * 20) + 1;
   const url = `https://api.themoviedb.org/3/discover/movie?with_watch_providers=8&watch_region=US&sort_by=popularity.desc&page=${randomPage}&api_key=${API_KEY}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  const randomMovies = data.results.slice(0, 5);
-  randomMovies.forEach(item => {
-    const card = document.createElement("div");
-    card.classList.add("movie-card");
-    const poster = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "https://via.placeholder.com/250x350";
-    card.innerHTML = `<img src="${poster}" loading="lazy"><div class="movie-title">${item.title}</div>`;
-    netflixRow.appendChild(card);
-  });
+  
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const movies = data.results.slice(0, 5); // Show 5 movies like before
+
+    movies.forEach(item => {
+      const poster = item.poster_path
+        ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+        : "https://via.placeholder.com/250x350";
+
+      const card = document.createElement("div");
+      card.classList.add("movie-card");
+      card.innerHTML = `
+        <img src="${poster}" loading="lazy">
+        <div class="movie-title">${item.title}</div>
+        <p style="font-size:16px;color:#ccc;margin:0;">⭐ ${item.vote_average}/10</p>
+        <p style="font-size:14px;color:#aaa;margin:0;">${item.release_date}</p>
+      `;
+
+      // On click → open modal with description & trailer
+      card.addEventListener("click", () => openNetflixModal(item));
+
+      netflixRow.appendChild(card);
+    });
+  } catch (error) {
+    console.error("Netflix load error:", error);
+    netflixRow.innerHTML = `<p style="color:red;text-align:center;">Failed to load Netflix content.</p>`;
+  }
+}
+
+async function openNetflixModal(item) {
+  document.getElementById("videoModal").classList.add("active");
+  const modalFrame = document.getElementById("videoFrame");
+  const details = document.getElementById("movieDetails");
+
+  // Reset modal content
+  modalFrame.style.display = "none";
+  details.innerHTML = `
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;">${item.title}</h2>
+    <p style="color:#ccc;font-size:18px;">⭐ ${item.vote_average}/10 | ${item.release_date}</p>
+    <p style="color:#aaa;font-size:18px;">${item.overview || "No description available."}</p>
+    <p style="color:#e50914;">Loading trailer...</p>
+  `;
+
+  const API_KEY = "48f719a14913f9d4ee92c684c2187625"; // Same API key
+  const videoURL = `https://api.themoviedb.org/3/movie/${item.id}/videos?api_key=${API_KEY}`;
+
+  try {
+    const res = await fetch(videoURL);
+    const videoData = await res.json();
+    const trailer = videoData.results.find(v => v.type === "Trailer" && v.site === "YouTube");
+
+    if (trailer) {
+      modalFrame.style.display = "block";
+      modalFrame.src = `https://www.youtube.com/embed/${trailer.key}`;
+    } else {
+      details.innerHTML += `<p style="color:#888;">No trailer available.</p>`;
+    }
+  } catch (err) {
+    console.error("Trailer fetch error:", err);
+    details.innerHTML += `<p style="color:#888;">Could not load trailer.</p>`;
+  }
 }
 
 // Login System
