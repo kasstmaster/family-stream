@@ -98,7 +98,15 @@
   line-height: 1.6;
   color: #ccc;
 }
-
+#closeBtn {
+  position: fixed; /* Instead of absolute */
+  top: 20px;
+  right: 25px;
+  font-size: 40px;
+  cursor: pointer;
+  color: #fff;
+  z-index: 2000; /* Make sure it's above everything */
+}
 </style>
 </head>
 <body>
