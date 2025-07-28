@@ -129,8 +129,10 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
 let fullLibrary = [];
 
+// Scroll to top
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
+// Create card
 function createCard(item) {
   const card = document.createElement("div");
   card.classList.add("movie-card");
@@ -138,37 +140,49 @@ function createCard(item) {
   return card;
 }
 
-async function loadLibrary() {
-  // ✅ Hide loading screen immediately
-  document.getElementById("loadingScreen").style.display = "none";
-
-  // ✅ Show skeleton loaders while real data loads
+// Render Movies
+function renderMovies(movies) {
   const moviesRow = document.getElementById("moviesRow");
-  const tvRow = document.getElementById("tvRow");
-  moviesRow.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
-  tvRow.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
+  moviesRow.innerHTML = "";
+  movies.forEach(item => moviesRow.appendChild(createCard(item)));
+}
 
+// Render TV
+function renderTV(tvShows) {
+  const tvRow = document.getElementById("tvRow");
+  tvRow.innerHTML = "";
+  tvShows.forEach(item => tvRow.appendChild(createCard(item)));
+}
+
+// Load Library
+async function loadLibrary() {
   try {
-    // ✅ Fetch data in the background
     const response = await fetch(API_URL);
     const data = await response.json();
 
-    // ✅ Render first batch for instant UI feedback
+    // Save full library for search
+    fullLibrary = [...data.movies, ...data.tv];
+
+    // Show first batch
     renderMovies(data.movies.slice(0, 20));
     renderTV(data.tv.slice(0, 20));
 
-    // ✅ Lazy load the rest in chunks
+    // Hide loader after initial render
+    document.getElementById("loadingScreen").style.display = "none";
+
+    // Lazy load the rest
     setTimeout(() => {
       renderMovies(data.movies);
       renderTV(data.tv);
-    }, 1500); // Load full library after 1.5s
+    }, 1500);
   } catch (error) {
     console.error("Error loading library:", error);
-    moviesRow.innerHTML = `<p style="color:red;text-align:center;">Failed to load movies.</p>`;
-    tvRow.innerHTML = `<p style="color:red;text-align:center;">Failed to load TV shows.</p>`;
+    document.getElementById("moviesRow").innerHTML = `<p style="color:red;text-align:center;">Failed to load movies.</p>`;
+    document.getElementById("tvRow").innerHTML = `<p style="color:red;text-align:center;">Failed to load TV shows.</p>`;
   }
 }
 
+// Netflix Section
 async function loadNetflixContent() {
   const API_KEY = "48f719a14913f9d4ee92c684c2187625";
   const netflixRow = document.getElementById("netflixRow");
@@ -187,6 +201,7 @@ async function loadNetflixContent() {
   });
 }
 
+// Login System
 function checkPassword() {
   const input = document.getElementById("passwordInput").value;
   if (input === "YourSecretPassword") {
@@ -194,6 +209,7 @@ function checkPassword() {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     loadLibrary();
+    loadNetflixContent();
   } else {
     document.getElementById("errorMsg").style.display = "block";
   }
@@ -204,10 +220,12 @@ function logout() {
   location.reload();
 }
 
+// Auto-login if already logged in
 if (localStorage.getItem("loggedIn") === "true") {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appContent").style.display = "block";
   loadLibrary();
+  loadNetflixContent();
 }
 </script>
 </body>
