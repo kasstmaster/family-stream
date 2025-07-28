@@ -234,9 +234,12 @@ function openVideo(url, title) {
 }
 
 function showEpisodes(show) {
-  // Hide Movies & TV sections, keep header & nav bar
+  // Hide Movies & TV sections
   document.getElementById("moviesRow").parentElement.style.display = "none";
   document.getElementById("tvRow").parentElement.style.display = "none";
+  
+  // ✅ Hide Netflix section too
+  document.getElementById("netflixSection").style.display = "none";
 
   // Show Episodes section
   document.getElementById("episodesSection").style.display = "block";
@@ -270,10 +273,13 @@ function showEpisodes(show) {
     document.getElementById("episodesSection").style.display = "none";
     document.getElementById("moviesRow").parentElement.style.display = "block";
     document.getElementById("tvRow").parentElement.style.display = "block";
+
+    // ✅ Show Netflix section again
+    document.getElementById("netflixSection").style.display = "block";
+
     backBtn.remove();
   });
 
-  // Append Back button inside episodes section
   document.getElementById("episodesSection").prepend(backBtn);
 }
 
