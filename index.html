@@ -189,8 +189,11 @@ function openVideo(url, title) {
 }
 
 function showEpisodes(show) {
-  // Hide main sections
-  document.getElementById("appContent").style.display = "none";
+  // Hide Movies & TV sections, keep header & nav bar
+  document.getElementById("moviesRow").parentElement.style.display = "none";
+  document.getElementById("tvRow").parentElement.style.display = "none";
+
+  // Show Episodes section
   document.getElementById("episodesSection").style.display = "block";
   document.getElementById("episodesTitle").textContent = show.title;
 
@@ -209,6 +212,24 @@ function showEpisodes(show) {
     });
     episodesGrid.appendChild(epCard);
   });
+
+  // Show Back button
+  const backBtn = document.createElement("button");
+  backBtn.textContent = "⬅ Back";
+  backBtn.style.cssText = `
+    margin: 20px; padding: 12px 24px; font-size: 20px;
+    background: #e50914; color: #fff; border: none; border-radius: 8px;
+    cursor: pointer;
+  `;
+  backBtn.addEventListener("click", () => {
+    document.getElementById("episodesSection").style.display = "none";
+    document.getElementById("moviesRow").parentElement.style.display = "block";
+    document.getElementById("tvRow").parentElement.style.display = "block";
+    backBtn.remove();
+  });
+
+  // Append Back button inside episodes section
+  document.getElementById("episodesSection").prepend(backBtn);
 }
 
 
