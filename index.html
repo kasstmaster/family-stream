@@ -77,6 +77,15 @@
   .nav-item { display:flex; flex-direction:column; align-items:center; color:#fff; font-size:20px; cursor:pointer; }
   .nav-item i { font-size:40px; margin-bottom:4px; }
   .nav-item:hover { color:#aaa; }
+  .modal.active { display: flex; }
+.movie-card:hover { transform: scale(1.08); transition: 0.3s ease; }
+  .modal {
+  display: none;
+}
+.modal.active {
+  display: flex !important;
+}
+
 </style>
 </head>
 <body>
@@ -118,6 +127,24 @@
     </div>
   </div>
 
+    <!-- Episodes -->
+  <div id="episodesSection" style="display:none; padding:20px;">
+    <h2 class="section-title" id="episodesTitle"></h2>
+    <div class="scroll-container" id="episodesGrid"></div>
+  </div>
+  
+  <!-- Modal -->
+  <div class="modal" id="videoModal" style="
+    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.9);justify-content:center;align-items:center;z-index:1000;flex-direction:column;">
+    <span id="closeBtn" style="position:absolute;top:20px;right:25px;font-size:40px;cursor:pointer;color:#fff;">&times;</span>
+    <div style="background:#1f1f1f;padding:25px;border-radius:14px;max-width:95%;width:1200px;position:relative;">
+      <iframe id="videoFrame" allow="fullscreen" style="width:100%;height:800px;border:none;border-radius:12px;"></iframe>
+      <div id="movieDetails" style="margin-top:20px;font-size:24px;color:#ccc;"></div>
+    </div>
+  </div>
+
+
   <!-- Bottom Navigation Bar -->
   <div class="bottom-bar">
     <div class="nav-item" onclick="scrollToTop()"><i class="fa-solid fa-house"></i><span>Home</span></div>
@@ -136,9 +163,54 @@ function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function createCard(item) {
   const card = document.createElement("div");
   card.classList.add("movie-card");
-  card.innerHTML = `<img src="${item.poster}" alt="${item.title}" loading="lazy"><div class="movie-title">${item.title}</div>`;
+  card.innerHTML = `
+    <img src="${item.poster}" alt="${item.title}" loading="lazy">
+    <div class="movie-title">${item.title}</div>
+  `;
+  
+  // Add click behavior
+  card.addEventListener("click", () => {
+    if (item.type === "movie") {
+      // Movies: Open first episode (or video)
+      openVideo(item.episodes[0].url, item.title);
+    } else {
+      // TV Shows: Show episodes
+      showEpisodes(item);
+    }
+  });
+  
   return card;
 }
+
+function openVideo(url, title) {
+  document.getElementById("videoModal").classList.add("active");
+  document.getElementById("videoFrame").src = url;
+  document.getElementById("movieDetails").innerHTML = `<strong>${title}</strong>`;
+}
+
+function showEpisodes(show) {
+  // Hide main sections
+  document.getElementById("appContent").style.display = "none";
+  document.getElementById("episodesSection").style.display = "block";
+  document.getElementById("episodesTitle").textContent = show.title;
+
+  const episodesGrid = document.getElementById("episodesGrid");
+  episodesGrid.innerHTML = "";
+
+  show.episodes.forEach(ep => {
+    const epCard = document.createElement("div");
+    epCard.classList.add("movie-card");
+    epCard.innerHTML = `
+      <img src="${show.poster}" alt="${ep.title}">
+      <div class="movie-title">${ep.title}</div>
+    `;
+    epCard.addEventListener("click", () => {
+      openVideo(ep.url, `${show.title} - ${ep.title}`);
+    });
+    episodesGrid.appendChild(epCard);
+  });
+}
+
 
 // Render Movies
 function renderMovies(movies) {
@@ -219,6 +291,11 @@ function logout() {
   localStorage.removeItem("loggedIn");
   location.reload();
 }
+
+document.getElementById("closeBtn").addEventListener("click", () => {
+  document.getElementById("videoModal").classList.remove("active");
+  document.getElementById("videoFrame").src = "";
+});
 
 // Auto-login if already logged in
 if (localStorage.getItem("loggedIn") === "true") {
