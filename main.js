@@ -17,6 +17,7 @@ window.signInWithGoogle = async function () {
       localStorage.setItem("loggedIn", "true");
       document.getElementById("loginScreen").style.display = "none";
       document.getElementById("appContent").style.display = "block";
+      document.getElementById("loadingScreen").style.display = "none";
       loadLibrary();
       loadNetflixContent();
     } else {
