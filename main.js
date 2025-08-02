@@ -23,10 +23,12 @@ window.signInWithGoogle = async function () {
     } else {
       await firebase.auth().signOut();
       document.getElementById("errorMsg").style.display = "block";
+      document.getElementById("loadingScreen").style.display = "none";
     }
   } catch (error) {
     console.error("Login error:", error);
     document.getElementById("errorMsg").style.display = "block";
+    document.getElementById("loadingScreen").style.display = "none";
   }
 };
 
