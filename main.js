@@ -1,3 +1,5 @@
+const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
+
 // ✅ Firebase Login
 window.signInWithGoogle = async function () {
   const provider = new firebase.auth.GoogleAuthProvider();
