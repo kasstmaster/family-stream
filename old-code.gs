@@ -1,14 +1,10 @@
-const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM'; // Google Sheet ID
-const WISHLIST_SHEET_NAME = 'Wishlist';
-
-// ✅ Main doGet - Handles Library + Wishlist
+// ✅ Main doGet - Handles Library & Streaming
 function doGet(e) {
-  if (e && e.parameter.action === 'getWishlist') {
-    return ContentService.createTextOutput(JSON.stringify(getWishlist()))
-      .setMimeType(ContentService.MimeType.JSON);
+  if (e && e.parameter.action === 'stream' && e.parameter.id) {
+    return streamVideo(e.parameter.id, e);
   }
 
-  // Default: Return Movies & TV Library
+  // ✅ Default: Return Movies & TV Library
   const parentFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1'; // Your RDMN Library Folder ID
   const parentFolder = DriveApp.getFolderById(parentFolderId);
   const moviesFolder = parentFolder.getFoldersByName('Movies').next();
@@ -23,7 +19,43 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ✅ Process Movie & TV Folders
+// ✅ Stream Video with Range Support
+function streamVideo(fileId, e) {
+  try {
+    const file = DriveApp.getFileById(fileId);
+    const blob = file.getBlob();
+    const size = blob.getBytes().length;
+    const rangeHeader = e?.parameter?.range || e?.parameter?.Range;
+
+    let start = 0;
+    let end = size - 1;
+    let status = 200;
+
+    if (rangeHeader) {
+      const matches = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+      if (matches) {
+        start = parseInt(matches[1], 10);
+        if (matches[2]) end = parseInt(matches[2], 10);
+        status = 206; // Partial Content
+      }
+    }
+
+    const chunk = blob.getBytes().slice(start, end + 1);
+
+    const response = ContentService.createTextOutput(chunk);
+    response.setMimeType(blob.getContentType());
+    response.setHeader('Accept-Ranges', 'bytes');
+    response.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
+    response.setHeader('Content-Length', chunk.length);
+    response.setHeader('Cache-Control', 'no-cache');
+
+    return response;
+  } catch (err) {
+    return ContentService.createTextOutput("Error: " + err.message);
+  }
+}
+
+// ✅ Build Movie/TV JSON
 function processCategory(categoryFolder) {
   const results = [];
   const subfolders = categoryFolder.getFolders();
@@ -44,7 +76,7 @@ function processCategory(categoryFolder) {
       } else if (/\.(mp4|mov|mkv)$/i.test(name)) {
         videos.push({
           title: file.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
-          url: 'https://drive.google.com/file/d/' + file.getId() + '/preview'
+          url: `https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec?action=stream&id=${file.getId()}`
         });
       }
     }
@@ -57,29 +89,4 @@ function processCategory(categoryFolder) {
     });
   }
   return results;
-}
-
-// ✅ Wishlist View Only
-function getWishlistSheet() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(WISHLIST_SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(WISHLIST_SHEET_NAME);
-    sheet.appendRow(['Title', 'Poster', 'Timestamp']);
-  }
-  return sheet;
-}
-
-function getWishlist() {
-  const sheet = getWishlistSheet();
-  const rows = sheet.getDataRange().getValues();
-  const data = [];
-  for (let i = 1; i < rows.length; i++) {
-    data.push({
-      title: rows[i][0],
-      poster: rows[i][1],
-      timestamp: rows[i][2]
-    });
-  }
-  return data;
 }
