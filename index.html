@@ -84,32 +84,18 @@
     </div>
   </div>
 
-  <!-- Google Sign-In SDK -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-  <!-- Login Screen -->
-  <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;flex-direction:column;">
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:white;">Sign in to RDMN+</h2>
-    <div id="g_id_onload"
-         data-client_id="Y904417586798-vma84g8sv260fo0es10h095cii6ul9oi.apps.googleusercontent.com"
-         data-callback="handleCredentialResponse"
-         data-auto_prompt="false"
-         data-context="signin">
-    </div>
-    <div class="g_id_signin"
-         data-type="standard"
-         data-size="large"
-         data-theme="filled_black"
-         data-text="signin_with"
-         data-shape="pill"
-         data-logo_alignment="left">
-    </div>
-    <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Unauthorized user</p>
-  </div>
-
   <!-- Firebase + App JS -->
   <script src="firebase.js"></script>
   <script src="auth.js"></script>
   <script src="main.js"></script>
+
+  <!-- Firebase Login Screen -->
+  <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;flex-direction:column;">
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:white;">Sign in to RDMN+</h2>
+    <button onclick="signInWithGoogle()" style="margin-top:10px;padding:10px 20px;font-size:18px;background:#4285F4;color:white;border:none;border-radius:5px;cursor:pointer;">
+      Sign in with Google
+    </button>
+    <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Login failed</p>
+  </div>
 </body>
 </html>
