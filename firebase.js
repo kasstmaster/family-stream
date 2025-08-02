@@ -1,4 +1,8 @@
-// firebase.js
+// ==============================
+// GITHUB
+// Firebase Configuration & Initialization
+// Contains Firebase app and Auth service setup
+// ==============================
 
 const firebaseConfig = {
   apiKey: "AIzaSyAEd0LK81ubRrEn9vyg75nDFhb9MdcWnjw",
