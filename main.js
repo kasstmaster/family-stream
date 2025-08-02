@@ -58,9 +58,17 @@ function loadLibrary() {
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
-      fullLibrary = [...data.movies, ...data.tv]; // ✅ Add this
-      renderSection("moviesRow", data.movies);
-      renderSection("tvRow", data.tv);
+      fullLibrary = [...data.movies, ...data.tv];
+
+      // Step 1: Load small batches immediately
+      renderSection("moviesRow", data.movies.slice(0, 20));
+      renderSection("tvRow", data.tv.slice(0, 20));
+
+      // Step 2: Load the rest later
+      setTimeout(() => {
+        renderSection("moviesRow", data.movies);
+        renderSection("tvRow", data.tv);
+      }, 1500);
     })
     .catch(err => console.error("Failed to load library:", err));
 }
