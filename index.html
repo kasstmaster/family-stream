@@ -655,5 +655,11 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
   
     <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Unauthorized user</p>
   </div>
+
+    <script>
+      window.onload = () => {
+        google.accounts.id.prompt();
+      };
+    </script>
 </body>
 </html>
