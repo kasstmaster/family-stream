@@ -265,12 +265,30 @@ header img {
     <div class="loader"></div>
   </div>
 
-  <!-- Login Screen -->
+  <!-- Google Sign-In Script -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- Google Sign-In Login Screen -->
   <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;flex-direction:column;">
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;">Enter Password</h2>
-    <input type="password" id="passwordInput" placeholder="Password" style="padding:10px;font-size:16px;border-radius:5px;border:none;margin-top:10px;">
-    <button onclick="checkPassword()" style="margin-top:10px;padding:10px 20px;font-size:18px;background:#e50914;color:white;border:none;border-radius:5px;cursor:pointer;">Login</button>
-    <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Incorrect password</p>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:white;">Sign in to RDMN+</h2>
+  
+    <div id="g_id_onload"
+         data-client_id="Y904417586798-vma84g8sv260fo0es10h095cii6ul9oi.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false"
+         data-context="signin">
+    </div>
+  
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="filled_black"
+         data-text="signin_with"
+         data-shape="pill"
+         data-logo_alignment="left">
+    </div>
+  
+    <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Unauthorized user</p>
   </div>
 
   <!-- App Content -->
@@ -340,6 +358,35 @@ header img {
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
+  const APPROVED_EMAILS = ["you@gmail.com", "mom@gmail.com"]; // Add your real family emails here
+
+function handleCredentialResponse(response) {
+  const data = parseJwt(response.credential);
+  const userEmail = data.email;
+
+  if (APPROVED_EMAILS.includes(userEmail)) {
+    localStorage.setItem("loggedIn", "true");
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+    loadLibrary();
+    loadNetflixContent();
+  } else {
+    document.getElementById("errorMsg").style.display = "block";
+  }
+}
+
+function parseJwt(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  );
+
+  return JSON.parse(jsonPayload);
+}
 let fullLibrary = [];
 
 // Scroll to top
