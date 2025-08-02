@@ -298,3 +298,16 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
 window.onload = () => {
   google.accounts.id.prompt();
 };
+
+import { signInWithGoogle } from "./auth.js";
+
+// When the page is ready, attach the click handler
+window.addEventListener("DOMContentLoaded", () => {
+  const loginButton = document.querySelector(".g_id_signin");
+  if (loginButton) {
+    loginButton.addEventListener("click", (e) => {
+      e.preventDefault();
+      signInWithGoogle();
+    });
+  }
+});
