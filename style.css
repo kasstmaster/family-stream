@@ -1,4 +1,10 @@
-  body {
+/* ==============================
+GITHUB
+Application Stylesheet
+Defines layout, colors, and responsiveness
+============================== */
+
+body {
   font-family: Arial, sans-serif;
   background: #141414;
   color: #fff;
