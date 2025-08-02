@@ -226,6 +226,58 @@ function showEpisodes(show) {
   document.getElementById("episodesSection").prepend(backBtn);
 }
 
+document.getElementById("searchInput").addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
+  const searchResults = document.getElementById("searchResultsSection");
+  const searchGrid = document.getElementById("searchResultsGrid");
+
+  if (query === "") {
+    // Reset UI when search is cleared
+    document.getElementById("moviesSection").style.display = "block";
+    document.getElementById("tvSection").style.display = "block";
+    document.getElementById("netflixSection").style.display = "block";
+    document.getElementById("episodesSection").style.display = "none";
+    searchResults.style.display = "none";
+    return;
+  }
+
+  // Hide other sections
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
+  document.getElementById("netflixSection").style.display = "none";
+  document.getElementById("episodesSection").style.display = "none";
+
+  // Show search results container
+  searchResults.style.display = "block";
+  searchGrid.innerHTML = "";
+
+  // Filter from fullLibrary
+  const filtered = fullLibrary.filter(item =>
+    item.title.toLowerCase().includes(query)
+  );
+
+  if (filtered.length > 0) {
+    filtered.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "movie-card";
+      card.innerHTML = `
+        <img src="${item.poster}" alt="${item.title}">
+        <div class="movie-title">${item.title}</div>
+      `;
+      card.onclick = () => {
+        if (item.type === "tv") {
+          showEpisodes(item);
+        } else {
+          openModal(item);
+        }
+      };
+      searchGrid.appendChild(card);
+    });
+  } else {
+    searchGrid.innerHTML = `<p style="text-align:center;color:#aaa;font-size:24px;">No results found.</p>`;
+  }
+});
+
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
