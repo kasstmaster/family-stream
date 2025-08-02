@@ -9,7 +9,7 @@ Rules for this chat:
 Things for you to know:
 1. My family will be using this app on different devices.
 2. This is the GitHub link https://kasstmaster.github.io/family-stream/
-3. This is the webapp url: https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec
+3. This is the webapp url: [https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec](https://script.google.com/macros/s/AKfycbzO9JMS5yxKPXrQKrdZSA1OtsHENyip75eVr8AbqYkFx-_YfPYBu0R1gMto-MAJ_D-8/exec)
 
 What we're currently working on:
 Goal: google login via firebase
