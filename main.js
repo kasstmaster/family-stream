@@ -53,3 +53,28 @@ firebase.auth().onAuthStateChanged((user) => {
   }
 document.getElementById("loadingScreen").style.display = "none";
 });
+
+function loadLibrary() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      renderSection("moviesRow", data.movies);
+      renderSection("tvRow", data.tv);
+    })
+    .catch(err => console.error("Failed to load library:", err));
+}
+
+function renderSection(sectionId, items) {
+  const container = document.getElementById(sectionId);
+  container.innerHTML = ""; // Clear skeletons
+  items.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "movie-card";
+    card.innerHTML = `
+      <img src="${item.poster}" alt="${item.title}">
+      <div class="movie-title">${item.title}</div>
+    `;
+    card.onclick = () => openModal(item);
+    container.appendChild(card);
+  });
+}
