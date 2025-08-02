@@ -1,3 +1,9 @@
+// ==============================
+// GITHUB
+// Main Application Logic
+// Handles page behavior, DOM manipulation, and events
+// ==============================
+
 const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
 
 // ✅ Firebase Login
