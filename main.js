@@ -225,3 +225,8 @@ function showEpisodes(show) {
 
   document.getElementById("episodesSection").prepend(backBtn);
 }
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
