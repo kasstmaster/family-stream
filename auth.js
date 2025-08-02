@@ -1,20 +1,27 @@
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
-import { app } from "./firebase.js"; // import the initialized app
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAEd0LK81ubRrEn9vyg75nDFhb9MdcWnjw",
+  authDomain: "rdmn-stream.firebaseapp.com",
+  projectId: "rdmn-stream",
+  storageBucket: "rdmn-stream.appspot.com",
+  messagingSenderId: "748872080882",
+  appId: "1:748872080882:web:ad167a25ebca9131025f6b"
+};
 
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
 
-// Handle login
+// ✅ Login function
 window.signInWithGoogle = async function () {
   try {
-    const result = await signInWithPopup(auth, provider);
+    const result = await auth.signInWithPopup(provider);
     const user = result.user;
 
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     localStorage.setItem("loggedIn", "true");
 
-    // You can use user.displayName, user.email, etc. if needed
     console.log("Logged in as:", user.displayName);
   } catch (error) {
     console.error("Login error:", error);
@@ -22,10 +29,10 @@ window.signInWithGoogle = async function () {
   }
 };
 
-// Handle logout
+// ✅ Logout function
 window.logout = async function () {
   try {
-    await signOut(auth);
+    await auth.signOut();
     localStorage.removeItem("loggedIn");
     location.reload();
   } catch (err) {
@@ -33,8 +40,8 @@ window.logout = async function () {
   }
 };
 
-// Auto-login if session exists
-onAuthStateChanged(auth, (user) => {
+// ✅ Auto-login if already signed in
+auth.onAuthStateChanged((user) => {
   if (user) {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
