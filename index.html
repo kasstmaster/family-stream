@@ -349,22 +349,27 @@ function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function createCard(item) {
   const card = document.createElement("div");
   card.classList.add("movie-card");
+
+  // Use your custom placeholders
+  const placeholder = item.type === "tv"
+    ? "https://i.postimg.cc/Y9b7YZqp/TV-poster-placeholder.png"
+    : "https://i.postimg.cc/7YcxKF1h/Movie-poster-placeholder.png";
+
+  const poster = item.poster || placeholder;
+
   card.innerHTML = `
-    <img src="${item.poster}" alt="${item.title}" loading="lazy">
+    <img src="${poster}" alt="${item.title}" loading="lazy">
     <div class="movie-title">${item.title}</div>
   `;
-  
-  // Add click behavior
+
   card.addEventListener("click", () => {
     if (item.type === "movie") {
-      // Movies: Open first episode (or video)
       openVideo(item.episodes[0].url, item.title);
     } else {
-      // TV Shows: Show episodes
       showEpisodes(item);
     }
   });
-  
+
   return card;
 }
 
