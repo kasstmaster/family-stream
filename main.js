@@ -74,7 +74,13 @@ function renderSection(sectionId, items) {
       <img src="${item.poster}" alt="${item.title}">
       <div class="movie-title">${item.title}</div>
     `;
-    card.onclick = () => openModal(item);
+    card.onclick = () => {
+      if (item.type === "tv") {
+        showEpisodes(item);
+      } else {
+        openModal(item);
+      }
+    };
     container.appendChild(card);
   });
 }
@@ -171,4 +177,51 @@ async function openNetflixModal(item) {
     console.error("Trailer fetch error:", err);
     details.innerHTML += `<p style="color:#888;">Could not load trailer.</p>`;
   }
+}
+
+function showEpisodes(show) {
+  // Hide main sections
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
+  document.getElementById("netflixSection").style.display = "none";
+
+  // Show episodes section
+  document.getElementById("episodesSection").style.display = "block";
+  document.getElementById("episodesTitle").textContent = show.title;
+
+  const episodesGrid = document.getElementById("episodesGrid");
+  episodesGrid.innerHTML = "";
+
+  show.episodes.forEach(ep => {
+    const epCard = document.createElement("div");
+    epCard.className = "movie-card";
+    epCard.innerHTML = `
+      <img src="${show.poster}" alt="${ep.title}">
+      <div class="movie-title">${ep.title}</div>
+    `;
+    epCard.onclick = () => openModal({
+      title: `${show.title} - ${ep.title}`,
+      type: show.type,
+      episodes: [{ url: ep.url }]
+    });
+    episodesGrid.appendChild(epCard);
+  });
+
+  // Back button
+  const backBtn = document.createElement("button");
+  backBtn.textContent = "⬅ Back";
+  backBtn.style.cssText = `
+    margin: 20px; padding: 12px 24px; font-size: 20px;
+    background: #e50914; color: #fff; border: none; border-radius: 8px;
+    cursor: pointer;
+  `;
+  backBtn.onclick = () => {
+    document.getElementById("episodesSection").style.display = "none";
+    document.getElementById("moviesSection").style.display = "block";
+    document.getElementById("tvSection").style.display = "block";
+    document.getElementById("netflixSection").style.display = "block";
+    backBtn.remove();
+  };
+
+  document.getElementById("episodesSection").prepend(backBtn);
 }
