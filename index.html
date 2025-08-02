@@ -265,32 +265,6 @@ header img {
     <div class="loader"></div>
   </div>
 
-  <!-- Google Sign-In Script -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  
-  <!-- Google Sign-In Login Screen -->
-  <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;flex-direction:column;">
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:white;">Sign in to RDMN+</h2>
-  
-    <div id="g_id_onload"
-         data-client_id="Y904417586798-vma84g8sv260fo0es10h095cii6ul9oi.apps.googleusercontent.com"
-         data-callback="handleCredentialResponse"
-         data-auto_prompt="false"
-         data-context="signin">
-    </div>
-  
-    <div class="g_id_signin"
-         data-type="standard"
-         data-size="large"
-         data-theme="filled_black"
-         data-text="signin_with"
-         data-shape="pill"
-         data-logo_alignment="left">
-    </div>
-  
-    <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Unauthorized user</p>
-  </div>
-
   <!-- App Content -->
   <div id="appContent" style="display:none;">
     <header><img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo"></header>
@@ -655,5 +629,31 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
 });
 
 </script>
+
+  <!-- Google Sign-In Script -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- Google Sign-In Login Screen -->
+  <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;flex-direction:column;">
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:white;">Sign in to RDMN+</h2>
+  
+    <div id="g_id_onload"
+         data-client_id="Y904417586798-vma84g8sv260fo0es10h095cii6ul9oi.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false"
+         data-context="signin">
+    </div>
+  
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="filled_black"
+         data-text="signin_with"
+         data-shape="pill"
+         data-logo_alignment="left">
+    </div>
+  
+    <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Unauthorized user</p>
+  </div>
 </body>
 </html>
