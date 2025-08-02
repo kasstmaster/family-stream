@@ -1,4 +1,3 @@
-<script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec";
   const APPROVED_EMAILS = ["raudmanstream@gmail.com"]; // Add your real family emails here
 
@@ -296,4 +295,6 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
   }
 });
 
-</script>
+window.onload = () => {
+  google.accounts.id.prompt();
+};
