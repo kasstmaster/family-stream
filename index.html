@@ -350,8 +350,10 @@ function createCard(item) {
   const card = document.createElement("div");
   card.classList.add("movie-card");
 
-  // Use your custom placeholders
-  const placeholder = item.type === "tv"
+  // Default to "movie" if item.type is undefined
+  const type = item.type || "movie";
+
+  const placeholder = type === "tv"
     ? "https://i.postimg.cc/Y9b7YZqp/TV-poster-placeholder.png"
     : "https://i.postimg.cc/7YcxKF1h/Movie-poster-placeholder.png";
 
@@ -363,7 +365,7 @@ function createCard(item) {
   `;
 
   card.addEventListener("click", () => {
-    if (item.type === "movie") {
+    if (type === "movie") {
       openVideo(item.episodes[0].url, item.title);
     } else {
       showEpisodes(item);
