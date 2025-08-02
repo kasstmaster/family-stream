@@ -58,6 +58,7 @@ function loadLibrary() {
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
+      fullLibrary = [...data.movies, ...data.tv]; // ✅ Add this
       renderSection("moviesRow", data.movies);
       renderSection("tvRow", data.tv);
     })
