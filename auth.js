@@ -1,4 +1,4 @@
-// Initialize Firebase
+// ✅ Only define this once — don't define firebaseConfig elsewhere
 const firebaseConfig = {
   apiKey: "AIzaSyAEd0LK81ubRrEn9vyg75nDFhb9MdcWnjw",
   authDomain: "rdmn-stream.firebaseapp.com",
@@ -8,11 +8,15 @@ const firebaseConfig = {
   appId: "1:748872080882:web:ad167a25ebca9131025f6b"
 };
 
-firebase.initializeApp(firebaseConfig);
+// ✅ Initialize Firebase safely (only if not already initialized)
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
 const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
-// ✅ Login function
+// ✅ Sign in
 window.signInWithGoogle = async function () {
   try {
     const result = await auth.signInWithPopup(provider);
@@ -29,7 +33,7 @@ window.signInWithGoogle = async function () {
   }
 };
 
-// ✅ Logout function
+// ✅ Sign out
 window.logout = async function () {
   try {
     await auth.signOut();
@@ -40,7 +44,7 @@ window.logout = async function () {
   }
 };
 
-// ✅ Auto-login if already signed in
+// ✅ Auto login check
 auth.onAuthStateChanged((user) => {
   if (user) {
     document.getElementById("loginScreen").style.display = "none";
