@@ -78,3 +78,27 @@ function renderSection(sectionId, items) {
     container.appendChild(card);
   });
 }
+
+function openModal(item) {
+  const modal = document.getElementById("videoModal");
+  const container = document.getElementById("videoFrameContainer");
+  const details = document.getElementById("movieDetails");
+
+  container.innerHTML = `<video id="videoFrame" controls autoplay style="width:100%;height:100%;">
+    <source src="${item.episodes[0].url}" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>`;
+
+  details.innerHTML = `
+    <div class="movie-title-text">${item.title}</div>
+    <div class="movie-rating">Type: ${item.type}</div>
+    <div class="movie-overview">${item.episodes.length} episode(s)</div>
+  `;
+
+  modal.classList.add("active");
+}
+
+document.getElementById("closeBtn").onclick = function () {
+  document.getElementById("videoModal").classList.remove("active");
+  document.getElementById("videoFrameContainer").innerHTML = ""; // Stop playback
+};
