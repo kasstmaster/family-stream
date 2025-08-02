@@ -7,6 +7,7 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- Loading Screen -->
@@ -20,37 +21,36 @@
     <header><img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo"></header>
     <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
 
-  <!-- Movies Section -->
-  <div id="moviesSection">
-    <h2 class="section-title">Movies</h2>
-    <div class="scroll-container" id="moviesRow">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
+    <!-- Movies Section -->
+    <div id="moviesSection">
+      <h2 class="section-title">Movies</h2>
+      <div class="scroll-container" id="moviesRow">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
     </div>
-  </div>
-  
-  <!-- TV Shows Section -->
-  <div id="tvSection">
-    <h2 class="section-title">TV Shows</h2>
-    <div class="scroll-container" id="tvRow">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
+    
+    <!-- TV Shows Section -->
+    <div id="tvSection">
+      <h2 class="section-title">TV Shows</h2>
+      <div class="scroll-container" id="tvRow">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
     </div>
-  </div>
-  
-  <!-- Netflix Section -->
-  <div id="netflixSection">
-    <h2 class="section-title">Currently on Netflix</h2>
-    <div class="scroll-container" id="netflixRow">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
+    
+    <!-- Netflix Section -->
+    <div id="netflixSection">
+      <h2 class="section-title">Currently on Netflix</h2>
+      <div class="scroll-container" id="netflixRow">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
     </div>
-  </div>
-
 
     <!-- Search Results -->
     <div id="searchResultsSection" style="display:none;">
@@ -59,43 +59,40 @@
     </div>
 
     <!-- Episodes -->
-  <div id="episodesSection" style="display:none; padding:20px;">
-    <h2 class="section-title" id="episodesTitle"></h2>
-    <div class="scroll-container" id="episodesGrid"></div>
-  </div>
-  
-  <!-- Modal -->
-  <div class="modal" id="videoModal">
-    <span id="closeBtn">&times;</span>
-    <div class="modal-content">
-      <div id="videoFrameContainer" style="width:100%;height:50%;"></div>
-      <div class="movie-info-scroll" id="movieDetails"></div>
+    <div id="episodesSection" style="display:none; padding:20px;">
+      <h2 class="section-title" id="episodesTitle"></h2>
+      <div class="scroll-container" id="episodesGrid"></div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="videoModal">
+      <span id="closeBtn">&times;</span>
+      <div class="modal-content">
+        <div id="videoFrameContainer" style="width:100%;height:50%;"></div>
+        <div class="movie-info-scroll" id="movieDetails"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-bar">
+      <div class="nav-item" onclick="scrollToTop()"><i class="fa-solid fa-house"></i><span>Home</span></div>
+      <div class="nav-item" onclick="loadNetflixContent()"><i class="fa-solid fa-rotate-right"></i><span>Refresh</span></div>
+      <div class="nav-item" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
     </div>
   </div>
 
-  <!-- Bottom Navigation Bar -->
-  <div class="bottom-bar">
-    <div class="nav-item" onclick="scrollToTop()"><i class="fa-solid fa-house"></i><span>Home</span></div>
-    <div class="nav-item" onclick="loadNetflixContent()"><i class="fa-solid fa-rotate-right"></i><span>Refresh</span></div>
-    <div class="nav-item" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
-  </div>
-
-
-
-  <!-- Google Sign-In Script -->
+  <!-- Google Sign-In SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  
-  <!-- Google Sign-In Login Screen -->
+
+  <!-- Login Screen -->
   <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;flex-direction:column;">
     <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:white;">Sign in to RDMN+</h2>
-  
     <div id="g_id_onload"
          data-client_id="Y904417586798-vma84g8sv260fo0es10h095cii6ul9oi.apps.googleusercontent.com"
          data-callback="handleCredentialResponse"
          data-auto_prompt="false"
          data-context="signin">
     </div>
-  
     <div class="g_id_signin"
          data-type="standard"
          data-size="large"
@@ -104,8 +101,12 @@
          data-shape="pill"
          data-logo_alignment="left">
     </div>
-  
     <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Unauthorized user</p>
   </div>
+
+  <!-- Firebase + App JS -->
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="auth.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
