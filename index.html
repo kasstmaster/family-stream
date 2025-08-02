@@ -366,6 +366,7 @@ function handleCredentialResponse(response) {
 
   if (APPROVED_EMAILS.includes(userEmail)) {
     localStorage.setItem("loggedIn", "true");
+    document.getElementById("loadingScreen").style.display = "none";  // <- THIS LINE
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("appContent").style.display = "block";
     loadLibrary();
@@ -594,20 +595,6 @@ async function openNetflixModal(item) {
   } catch (err) {
     console.error("Trailer fetch error:", err);
     details.innerHTML += `<p style="color:#888;">Could not load trailer.</p>`;
-  }
-}
-
-// Login System
-function checkPassword() {
-  const input = document.getElementById("passwordInput").value;
-  if (input === "YourSecretPassword") {
-    localStorage.setItem("loggedIn", "true");
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("appContent").style.display = "block";
-    loadLibrary();
-    loadNetflixContent();
-  } else {
-    document.getElementById("errorMsg").style.display = "block";
   }
 }
 
