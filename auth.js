@@ -1,18 +1,3 @@
-// ✅ Only define this once — don't define firebaseConfig elsewhere
-const firebaseConfig = {
-  apiKey: "AIzaSyAEd0LK81ubRrEn9vyg75nDFhb9MdcWnjw",
-  authDomain: "rdmn-stream.firebaseapp.com",
-  projectId: "rdmn-stream",
-  storageBucket: "rdmn-stream.appspot.com",
-  messagingSenderId: "748872080882",
-  appId: "1:748872080882:web:ad167a25ebca9131025f6b"
-};
-
-// ✅ Initialize Firebase safely (only if not already initialized)
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
 const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
