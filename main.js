@@ -48,4 +48,5 @@ firebase.auth().onAuthStateChanged((user) => {
     loadLibrary();
     loadNetflixContent();
   }
+document.getElementById("loadingScreen").style.display = "none";
 });
