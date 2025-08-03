@@ -10,6 +10,8 @@ Things for you to know:
 1. My family will be using this app on different devices.
 2. Apps Script and Google Drive are private and will stay that way.
 3. My sheet ID is 17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM
+4. My deployment ID is AKfycbyBnamMid90A6xc7rvm47w9R4NF5SYpBOdreX6gCs9A4xcXtVUNYmZ14lqGA2h8Jp4zxw
+5. My google drive folder ID is 1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1
 
 
 What will come next: 2 Apps Script codes.
