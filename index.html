@@ -46,13 +46,10 @@ header img {
   border: none;
 }
 
-/* SECTION TITLE */
 .section-title {
   font-family: 'Roboto', sans-serif;
-  font-weight: 700;
-  font-size: 55px;
-  margin-left: 30px;
-  text-transform: uppercase;
+  font-size: 45px;
+  margin: 40px auto 20px auto; /* more space on top */
 }
 
 /* SCROLL CONTAINER */
@@ -322,13 +319,13 @@ header img {
   <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
 
 <!-- Recently Added Section -->
-<div id="recentlyAddedSection" style="display:none; padding: 20px;">
-  <h2 class="section-title" style="color: red;">Recently Added</h2>
+<div id="recentlyAddedSection" style="padding: 20px;">
+  <h2 class="section-title">Recently Added</h2>
   <div class="scroll-container" id="recentlyAddedGrid"></div>
 </div>
 
 <!-- Movies Section -->
-<div id="moviesSection">
+<div id="moviesSection" style="padding: 20px;">
   <h2 class="section-title">Movies</h2>
   <div class="scroll-container" id="moviesRow">
     <div class="skeleton-card"></div>
@@ -339,7 +336,7 @@ header img {
 </div>
 
 <!-- TV Shows Section -->
-<div id="tvSection">
+<div id="tvSection" style="padding: 20px;">
   <h2 class="section-title">TV Shows</h2>
   <div class="scroll-container" id="tvRow">
     <div class="skeleton-card"></div>
@@ -350,19 +347,27 @@ header img {
 </div>
 
 <!-- Wishlist Requested Section -->
-<div id="wishlistSection" style="display:none; padding: 20px;">
+<div id="wishlistSection" style="padding: 20px;">
   <h2 class="section-title">Wishlist</h2>
   <div class="scroll-container" id="wishlistGrid"></div>
 </div>
 
 <!-- TMDb Movies Section -->
-<div id="tmdbMoviesSection">
+<div id="tmdbMoviesSection" style="padding: 20px;">
   <h2 class="section-title">Explore More Movies</h2>
   <div class="scroll-container" id="tmdbMoviesRow"></div>
 </div>
 
+<!-- TMDb Details Preview -->
+<div id="tmdbDetailsPreview" style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white;">
+  <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
+  <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
+  <p id="tmdbDetailsReleaseDate"></p>
+  <p class="movie-overview" id="tmdbDetailsOverview"></p>
+</div>
+
 <!-- TMDb TV Shows Section -->
-<div id="tmdbTVSection">
+<div id="tmdbTVSection" style="padding: 20px;">
   <h2 class="section-title">Explore More TV Shows</h2>
   <div class="scroll-container" id="tmdbTVRow"></div>
 </div>
@@ -422,15 +427,39 @@ function createCard(item, isTMDb = false) {
     });
   }
 
-  card.addEventListener("click", () => {
+card.addEventListener("click", async () => {
+  if (isTMDb) {
+    const data = await fetchTMDbDetails(item, item.media_type === 'tv');
+    if (!data) return;
+
+    const trailer = data.videos?.results.find(
+      v => v.type === 'Trailer' && v.site === 'YouTube'
+    );
+
+    // Fill trailer container
+    const trailerContainer = document.getElementById('tmdbTrailerContainer');
+    trailerContainer.innerHTML = trailer
+      ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+      : `<p><em>No trailer available.</em></p>`;
+
+    // Fill details
+    document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
+    document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
+    document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
+
+    // Show details container
+    document.getElementById('tmdbDetailsPreview').style.display = 'block';
+
+  } else {
     if (item.episodes && item.episodes.length > 0 && item.episodes[0].url) {
       openVideo(item.episodes[0].url, displayTitle);
     } else {
       alert("Video playback not available for this item.");
     }
-  });
+  }
+});
 
-  return card;
+return card;
 }
 
 function openVideo(url, title) {
@@ -554,23 +583,40 @@ document.getElementById("searchInput").addEventListener("input", function(e) {
   var searchResults = document.getElementById("searchResultsSection");
   var searchGrid = document.getElementById("searchResultsGrid");
 
+  // All main sections to hide/show
+  const sectionsToToggle = [
+    "recentlyAddedSection",
+    "moviesSection",
+    "tvSection",
+    "wishlistSection",
+    "tmdbMoviesSection",
+    "tmdbTVSection",
+    "tmdbDetailsPreview",
+    "episodesSection"
+  ];
+
   if (!fullLibrary || fullLibrary.length === 0) {
     console.log("fullLibrary empty");
     return;
   }
 
   if (query === "") {
-    document.getElementById("moviesSection").style.display = "block";
-    document.getElementById("tvSection").style.display = "block";
-    document.getElementById("episodesSection").style.display = "none";
+    // Show all sections again
+    sectionsToToggle.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = (id === "tmdbDetailsPreview") ? "block" : "block";
+    });
     searchResults.style.display = "none";
     return;
   }
 
-  document.getElementById("moviesSection").style.display = "none";
-  document.getElementById("tvSection").style.display = "none";
-  document.getElementById("episodesSection").style.display = "none";
+  // Hide all main sections
+  sectionsToToggle.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
 
+  // Show search results
   searchResults.style.display = "block";
   searchGrid.innerHTML = "";
 
@@ -743,6 +789,24 @@ function renderRecentlyAdded(items) {
 }
 function loadRecentlyAdded() {
   google.script.run.withSuccessHandler(renderRecentlyAdded).getRecentVideos();
+}
+
+// Details & Trailers
+async function fetchTMDbDetails(item, isTV = false) {
+  const apiKey = '48f719a14913f9d4ee92c684c2187625';
+  const baseUrl = 'https://api.themoviedb.org/3';
+  const type = isTV ? 'tv' : 'movie';
+  const url = `${baseUrl}/${type}/${item.id}?api_key=${apiKey}&language=en-US&append_to_response=videos`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch details');
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    alert('Error fetching details: ' + error.message);
+    return null;
+  }
 }
 </script>
 </body>
