@@ -317,6 +317,18 @@ header img {
   </div>
 </div>
 
+<!-- TMDb Movies Section -->
+<div id="tmdbMoviesSection">
+  <h2 class="section-title">TMDb Movies</h2>
+  <div class="scroll-container" id="tmdbMoviesRow"></div>
+</div>
+
+<!-- TMDb TV Shows Section -->
+<div id="tmdbTVSection">
+  <h2 class="section-title">TMDb TV Shows</h2>
+  <div class="scroll-container" id="tmdbTVRow"></div>
+</div>
+
 <!-- Search Results -->
 <div id="searchResultsSection" style="display:none;">
   <h2 class="section-title">Search Results</h2>
@@ -340,7 +352,6 @@ header img {
 
 <div class="bottom-bar">
   <div class="nav-item" onclick="scrollToTop()"><i class="fa-solid fa-house"></i><span>Home</span></div>
-  <div class="nav-item" id="justWatchBtn"><i class="fa-brands fa-justwatch"></i><span>Explore More</span></div>
 </div>
 
 <script>
@@ -351,16 +362,18 @@ function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 // Create card
 function createCard(item) {
+  const displayTitle = item.title || item.name || "No Title";
   const card = document.createElement("div");
   card.classList.add("movie-card");
-  card.innerHTML = '<img src="' + item.poster + '" alt="' + item.title + '" loading="lazy">'
-               + '<div class="movie-title">' + item.title + '</div>';
+  card.innerHTML = '<img src="' + item.poster + '" alt="' + displayTitle + '" loading="lazy">'
+               + '<div class="movie-title">' + displayTitle + '</div>';
 
   card.addEventListener("click", () => {
-    if (item.type === "movie") {
-      openVideo(item.episodes[0].url, item.title);
+    // Check if episodes exist with URLs
+    if (item.episodes && item.episodes.length > 0 && item.episodes[0].url) {
+      openVideo(item.episodes[0].url, displayTitle);
     } else {
-      showEpisodes(item);
+      alert("Video playback not available for this item.");
     }
   });
 
@@ -454,8 +467,14 @@ function loadLibrary() {
 
 // Auto-load content on page load
 window.addEventListener("load", () => {
+  // Show app content once loaded
   document.getElementById("appContent").style.display = "block";
+
+  // Load your private Drive movie/TV library
   loadLibrary();
+
+  // Load popular movies and TV shows from TMDb API
+  loadCombinedPopular();
 });
 
 // Close modal and stop video
@@ -552,6 +571,37 @@ function showMovieDetails(data) {
 document.getElementById('justWatchBtn').addEventListener('click', () => {
   window.open('https://www.justwatch.com/', '_blank', 'noopener');
 });
+
+// TMDB
+function renderTMDbMovies(movies) {
+  const row = document.getElementById('tmdbMoviesRow');
+  row.innerHTML = '';
+  movies.forEach(movie => {
+    row.appendChild(createCard(movie));
+  });
+}
+function renderTMDbTV(tvShows) {
+  const row = document.getElementById('tmdbTVRow');
+  row.innerHTML = '';
+  tvShows.forEach(show => {
+    row.appendChild(createCard(show));
+  });
+}
+function loadCombinedPopular() {
+  google.script.run.withSuccessHandler(data => {
+    const shuffledMovies = shuffleArray(data.movies);
+    const shuffledTV = shuffleArray(data.tv);
+    renderTMDbMovies(shuffledMovies);
+    renderTMDbTV(shuffledTV);
+  }).getCombinedPopular();
+}
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 </script>
 </body>
 </html>
