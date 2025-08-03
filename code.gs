@@ -109,3 +109,32 @@ function getLibrary() {
   return getLibraryData();
 }
 
+// TMDB
+function addPosterBasePath(items) {
+  return items.map(item => {
+    item.poster = item.poster_path
+      ? 'https://image.tmdb.org/t/p/w300' + item.poster_path
+      : 'https://via.placeholder.com/300x450?text=No+Image';
+    return item;
+  });
+}
+function getPopularMovies() {
+  const apiKey = '48f719a14913f9d4ee92c684c2187625';
+  const url = `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=en-US&page=1`;
+  const response = UrlFetchApp.fetch(url);
+  const data = JSON.parse(response.getContentText());
+  return addPosterBasePath(data.results);
+}
+function getPopularTVShows() {
+  const apiKey = '48f719a14913f9d4ee92c684c2187625';
+  const url = `https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=en-US&page=1`;
+  const response = UrlFetchApp.fetch(url);
+  const data = JSON.parse(response.getContentText());
+  return addPosterBasePath(data.results);
+}
+function getCombinedPopular() {
+  return {
+    movies: getPopularMovies(),
+    tv: getPopularTVShows()
+  };
+}
