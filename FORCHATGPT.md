@@ -9,6 +9,7 @@ Rules for this chat:
 Things for you to know:
 1. My family will be using this app on different devices.
 2. Apps Script and Google Drive are private and will stay that way.
+3. My sheet ID is 17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM
 
 
 What will come next: 2 Apps Script codes.
