@@ -1,8 +1,3 @@
-<!-- ==============================
-GITHUB
-Main HTML Page
-Loads the app UI and includes scripts/styles
-============================== -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,95 +7,548 @@ Loads the app UI and includes scripts/styles
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css">
-  <!-- Firebase CDN scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  </head>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #141414;
+  color: #fff;
+  margin: 0;
+  font-size: 30px;
+}
+
+#appContent {
+  padding-bottom: 120px;
+}
+
+/* HEADER */
+header {
+  background: #000;
+  text-align: center;
+  padding: 25px 0;
+}
+header img {
+  max-width: 300px;
+  height: auto;
+}
+
+/* SEARCH BAR */
+.search-bar {
+  text-align: center;
+  padding: 30px;
+}
+.search-bar input {
+  padding: 20px;
+  width: 95%;
+  max-width: 750px;
+  font-size: 30px;
+  border-radius: 12px;
+  border: none;
+}
+
+/* SECTION TITLE */
+.section-title {
+  font-size: 55px;
+  margin-left: 30px;
+  font-family: 'Bebas Neue', sans-serif;
+}
+
+/* SCROLL CONTAINER */
+.scroll-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  overflow-x: auto;
+}
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* MOVIE CARDS */
+.movie-card {
+  background: #1f1f1f;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 250px;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+.movie-card img {
+  width: 100%;
+  display: block;
+  border-radius: 12px;
+}
+.movie-title {
+  padding: 12px;
+  text-align: center;
+  font-size: 30px;
+}
+
+/* SKELETON LOADER */
+.skeleton-card {
+  width: 250px;
+  height: 350px;
+  background: #2c2c2c;
+  border-radius: 12px;
+  animation: pulse 1.2s infinite;
+}
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* LOADING SCREEN */
+#loadingScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #141414;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 40px;
+  z-index: 9999;
+}
+.loader {
+  border: 8px solid #333;
+  border-top: 8px solid #e50914;
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% {
+    transform: rotate(0);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* NAV BAR */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #000;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  border-top: 1px solid #222;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+  font-size: 30px;
+  cursor: pointer;
+}
+.nav-item i {
+  font-size: 40px;
+  margin-bottom: 4px;
+}
+.nav-item:hover {
+  color: #aaa;
+}
+
+/* Hover effect */
+.movie-card:hover {
+  transform: scale(1.08);
+  transition: 0.3s ease;
+}
+
+/* MODAL */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 0;
+}
+.modal.active {
+  display: flex !important;
+}
+.modal-content {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  max-width: 900px;
+  max-height: 80vh;
+  background: #1f1f1f;
+  overflow: hidden;
+  border-radius: 12px;
+}
+#videoFrameContainer {
+  flex: 1 1 60%;
+  min-height: 400px;
+  width: 60%;
+}
+#videoFrame {
+  width: 100% !important;
+  height: 100% !important;
+  border: none;
+}
+.movie-info-scroll {
+  flex: 1 1 40%;
+  overflow-y: auto;
+  padding: 20px;
+  width: 40%;
+}
+.movie-info-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.movie-info-scroll::-webkit-scrollbar-thumb {
+  background: #e50914;
+  border-radius: 4px;
+}
+
+/* Modal Close Button */
+#closeBtn {
+  position: fixed;
+  top: 20px;
+  right: 25px;
+  font-size: 70px;
+  cursor: pointer;
+  color: #fff;
+  z-index: 2000;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+#closeBtn:hover {
+  color: #e50914;
+  transform: scale(1.2);
+}
+
+/* Text Styling in Modal */
+.movie-title-text {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #fff;
+}
+.movie-rating {
+  font-size: 30px;
+  color: #ccc;
+  margin-bottom: 10px;
+}
+.movie-overview {
+  font-size: 30px !important;
+  line-height: 1.6;
+  color: #aaa;
+  margin-bottom: 20px;
+}
+.loading-text {
+  font-size: 30px;
+  color: #e50914;
+}
+
+.movie-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+.movie-item {
+  cursor: pointer;
+  width: 150px;
+}
+.movie-item img {
+  width: 100%;
+  border-radius: 8px;
+}
+.details {
+  margin-top: 30px;
+}
+.trailer {
+  margin-top: 15px;
+}
+</style>
+</head>
 <body>
-  <!-- Loading Screen -->
-  <div id="loadingScreen">
-    <p>Loading...</p>
-    <div class="loader"></div>
+<!-- Loading Screen -->
+<div id="loadingScreen">
+  <p>Loading...</p>
+  <div class="loader"></div>
+</div>
+
+<!-- App Content -->
+<div id="appContent" style="display:none;">
+  <header><img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo"></header>
+  <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
+
+<!-- Movies Section -->
+<div id="moviesSection">
+  <h2 class="section-title">Movies</h2>
+  <div class="scroll-container" id="moviesRow">
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
   </div>
+</div>
 
-  <!-- App Content -->
-  <div id="appContent" style="display:none;">
-    <header><img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo"></header>
-    <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
-
-    <!-- Movies Section -->
-    <div id="moviesSection">
-      <h2 class="section-title">Movies</h2>
-      <div class="scroll-container" id="moviesRow">
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-      </div>
-    </div>
-    
-    <!-- TV Shows Section -->
-    <div id="tvSection">
-      <h2 class="section-title">TV Shows</h2>
-      <div class="scroll-container" id="tvRow">
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-      </div>
-    </div>
-    
-    <!-- Netflix Section -->
-    <div id="netflixSection">
-      <h2 class="section-title">Currently on Netflix</h2>
-      <div class="scroll-container" id="netflixRow">
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-      </div>
-    </div>
-
-    <!-- Search Results -->
-    <div id="searchResultsSection" style="display:none;">
-      <h2 class="section-title">Search Results</h2>
-      <div class="scroll-container" id="searchResultsGrid"></div>
-    </div>
-
-    <!-- Episodes -->
-    <div id="episodesSection" style="display:none; padding:20px;">
-      <h2 class="section-title" id="episodesTitle"></h2>
-      <div class="scroll-container" id="episodesGrid"></div>
-    </div>
-
-    <!-- Modal -->
-    <div class="modal" id="videoModal">
-      <span id="closeBtn">&times;</span>
-      <div class="modal-content">
-        <div id="videoFrameContainer" style="width:100%;height:50%;"></div>
-        <div class="movie-info-scroll" id="movieDetails"></div>
-      </div>
-    </div>
-
-    <!-- Bottom Navigation Bar -->
-    <div class="bottom-bar">
-      <div class="nav-item" onclick="scrollToTop()"><i class="fa-solid fa-house"></i><span>Home</span></div>
-      <div class="nav-item" onclick="loadNetflixContent()"><i class="fa-solid fa-rotate-right"></i><span>Refresh</span></div>
-      <div class="nav-item" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
-    </div>
+<!-- TV Shows Section -->
+<div id="tvSection">
+  <h2 class="section-title">TV Shows</h2>
+  <div class="scroll-container" id="tvRow">
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
   </div>
+</div>
 
-  <!-- Firebase Login Screen -->
-  <div id="loginScreen" style="display:flex;justify-content:center;align-items:center;height:100vh;background:#141414;flex-direction:column;">
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:white;">Sign in to RDMN+</h2>
-    <button onclick="signInWithGoogle()" style="margin-top:10px;padding:10px 20px;font-size:18px;background:#4285F4;color:white;border:none;border-radius:5px;cursor:pointer;">
-      Sign in with Google
-    </button>
-    <p id="errorMsg" style="color:#e50914;margin-top:10px;display:none;">Login failed</p>
+<!-- Search Results -->
+<div id="searchResultsSection" style="display:none;">
+  <h2 class="section-title">Search Results</h2>
+  <div class="scroll-container" id="searchResultsGrid"></div>
+</div>
+
+<!-- Episodes -->
+<div id="episodesSection" style="display:none; padding:20px;">
+  <h2 class="section-title" id="episodesTitle"></h2>
+  <div class="scroll-container" id="episodesGrid"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="videoModal">
+  <span id="closeBtn">&times;</span>
+  <div class="modal-content">
+    <div id="videoFrameContainer"></div>
+    <div class="movie-info-scroll" id="movieDetails"></div>
   </div>
+</div>
 
-    <!-- Firebase + App JS -->
-  <script src="firebase.js"></script>
-  <script src="auth.js"></script>
-  <script src="main.js"></script>
+<!-- Bottom Navigation Bar -->
+<div class="bottom-bar">
+  <div class="nav-item" onclick="scrollToTop()"><i class="fa-solid fa-house"></i><span>Home</span></div>
+</div>
+
+<script>
+  let fullLibrary = [];
+
+// Scroll to top
+function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+// Create card
+function createCard(item) {
+  const card = document.createElement("div");
+  card.classList.add("movie-card");
+  card.innerHTML = '<img src="' + item.poster + '" alt="' + item.title + '" loading="lazy">'
+               + '<div class="movie-title">' + item.title + '</div>';
+
+  card.addEventListener("click", () => {
+    if (item.type === "movie") {
+      openVideo(item.episodes[0].url, item.title);
+    } else {
+      showEpisodes(item);
+    }
+  });
+
+  return card;
+}
+
+function openVideo(url, title) {
+  document.getElementById("videoModal").classList.add("active");
+
+  const videoContainer = document.getElementById("videoFrameContainer");
+  const escapedUrl = url.replace(/"/g, '&quot;');
+
+  videoContainer.innerHTML = '<video id="videoPlayer" controls autoplay style="width:100%;height:450px;border-radius:12px;">'
+  + '<source src="' + escapedUrl + '" type="video/mp4">'
+  + 'Your browser does not support the video tag.'
+  + '</video>';
+
+  document.getElementById("movieDetails").innerHTML =
+    '<h2 class="movie-title-text">' + title + '</h2>';
+}
+
+function showEpisodes(show) {
+  document.getElementById("moviesRow").parentElement.style.display = "none";
+  document.getElementById("tvRow").parentElement.style.display = "none";
+
+  document.getElementById("episodesSection").style.display = "block";
+  document.getElementById("episodesTitle").textContent = show.title;
+
+  const episodesGrid = document.getElementById("episodesGrid");
+  episodesGrid.innerHTML = "";
+
+  show.episodes.forEach(ep => {
+    const epCard = document.createElement("div");
+    epCard.classList.add("movie-card");
+    epCard.innerHTML = '<img src="' + show.poster + '" alt="' + ep.title + '">'
+                 + '<div class="movie-title">' + ep.title + '</div>';
+    epCard.addEventListener("click", () => {
+      openVideo(ep.url, `${show.title} - ${ep.title}`);
+    });
+    episodesGrid.appendChild(epCard);
+  });
+
+  const backBtn = document.createElement("button");
+  backBtn.textContent = "⬅ Back";
+  backBtn.style.cssText = `
+    margin: 20px; padding: 12px 24px; font-size: 20px;
+    background: #e50914; color: #fff; border: none; border-radius: 8px;
+    cursor: pointer;
+  `;
+  backBtn.addEventListener("click", () => {
+    document.getElementById("episodesSection").style.display = "none";
+    document.getElementById("moviesRow").parentElement.style.display = "block";
+    document.getElementById("tvRow").parentElement.style.display = "block";
+    backBtn.remove();
+  });
+
+  document.getElementById("episodesSection").prepend(backBtn);
+}
+
+function renderMovies(movies) {
+  console.log("renderMovies called with", movies.length, "items");
+  const moviesRow = document.getElementById("moviesRow");
+  moviesRow.innerHTML = "";
+  movies.forEach(item => {
+    console.log("Adding movie:", item.title);
+    moviesRow.appendChild(createCard(item));
+  });
+}
+
+function renderTV(tvShows) {
+  console.log("renderTV called with", tvShows.length, "items");
+  const tvRow = document.getElementById("tvRow");
+  tvRow.innerHTML = "";
+  tvShows.forEach(item => {
+    console.log("Adding TV show:", item.title);
+    tvRow.appendChild(createCard(item));
+  });
+}
+
+// Load Library via google.script.run to avoid CORS and keep app private
+function loadLibrary() {
+  console.log("loadLibrary called");
+  google.script.run.withSuccessHandler(data => {
+    console.log("Library data received", data);
+    fullLibrary = data.movies.concat(data.tv);  // Add this line
+    renderMovies(data.movies);
+    renderTV(data.tv);
+    document.getElementById("loadingScreen").style.display = "none"; // hide loading
+  }).getLibrary();
+}
+
+// Auto-load content on page load
+window.addEventListener("load", () => {
+  document.getElementById("appContent").style.display = "block";
+  loadLibrary();
+});
+
+// Close modal and stop video
+document.getElementById("closeBtn").addEventListener("click", () => {
+  document.getElementById("videoModal").classList.remove("active");
+  // Clear iframe completely to stop video
+  document.getElementById("videoFrameContainer").innerHTML = "";
+});
+
+document.getElementById("searchInput").addEventListener("input", function(e) {
+  var query = e.target.value.toLowerCase();
+  var searchResults = document.getElementById("searchResultsSection");
+  var searchGrid = document.getElementById("searchResultsGrid");
+
+  if (!fullLibrary || fullLibrary.length === 0) {
+    console.log("fullLibrary empty");
+    return;
+  }
+
+  if (query === "") {
+    document.getElementById("moviesSection").style.display = "block";
+    document.getElementById("tvSection").style.display = "block";
+    document.getElementById("episodesSection").style.display = "none";
+    searchResults.style.display = "none";
+    return;
+  }
+
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
+  document.getElementById("episodesSection").style.display = "none";
+
+  searchResults.style.display = "block";
+  searchGrid.innerHTML = "";
+
+  var filtered = fullLibrary.filter(function(item) {
+    return item.title.toLowerCase().indexOf(query) !== -1;
+  });
+
+  if (filtered.length > 0) {
+    filtered.forEach(function(item) {
+      searchGrid.appendChild(createCard(item));
+    });
+  } else {
+    searchGrid.innerHTML = '<p style="text-align:center;color:#aaa;font-size:24px;">No results found.</p>';
+  }
+});
+
+function showDetails(movieId) {
+  google.script.run.withSuccessHandler(showMovieDetails).getMovieDetails(movieId);
+}
+
+function showMovieDetails(data) {
+  const details = data.details;
+  const videos = data.videos;
+
+  const movieDetails = document.getElementById('movieDetails');
+  const videoFrameContainer = document.getElementById('videoFrameContainer');
+
+  movieDetails.textContent = '';
+  videoFrameContainer.textContent = '';
+
+  const title = document.createElement('h2');
+  title.className = 'movie-title-text';
+  title.textContent = details.title;
+
+  const release = document.createElement('p');
+  release.innerHTML = `<strong>Release Date:</strong> ${details.release_date}`;
+
+  const overview = document.createElement('p');
+  overview.className = 'movie-overview';
+  overview.textContent = details.overview;
+
+  movieDetails.appendChild(title);
+  movieDetails.appendChild(release);
+  movieDetails.appendChild(overview);
+
+  const trailer = videos.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+
+  if (trailer) {
+    const iframe = document.createElement('iframe');
+    iframe.id = 'videoFrame';
+    iframe.src = `https://www.youtube.com/embed/${trailer.key}`;
+    iframe.setAttribute('allowfullscreen', '');
+    videoFrameContainer.appendChild(iframe);
+  } else {
+    const noTrailerMsg = document.createElement('p');
+    noTrailerMsg.innerHTML = '<em>No trailer available.</em>';
+    videoFrameContainer.appendChild(noTrailerMsg);
+  }
+
+  document.getElementById('videoModal').classList.add('active');
+}
+
+</script>
 </body>
 </html>
