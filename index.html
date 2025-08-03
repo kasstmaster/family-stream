@@ -338,9 +338,9 @@ header img {
   </div>
 </div>
 
-<!-- Bottom Navigation Bar -->
 <div class="bottom-bar">
   <div class="nav-item" onclick="scrollToTop()"><i class="fa-solid fa-house"></i><span>Home</span></div>
+  <div class="nav-item" id="justWatchBtn"><i class="fa-brands fa-justwatch"></i><span>Explore More</span></div>
 </div>
 
 <script>
@@ -549,6 +549,9 @@ function showMovieDetails(data) {
   document.getElementById('videoModal').classList.add('active');
 }
 
+document.getElementById('justWatchBtn').addEventListener('click', () => {
+  window.open('https://www.justwatch.com/', '_blank', 'noopener');
+});
 </script>
 </body>
 </html>
