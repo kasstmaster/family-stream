@@ -147,26 +147,26 @@ function addToWishlistSheet(title, poster) {
     const lastRow = sheet.getLastRow();
     let data = [];
     if (lastRow > 1) {
-      data = sheet.getRange(2, 1, lastRow - 1, 3).getValues(); // get title and status columns
+      data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
     }
 
     for (let i = 0; i < data.length; i++) {
       if (data[i][0].toString().toLowerCase() === title.toLowerCase()) {
         const status = data[i][2];
         if (status === "Requested") {
-          return `✅ "${title}" is in your wishlist!`;
+          return { status: "requested", title };
         } else if (status === "Added") {
-          return `🚫 "${title}" is AVAILABLE TO WATCH.`;
-        } else {
-          return `ℹ️ "${title}" is already in the list with status: ${status}.`;
+          return { status: "available", title };
         }
+        // If other statuses exist, treat as requested for simplicity
+        return { status: "requested", title };
       }
     }
 
     const timestamp = new Date();
     sheet.appendRow([title, timestamp, "Requested", poster]);
 
-    return true;
+    return { status: "added", title };
   } catch (error) {
     throw new Error(error.message);
   }
