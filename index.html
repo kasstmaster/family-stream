@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>RDMN+</title>
+  <title>ILYMMD+</title>
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
@@ -48,9 +48,11 @@ header img {
 
 /* SECTION TITLE */
 .section-title {
+  font-family: 'Roboto', sans-serif;
+  font-weight: 700;
   font-size: 55px;
   margin-left: 30px;
-  font-family: 'Bebas Neue', sans-serif;
+  text-transform: uppercase;
 }
 
 /* SCROLL CONTAINER */
@@ -81,7 +83,7 @@ header img {
 .movie-title {
   padding: 12px;
   text-align: center;
-  font-size: 30px;
+  font-size: 40px;
 }
 
 /* SKELETON LOADER */
@@ -241,10 +243,12 @@ header img {
 
 /* Text Styling in Modal */
 .movie-title-text {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 700;
   font-size: 48px;
   margin-bottom: 15px;
   color: #fff;
+  text-transform: uppercase;
 }
 .movie-rating {
   font-size: 30px;
@@ -281,6 +285,28 @@ header img {
 .trailer {
   margin-top: 15px;
 }
+
+.add-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #e50914;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  font-size: 80px;
+  line-height: 96px;
+  cursor: pointer;
+  z-index: 10;
+}
+.add-btn:hover {
+  background: #ff4c4c;
+}
+.movie-card {
+  position: relative; /* make this relative for absolute button */
+}
 </style>
 </head>
 <body>
@@ -292,8 +318,14 @@ header img {
 
 <!-- App Content -->
 <div id="appContent" style="display:none;">
-  <header><img src="https://i.postimg.cc/jjFhf2Mc/RDMN.png" alt="RDMN+ Logo"></header>
+  <header><img src="https://i.postimg.cc/mD3J6rqB/ILYMMD-8-2-2025.png" alt="ILYMMD+ Logo"></header>
   <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
+
+<!-- Recently Added Section -->
+<div id="recentlyAddedSection" style="display:none; padding: 20px;">
+  <h2 class="section-title" style="color: red;">Recently Added</h2>
+  <div class="scroll-container" id="recentlyAddedGrid"></div>
+</div>
 
 <!-- Movies Section -->
 <div id="moviesSection">
@@ -317,15 +349,21 @@ header img {
   </div>
 </div>
 
+<!-- Wishlist Requested Section -->
+<div id="wishlistSection" style="display:none; padding: 20px;">
+  <h2 class="section-title">Wishlist</h2>
+  <div class="scroll-container" id="wishlistGrid"></div>
+</div>
+
 <!-- TMDb Movies Section -->
 <div id="tmdbMoviesSection">
-  <h2 class="section-title">TMDb Movies</h2>
+  <h2 class="section-title">Explore More Movies</h2>
   <div class="scroll-container" id="tmdbMoviesRow"></div>
 </div>
 
 <!-- TMDb TV Shows Section -->
 <div id="tmdbTVSection">
-  <h2 class="section-title">TMDb TV Shows</h2>
+  <h2 class="section-title">Explore More TV Shows</h2>
   <div class="scroll-container" id="tmdbTVRow"></div>
 </div>
 
@@ -361,15 +399,30 @@ header img {
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 // Create card
-function createCard(item) {
+function createCard(item, isTMDb = false) {
   const displayTitle = item.title || item.name || "No Title";
   const card = document.createElement("div");
   card.classList.add("movie-card");
-  card.innerHTML = '<img src="' + item.poster + '" alt="' + displayTitle + '" loading="lazy">'
-               + '<div class="movie-title">' + displayTitle + '</div>';
+  
+  let plusButtonHTML = '';
+  if (isTMDb) {
+    plusButtonHTML = '<button class="add-btn" title="Add to Wishlist">+</button>';
+  }
+
+  card.innerHTML = `
+    <img src="${item.poster}" alt="${displayTitle}" loading="lazy">
+    <div class="movie-title">${displayTitle}</div>
+    ${plusButtonHTML}
+  `;
+
+  if (isTMDb) {
+    card.querySelector(".add-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      addToWishlist(displayTitle, item.poster);
+    });
+  }
 
   card.addEventListener("click", () => {
-    // Check if episodes exist with URLs
     if (item.episodes && item.episodes.length > 0 && item.episodes[0].url) {
       openVideo(item.episodes[0].url, displayTitle);
     } else {
@@ -475,6 +528,18 @@ window.addEventListener("load", () => {
 
   // Load popular movies and TV shows from TMDb API
   loadCombinedPopular();
+
+  // Load requested wishlist items
+  loadWishlist();
+
+  // Load recently added videos
+  loadRecentlyAdded();
+
+  // Show wishlist section (optional)
+  document.getElementById("wishlistSection").style.display = "block";
+
+  // Show recently added section
+  document.getElementById("recentlyAddedSection").style.display = "block";
 });
 
 // Close modal and stop video
@@ -577,14 +642,14 @@ function renderTMDbMovies(movies) {
   const row = document.getElementById('tmdbMoviesRow');
   row.innerHTML = '';
   movies.forEach(movie => {
-    row.appendChild(createCard(movie));
+    row.appendChild(createCard(movie, true));
   });
 }
 function renderTMDbTV(tvShows) {
   const row = document.getElementById('tmdbTVRow');
   row.innerHTML = '';
   tvShows.forEach(show => {
-    row.appendChild(createCard(show));
+    row.appendChild(createCard(show, true));
   });
 }
 function loadCombinedPopular() {
@@ -601,6 +666,83 @@ function shuffleArray(array) {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+}
+
+// WISHLIST
+function addToWishlist(title, poster) {
+  google.script.run.withSuccessHandler(response => {
+    if (response === true) {
+      alert(`✅ "${title}" is in your wishlist!`);
+    } else if (typeof response === "string") {
+      alert(response); // show custom message like duplicate warning
+    } else {
+      alert("Unknown response from server.");
+    }
+  }).withFailureHandler(err => {
+    alert(`❌ Failed to add "${title}". Error: ${err.message}`);
+  }).addToWishlistSheet(title, poster);
+}
+function getRequestedWishlist() {
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheet = ss.getSheetByName('Wishlist');
+  if (!sheet) throw new Error("Wishlist sheet not found");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+
+  return data.filter(row => row[2] === "Requested")
+    .map(row => ({
+      title: row[0],
+      poster: row[3]
+    }));
+}
+function renderWishlist(items) {
+  console.log("Wishlist items:", items);
+  const grid = document.getElementById('wishlistGrid');
+  grid.innerHTML = '';
+  if (items.length === 0) {
+    grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No requested items found.</p>';
+    return;
+  }
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.classList.add('movie-card');
+    card.innerHTML = `
+      <img src="${item.poster}" alt="${item.title}" loading="lazy">
+      <div class="movie-title">${item.title}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+function loadWishlist() {
+  google.script.run.withSuccessHandler(renderWishlist).getRequestedWishlist();
+}
+
+// RECENTLY ADDED
+function renderRecentlyAdded(items) {
+  const grid = document.getElementById('recentlyAddedGrid');
+  grid.innerHTML = '';
+  if (items.length === 0) {
+    grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No recent videos found.</p>';
+    return;
+  }
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.classList.add('movie-card');
+    card.innerHTML = `
+      <img src="${item.poster}" alt="${item.title}" loading="lazy">
+      <div class="movie-title">${item.title}</div>
+    `;
+    card.addEventListener('click', () => {
+      openVideo(item.url, item.title);
+    });
+    grid.appendChild(card);
+  });
+}
+function loadRecentlyAdded() {
+  google.script.run.withSuccessHandler(renderRecentlyAdded).getRecentVideos();
 }
 </script>
 </body>
