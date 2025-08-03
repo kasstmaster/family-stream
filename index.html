@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ILYMMD+</title>
 
   <!-- Google Fonts -->
@@ -9,107 +10,135 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
+/* ====== GLOBAL STYLES ====== */
 body {
   font-family: Arial, sans-serif;
   background: #141414;
   color: #fff;
   margin: 0;
-  font-size: 30px;
+  font-size: 60px; /* Mobile default font-size */
 }
 
 #appContent {
   padding-bottom: 120px;
 }
 
-/* HEADER */
+/* ====== HEADER ====== */
 header {
   background: #000;
   text-align: center;
-  padding: 25px 0;
+  padding: 40px 0;
 }
 header img {
-  max-width: 300px;
+  max-width: 350px;
   height: auto;
 }
 
-/* SEARCH BAR */
+/* ====== SEARCH BAR ====== */
 .search-bar {
   text-align: center;
-  padding: 30px;
+  padding: 20px;
 }
 .search-bar input {
-  padding: 20px;
+  padding: 40px;
   width: 95%;
   max-width: 750px;
-  font-size: 30px;
+  font-size: 60px;
   border-radius: 12px;
   border: none;
 }
 
+/* ====== SECTION TITLES ====== */
 .section-title {
   font-family: 'Roboto', sans-serif;
-  font-size: 45px;
-  margin: 40px auto 20px auto; /* more space on top */
+  font-weight: 700;
+  font-size: 90px; /* Larger for prominence */
+  text-align: center;
+  color: #fff;
+  margin: 80px auto 40px auto;
+  position: relative;
+  padding-top: 30px;
+  letter-spacing: 0.05em;
+}
+/* Divider line above the section title */
+.section-title::before {
+  content: "";
+  display: block;
+  width: 100px;
+  height: 6px;
+  background-color: #e50914; /* Netflix red */
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 3px;
+}
+.subsection-title {
+  font-family: 'Roboto', sans-serif;
+  font-size: 80px;
+  margin: 40px auto 20px auto;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 20px;
 }
 
-/* SCROLL CONTAINER */
+/* ====== SCROLL CONTAINER ====== */
 .scroll-container {
   display: flex;
-  gap: 20px;
-  padding: 20px;
+  gap: 30px;
   overflow-x: auto;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 .scroll-container::-webkit-scrollbar {
   display: none;
 }
 
-/* MOVIE CARDS */
-.movie-card {
-  background: #1f1f1f;
+/* ====== MOVIE CARDS & ITEMS ====== */
+.movie-card, .movie-item {
   border-radius: 12px;
-  overflow: hidden;
-  width: 250px;
-  flex: 0 0 auto;
   cursor: pointer;
 }
-.movie-card img {
+.movie-card {
+  background: #1f1f1f;
+  overflow: hidden;
+  width: 350px;
+  flex: 0 0 auto;
+  position: relative; /* for add button */
+  transition: transform 0.3s ease;
+}
+.movie-card:hover {
+  transform: scale(1.1);
+}
+.movie-card img,
+.movie-item img {
   width: 100%;
   display: block;
   border-radius: 12px;
 }
 .movie-title {
-  padding: 12px;
+  padding: 24px;
   text-align: center;
-  font-size: 40px;
+  font-size: 60px;
 }
 
-/* SKELETON LOADER */
+/* ====== SKELETON LOADER ====== */
 .skeleton-card {
-  width: 250px;
-  height: 350px;
+  width: 350px;
+  height: 450px;
   background: #2c2c2c;
   border-radius: 12px;
   animation: pulse 1.2s infinite;
 }
 @keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
-/* LOADING SCREEN */
+/* ====== LOADING ====== */
 #loadingScreen {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: #141414;
   color: white;
   display: flex;
@@ -117,27 +146,23 @@ header img {
   align-items: center;
   flex-direction: column;
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 40px;
+  font-size: 60px;
   z-index: 9999;
 }
 .loader {
-  border: 8px solid #333;
-  border-top: 8px solid #e50914;
+  border: 12px solid #333;
+  border-top: 12px solid #e50914;
   border-radius: 50%;
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   animation: spin 1s linear infinite;
 }
 @keyframes spin {
-  0% {
-    transform: rotate(0);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0); }
+  100% { transform: rotate(360deg); }
 }
 
-/* NAV BAR */
+/* ====== NAVIGATION BAR ====== */
 .bottom-bar {
   position: fixed;
   bottom: 0;
@@ -146,39 +171,31 @@ header img {
   background: #000;
   display: flex;
   justify-content: space-around;
-  padding: 10px 0;
+  padding: 20px 0;
   border-top: 1px solid #222;
+  z-index: 9999; 
 }
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   color: #fff;
-  font-size: 30px;
+  font-size: 40px;
   cursor: pointer;
 }
 .nav-item i {
-  font-size: 40px;
-  margin-bottom: 4px;
+  font-size: 56px;
+  margin-bottom: 8px;
 }
 .nav-item:hover {
   color: #aaa;
 }
 
-/* Hover effect */
-.movie-card:hover {
-  transform: scale(1.08);
-  transition: 0.3s ease;
-}
-
-/* MODAL */
+/* ====== MODAL ====== */
 .modal {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0, 0, 0, 0.95);
   justify-content: center;
   align-items: center;
@@ -190,18 +207,18 @@ header img {
 }
 .modal-content {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   width: 100%;
-  max-width: 900px;
+  max-width: 95vw;
   max-height: 80vh;
   background: #1f1f1f;
   overflow: hidden;
   border-radius: 12px;
 }
 #videoFrameContainer {
-  flex: 1 1 60%;
-  min-height: 400px;
-  width: 60%;
+  flex: 1 1 100%;
+  min-height: 300px;
+  width: 100%;
 }
 #videoFrame {
   width: 100% !important;
@@ -209,25 +226,45 @@ header img {
   border: none;
 }
 .movie-info-scroll {
-  flex: 1 1 40%;
+  flex: 1 1 100%;
   overflow-y: auto;
-  padding: 20px;
-  width: 40%;
+  padding: 30px;
+  width: 100%;
 }
 .movie-info-scroll::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 .movie-info-scroll::-webkit-scrollbar-thumb {
   background: #e50914;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-/* Modal Close Button */
+/* ====== POPUP ALERTS ====== */
+#customPopup {
+  display: none;
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #222;
+  color: white;
+  padding: 30px 50px;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.8);
+  font-size: 28px;
+  z-index: 3000;
+  max-width: 90vw;
+  text-align: center;
+  width: 500px;  /* Desktop width */
+  box-sizing: border-box;
+}
+
+/* ====== MODAL CLOSE BUTTON ====== */
 #closeBtn {
   position: fixed;
-  top: 20px;
-  right: 25px;
-  font-size: 70px;
+  top: 30px;
+  right: 40px;
+  font-size: 80px;
   cursor: pointer;
   color: #fff;
   z-index: 2000;
@@ -235,58 +272,50 @@ header img {
 }
 #closeBtn:hover {
   color: #e50914;
-  transform: scale(1.2);
+  transform: scale(1.3);
 }
 
-/* Text Styling in Modal */
+/* ====== TEXT IN MODAL ====== */
 .movie-title-text {
   font-family: 'Roboto', sans-serif;
   font-weight: 700;
-  font-size: 48px;
-  margin-bottom: 15px;
+  font-size: 70px;
+  margin-bottom: 30px;
   color: #fff;
   text-transform: uppercase;
 }
 .movie-rating {
-  font-size: 30px;
+  font-size: 40px;
   color: #ccc;
-  margin-bottom: 10px;
-}
-.movie-overview {
-  font-size: 30px !important;
-  line-height: 1.6;
-  color: #aaa;
   margin-bottom: 20px;
 }
+.movie-overview {
+  font-size: 40px !important;
+  line-height: 1.8;
+  color: #aaa;
+  margin-bottom: 40px;
+}
 .loading-text {
-  font-size: 30px;
+  font-size: 40px;
   color: #e50914;
 }
 
+/* ====== OTHER ELEMENTS ====== */
 .movie-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
-}
-.movie-item {
-  cursor: pointer;
-  width: 150px;
-}
-.movie-item img {
-  width: 100%;
-  border-radius: 8px;
+  gap: 30px;
 }
 .details {
-  margin-top: 30px;
+  margin-top: 40px;
 }
 .trailer {
-  margin-top: 15px;
+  margin-top: 30px;
 }
-
 .add-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 12px;
+  right: 12px;
   background: #e50914;
   color: white;
   border: none;
@@ -297,12 +326,295 @@ header img {
   line-height: 96px;
   cursor: pointer;
   z-index: 10;
+  transition: background 0.3s ease;
 }
 .add-btn:hover {
   background: #ff4c4c;
 }
-.movie-card {
-  position: relative; /* make this relative for absolute button */
+
+/* Base style for refresh button */
+.refresh-emoji {
+  cursor: pointer;
+  user-select: none;
+  font-size: 30px;
+  margin-left: 10px;
+  vertical-align: middle;
+  display: inline-block;
+  transition: color 0.3s ease;
+}
+.refresh-emoji:hover,
+.refresh-emoji:focus {
+  color: #ff4c4c;
+  outline: none;
+}
+.refresh-emoji[aria-disabled="true"] {
+  color: gray;
+  cursor: default;
+  pointer-events: none;
+}
+/* Loading text next to button, hidden by default */
+.loading-text {
+  display: none;
+  font-weight: bold;
+  color: #e50914;
+  vertical-align: middle;
+  margin-left: 8px;
+  font-size: 24px; /* default size */
+}
+/* Show loading text when parent button has .loading active */
+.add-refresh-btn.loading + .loading-text {
+  display: inline;
+}
+
+/* ====== RESPONSIVE MEDIA QUERIES ====== */
+/* MOBILE - max-width 999px */
+@media (max-width: 999px) {
+  body {
+    // background: yellow !important; /* TESTING ONLY: Remove for production */
+    font-size: 30px !important;
+  }
+  .subsection-title .refresh-emoji {
+    display: none !important;
+  }
+  #mobileRefreshButtonsContainer {
+    display: flex !important;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+  }
+  #loadingScreen {
+    font-size: 60px !important;
+  }
+  header img {
+    max-width: 350px !important;
+  }
+  .search-bar {
+    padding: 20px !important;
+  }
+  .search-bar input {
+    font-size: 40px !important;
+  }
+  .section-title {
+    font-size: 50px !important;
+    margin: 60px auto 40px auto !important;
+    padding-top: 24px !important;
+  }
+  .section-title::before {
+    width: 80px !important;
+    height: 5px !important;
+  }
+  .subsection-title {
+    font-size: 40px !important;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 25px;
+    padding-bottom:5px;
+  }
+  .movie-card {
+    width: 350px !important;
+  }
+  .movie-title {
+    font-size: 40px !important;
+    padding: 24px !important;
+  }
+  .skeleton-card {
+    width: 350px !important;
+    height: 450px !important;
+  }
+  .nav-item {
+    font-size: 40px !important;
+  }
+  .nav-item i {
+    font-size: 56px !important;
+  }
+  .modal-content {
+    flex-direction: column !important;
+    max-width: 95vw !important;
+    max-height: 80vh !important;
+  }
+  #videoFrameContainer {
+    flex: 1 1 100% !important;
+    min-height: 300px !important;
+    width: 100% !important;
+  }
+  .movie-info-scroll {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    padding: 30px !important;
+  }
+  #closeBtn {
+    font-size: 80px !important;
+    top: 30px !important;
+    right: 40px !important;
+  }
+  .refresh-emoji {
+    cursor: pointer;
+    user-select: none;
+    font-size: 50px;
+    margin-left: 10px;
+    vertical-align: middle;
+    display: inline-block;
+    transition: color 0.3s ease;
+  }
+  .refresh-emoji:hover,
+  .refresh-emoji:focus {
+    color: #ff4c4c;
+    outline: none;
+  }
+  .refresh-emoji[aria-disabled="true"] {
+    color: gray;
+    cursor: default;
+    pointer-events: none;
+  }
+  .movie-title-text {
+    font-size: 70px !important;
+    margin-bottom: 30px !important;
+  }
+  .movie-rating {
+    font-size: 20px !important;
+    margin-bottom: 20px !important;
+  }
+  .movie-overview {
+    font-size: 30px !important;
+    margin-bottom: 40px !important;
+  }
+  .loading-text {
+    font-size: 40px !important;
+  }
+  .add-btn {
+    width: 100px !important;
+    height: 100px !important;
+    font-size: 80px !important;
+    line-height: 96px !important;
+  }
+  #customPopup {
+    width: 90vw;
+    padding: 40px 30px;
+    font-size: 50px !important;
+    top: 15%;
+  }
+  #popupCloseBtn {
+    font-size: 50px !important;
+    padding: 14px 40px;
+  }
+}
+
+/* DESKTOP - min-width 1000px */
+@media (min-width: 1000px) {
+  body {
+    // background: red !important; /* TESTING ONLY: Remove for production */
+    font-size: 15px !important;
+  }
+  #loadingScreen {
+    font-size: 20px !important;
+  }
+  header img {
+    max-width: 150px !important;
+  }
+  .search-bar {
+    padding: 20px !important;
+  }
+  .search-bar input {
+    padding: 10px !important;
+    font-size: 20px !important;
+  }
+    .nav-item {
+    font-size: 15px !important;
+  }
+  .nav-item i {
+    font-size: 15px !important;
+  }
+  .add-btn {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 20px !important;
+    line-height: 36px !important;
+  }
+    #closeBtn {
+    font-size: 20px !important;
+    top: 10px !important;
+    right: 10px !important;
+  }
+  .refresh-emoji {
+    cursor: pointer;
+    user-select: none;
+    font-size: 25px;
+    margin-left: 10px;
+    vertical-align: middle;
+    display: inline-block;
+    transition: color 0.3s ease;
+  }
+  .refresh-emoji:hover,
+  .refresh-emoji:focus {
+    color: #ff4c4c;
+    outline: none;
+  }
+  .refresh-emoji[aria-disabled="true"] {
+    color: gray;
+    cursor: default;
+    pointer-events: none;
+  }
+  .loading-text {
+    font-size: 15px !important;
+  }
+  #mobileRefreshButtonsContainer {
+    display: flex !important;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+  }
+  .section-title {
+    font-size: 24px !important;
+    margin: 40px auto 20px auto !important;
+    padding-top: 12px !important;
+  }
+  .section-title::before {
+    width: 60px !important;
+    height: 4px !important;
+  }
+  .subsection-title {
+    margin: 0 !important;
+    font-size: 20px !important;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 20px;
+  }
+  .movie-title {
+    font-size: 15px !important;
+    padding: 4px !important;
+  }
+  .movie-card {
+    width: 150px !important;
+  }
+  .movie-card:hover {
+    transform: scale(1.02) !important;
+  }
+  .skeleton-card {
+    width: 150px !important;
+    height: 200px !important;
+  }
+  .movie-info-scroll {
+    padding: 10px !important;
+  }
+  .movie-title-text {
+    font-size: 20px !important;
+    margin-bottom: 10px !important;
+  }
+  .movie-rating {
+    font-size: 15px !important;
+    margin-bottom: 5px !important;
+  }
+  .movie-overview {
+    font-size: 15px !important;
+    margin-bottom: 10px !important;
+  }
+  .modal-content {
+    max-width: 90vw !important;
+    max-height: 70vh !important;
+  }
+  #videoFrameContainer {
+    min-height: 150px !important;
+  }
 }
 </style>
 </head>
@@ -319,14 +631,14 @@ header img {
   <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
 
 <!-- Recently Added Section -->
-<div id="recentlyAddedSection" style="padding: 20px;">
-  <h2 class="section-title">Recently Added</h2>
+<div id="recentlyAddedSection">
+  <h2 class="subsection-title">Recently Added</h2>
   <div class="scroll-container" id="recentlyAddedGrid"></div>
 </div>
 
 <!-- Movies Section -->
-<div id="moviesSection" style="padding: 20px;">
-  <h2 class="section-title">Movies</h2>
+<div id="moviesSection">
+  <h2 class="subsection-title">Movies</h2>
   <div class="scroll-container" id="moviesRow">
     <div class="skeleton-card"></div>
     <div class="skeleton-card"></div>
@@ -336,8 +648,8 @@ header img {
 </div>
 
 <!-- TV Shows Section -->
-<div id="tvSection" style="padding: 20px;">
-  <h2 class="section-title">TV Shows</h2>
+<div id="tvSection">
+  <h2 class="subsection-title">TV Shows</h2>
   <div class="scroll-container" id="tvRow">
     <div class="skeleton-card"></div>
     <div class="skeleton-card"></div>
@@ -347,18 +659,13 @@ header img {
 </div>
 
 <!-- Wishlist Requested Section -->
-<div id="wishlistSection" style="padding: 20px;">
-  <h2 class="section-title">Wishlist</h2>
+<div id="wishlistSection">
+  <h2 class="subsection-title">Wishlist</h2>
   <div class="scroll-container" id="wishlistGrid"></div>
 </div>
 
-<!-- TMDb Movies Section -->
-<div id="tmdbMoviesSection" style="padding: 20px;">
-  <h2 class="section-title">Explore More Movies</h2>
-  <div class="scroll-container" id="tmdbMoviesRow"></div>
-</div>
-
 <!-- TMDb Details Preview -->
+<h2 class="section-title">Explore More Movies & TV Shows</h2>
 <div id="tmdbDetailsPreview" style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white;">
   <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
   <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
@@ -366,21 +673,27 @@ header img {
   <p class="movie-overview" id="tmdbDetailsOverview"></p>
 </div>
 
+<!-- TMDb Movies Section -->
+<div id="tmdbMoviesSection">
+  <h2 class="subsection-title">Explore Movies</h2>
+  <div class="scroll-container" id="tmdbMoviesRow"></div>
+</div>
+
 <!-- TMDb TV Shows Section -->
-<div id="tmdbTVSection" style="padding: 20px;">
-  <h2 class="section-title">Explore More TV Shows</h2>
+<div id="tmdbTVSection">
+  <h2 class="subsection-title">Explore TV Shows</h2>
   <div class="scroll-container" id="tmdbTVRow"></div>
 </div>
 
 <!-- Search Results -->
 <div id="searchResultsSection" style="display:none;">
-  <h2 class="section-title">Search Results</h2>
+  <h2 class="subsection-title">Search Results</h2>
   <div class="scroll-container" id="searchResultsGrid"></div>
 </div>
 
 <!-- Episodes -->
-<div id="episodesSection" style="display:none; padding:20px;">
-  <h2 class="section-title" id="episodesTitle"></h2>
+<div id="episodesSection" style="display:none;">
+  <h2 class="subsection-title" id="episodesTitle"></h2>
   <div class="scroll-container" id="episodesGrid"></div>
 </div>
 
@@ -393,15 +706,43 @@ header img {
   </div>
 </div>
 
+<!-- Custom Popup -->
+<div id="customPopup" style="display:none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 30px 50px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.8); font-size: 28px; z-index: 3000; max-width: 90vw; text-align: center;">
+  <span id="popupMessage"></span>
+  <button id="popupCloseBtn" style="display:block; margin: 20px auto 0 auto; padding: 10px 30px; font-size: 24px; border: none; border-radius: 8px; background: #e50914; color: white; cursor: pointer;">Close</button>
+</div>
+
 <div class="bottom-bar">
-  <div class="nav-item" onclick="scrollToTop()"><i class="fa-solid fa-house"></i><span>Home</span></div>
+  <div id="mobileRefreshButtonsContainer" style="display:none; width: 100%; justify-content: space-around;">
+    <div class="nav-item" data-section="moviesSection" role="button" tabindex="0" aria-label="Refresh Movies">
+      <i class="fa-solid fa-rotate"></i><span>Movies</span>
+    </div>
+    <div class="nav-item" data-section="tvSection" role="button" tabindex="0" aria-label="Refresh TV Shows">
+      <i class="fa-solid fa-rotate"></i><span>TV Shows</span>
+    </div>
+    <div class="nav-item" data-section="wishlistSection" role="button" tabindex="0" aria-label="Refresh Wishlist">
+      <i class="fa-solid fa-rotate"></i><span>Wishlist</span>
+    </div>
+    <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
+      <i class="fa-solid fa-rotate"></i><span>Explore</span>
+    </div>
+  </div>
 </div>
 
 <script>
-  let fullLibrary = [];
+console.log("Script loaded");
+let fullLibrary = [];
 
-// Scroll to top
-function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function showPopup(messageHtml) {
+  const popup = document.getElementById('customPopup');
+  const msgSpan = document.getElementById('popupMessage');
+  msgSpan.innerHTML = messageHtml;
+  popup.style.display = 'block';
+}
+
+document.getElementById('popupCloseBtn').addEventListener('click', () => {
+  document.getElementById('customPopup').style.display = 'none';
+});
 
 // Create card
 function createCard(item, isTMDb = false) {
@@ -423,7 +764,7 @@ function createCard(item, isTMDb = false) {
   if (isTMDb) {
     card.querySelector(".add-btn").addEventListener("click", (e) => {
       e.stopPropagation();
-      addToWishlist(displayTitle, item.poster);
+      addToWishlist(displayTitle, item.poster, e.target);
     });
   }
 
@@ -516,35 +857,37 @@ function showEpisodes(show) {
 }
 
 function renderMovies(movies) {
-  console.log("renderMovies called with", movies.length, "items");
+console.log("renderMovies called with", movies.length, "items");
   const moviesRow = document.getElementById("moviesRow");
   moviesRow.innerHTML = "";
-  movies.forEach(item => {
-    console.log("Adding movie:", item.title);
+  shuffleArray(movies).forEach(item => {
+console.log("Adding movie:", item.title);
     moviesRow.appendChild(createCard(item));
   });
 }
 
 function renderTV(tvShows) {
-  console.log("renderTV called with", tvShows.length, "items");
+console.log("renderTV called with", tvShows.length, "items");
   const tvRow = document.getElementById("tvRow");
   tvRow.innerHTML = "";
-  tvShows.forEach(item => {
-    console.log("Adding TV show:", item.title);
+  shuffleArray(tvShows).forEach(item => {
+console.log("Adding TV show:", item.title);
     tvRow.appendChild(createCard(item));
   });
 }
 
 // Load Library via google.script.run to avoid CORS and keep app private
 function loadLibrary() {
-  console.log("loadLibrary called");
-  google.script.run.withSuccessHandler(data => {
-    console.log("Library data received", data);
-    fullLibrary = data.movies.concat(data.tv);  // Add this line
-    renderMovies(data.movies);
-    renderTV(data.tv);
-    document.getElementById("loadingScreen").style.display = "none"; // hide loading
-  }).getLibrary();
+  return new Promise(resolve => {
+    google.script.run.withSuccessHandler(data => {
+console.log("Library data received", data);
+      fullLibrary = data.movies.concat(data.tv);
+      renderMovies(data.movies);
+      renderTV(data.tv);
+      document.getElementById("loadingScreen").style.display = "none";
+      resolve();
+    }).getLibrary();
+  });
 }
 
 // Auto-load content on page load
@@ -596,7 +939,7 @@ document.getElementById("searchInput").addEventListener("input", function(e) {
   ];
 
   if (!fullLibrary || fullLibrary.length === 0) {
-    console.log("fullLibrary empty");
+console.log("fullLibrary empty");
     return;
   }
 
@@ -679,32 +1022,69 @@ function showMovieDetails(data) {
   document.getElementById('videoModal').classList.add('active');
 }
 
-document.getElementById('justWatchBtn').addEventListener('click', () => {
-  window.open('https://www.justwatch.com/', '_blank', 'noopener');
-});
-
 // TMDB
-function renderTMDbMovies(movies) {
+async function renderTMDbMovies(movies) {
   const row = document.getElementById('tmdbMoviesRow');
   row.innerHTML = '';
-  movies.forEach(movie => {
+  const shuffled = shuffleArray(movies);
+  shuffled.forEach(movie => {
     row.appendChild(createCard(movie, true));
   });
+
+  if (shuffled.length > 0) {
+    const data = await fetchTMDbDetails(shuffled[0], false);
+    if (!data) return;
+
+    const trailer = data.videos?.results.find(
+      v => v.type === 'Trailer' && v.site === 'YouTube'
+    );
+
+    const trailerContainer = document.getElementById('tmdbTrailerContainer');
+    trailerContainer.innerHTML = trailer
+      ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+      : `<p><em>No trailer available.</em></p>`;
+
+    document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
+    document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
+    document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
+    document.getElementById('tmdbDetailsPreview').style.display = 'block';
+  }
 }
 function renderTMDbTV(tvShows) {
   const row = document.getElementById('tmdbTVRow');
   row.innerHTML = '';
-  tvShows.forEach(show => {
+  shuffleArray(tvShows).forEach(show => {
     row.appendChild(createCard(show, true));
   });
 }
+function loadTMDbMovies() {
+  return new Promise(resolve => {
+    google.script.run.withSuccessHandler(data => {
+      const shuffledMovies = shuffleArray(data.movies);
+      renderTMDbMovies(shuffledMovies);
+      resolve();
+    }).getPopularMovies();
+  });
+}
+function loadTMDbTV() {
+  return new Promise(resolve => {
+    google.script.run.withSuccessHandler(data => {
+      const shuffledTV = shuffleArray(data.tv);
+      renderTMDbTV(shuffledTV);
+      resolve();
+    }).getPopularTVShows();
+  });
+}
 function loadCombinedPopular() {
-  google.script.run.withSuccessHandler(data => {
-    const shuffledMovies = shuffleArray(data.movies);
-    const shuffledTV = shuffleArray(data.tv);
-    renderTMDbMovies(shuffledMovies);
-    renderTMDbTV(shuffledTV);
-  }).getCombinedPopular();
+  return new Promise(resolve => {
+    google.script.run.withSuccessHandler(data => {
+      const shuffledMovies = shuffleArray(data.movies);
+      const shuffledTV = shuffleArray(data.tv);
+      renderTMDbMovies(shuffledMovies);
+      renderTMDbTV(shuffledTV);
+      resolve();
+    }).getCombinedPopular();
+  });
 }
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -715,17 +1095,35 @@ function shuffleArray(array) {
 }
 
 // WISHLIST
-function addToWishlist(title, poster) {
+function addToWishlist(title, poster, btn) {
+  // Immediately update UI
+  if (btn) {
+    btn.textContent = "✔";
+    btn.style.backgroundColor = "green";
+    btn.disabled = true;
+  }
+
   google.script.run.withSuccessHandler(response => {
-    if (response === true) {
-      alert(`✅ "${title}" is in your wishlist!`);
-    } else if (typeof response === "string") {
-      alert(response); // show custom message like duplicate warning
-    } else {
-      alert("Unknown response from server.");
+    if (!response) return;
+    switch(response.status) {
+      case "added":
+      case "requested":
+        showPopup(`<b>${response.title}</b><br><span style="color:green;">Added to your wishlist!</span>`);
+        break;
+      case "available":
+        showPopup(`<b>${response.title}</b><br><span style="color:yellow;">AVAILABLE TO WATCH</span>`);
+        break;
+      default:
+        showPopup("Unknown response from server.");
     }
   }).withFailureHandler(err => {
-    alert(`❌ Failed to add "${title}". Error: ${err.message}`);
+    showPopup(`❌ Failed to add <b>${title}</b>. Error: ${err.message}`);
+    // On failure, revert button UI back
+    if (btn) {
+      btn.textContent = "+";
+      btn.style.backgroundColor = "#e50914";
+      btn.disabled = false;
+    }
   }).addToWishlistSheet(title, poster);
 }
 function getRequestedWishlist() {
@@ -745,14 +1143,14 @@ function getRequestedWishlist() {
     }));
 }
 function renderWishlist(items) {
-  console.log("Wishlist items:", items);
+console.log("Wishlist items:", items);
   const grid = document.getElementById('wishlistGrid');
   grid.innerHTML = '';
   if (items.length === 0) {
     grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No requested items found.</p>';
     return;
   }
-  items.forEach(item => {
+  shuffleArray(items).forEach(item => {
     const card = document.createElement('div');
     card.classList.add('movie-card');
     card.innerHTML = `
@@ -763,7 +1161,12 @@ function renderWishlist(items) {
   });
 }
 function loadWishlist() {
-  google.script.run.withSuccessHandler(renderWishlist).getRequestedWishlist();
+  return new Promise(resolve => {
+    google.script.run.withSuccessHandler(items => {
+      renderWishlist(items);
+      resolve();
+    }).getRequestedWishlist();
+  });
 }
 
 // RECENTLY ADDED
@@ -774,7 +1177,7 @@ function renderRecentlyAdded(items) {
     grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No recent videos found.</p>';
     return;
   }
-  items.forEach(item => {
+  shuffleArray(items).forEach(item => {
     const card = document.createElement('div');
     card.classList.add('movie-card');
     card.innerHTML = `
@@ -788,7 +1191,12 @@ function renderRecentlyAdded(items) {
   });
 }
 function loadRecentlyAdded() {
-  google.script.run.withSuccessHandler(renderRecentlyAdded).getRecentVideos();
+  return new Promise(resolve => {
+    google.script.run.withSuccessHandler(items => {
+      renderRecentlyAdded(items);
+      resolve();
+    }).getRecentVideos();
+  });
 }
 
 // Details & Trailers
@@ -807,6 +1215,23 @@ async function fetchTMDbDetails(item, isTV = false) {
     alert('Error fetching details: ' + error.message);
     return null;
   }
+}
+
+function loadTMDbMovies() {
+  return new Promise(resolve => {
+    google.script.run.withSuccessHandler(data => {
+      renderTMDbMovies(data);
+      resolve();
+    }).getPopularMovies();
+  });
+}
+function loadTMDbTV() {
+  return new Promise(resolve => {
+    google.script.run.withSuccessHandler(data => {
+      renderTMDbTV(data);
+      resolve();
+    }).getPopularTVShows();
+  });
 }
 </script>
 </body>
