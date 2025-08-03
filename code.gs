@@ -138,3 +138,108 @@ function getCombinedPopular() {
     tv: getPopularTVShows()
   };
 }
+function addToWishlistSheet(title, poster) {
+  try {
+    const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+    const sheet = ss.getSheetByName('Wishlist');
+    if (!sheet) throw new Error("Wishlist sheet not found");
+
+    const lastRow = sheet.getLastRow();
+    let data = [];
+    if (lastRow > 1) {
+      data = sheet.getRange(2, 1, lastRow - 1, 3).getValues(); // get title and status columns
+    }
+
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][0].toString().toLowerCase() === title.toLowerCase()) {
+        const status = data[i][2];
+        if (status === "Requested") {
+          return `✅ "${title}" is in your wishlist!`;
+        } else if (status === "Added") {
+          return `🚫 "${title}" is AVAILABLE TO WATCH.`;
+        } else {
+          return `ℹ️ "${title}" is already in the list with status: ${status}.`;
+        }
+      }
+    }
+
+    const timestamp = new Date();
+    sheet.appendRow([title, timestamp, "Requested", poster]);
+
+    return true;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+}
+function getRequestedWishlist() {
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheet = ss.getSheetByName('Wishlist');
+  if (!sheet) throw new Error("Wishlist sheet not found");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+
+  return data.filter(row => row[2] === "Requested")
+    .map(row => ({
+      title: row[0],
+      poster: row[3]
+    }));
+}
+function getRecentVideos(days = 30) {
+  const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1';
+  const rootFolder = DriveApp.getFolderById(rootFolderId);
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  const categories = ['Movies', 'TV Shows'];
+  const recentVideosMap = {}; // Use object to group by folder title
+
+  categories.forEach(cat => {
+    const folderIterator = rootFolder.getFoldersByName(cat);
+    if (!folderIterator.hasNext()) return;
+    const categoryFolder = folderIterator.next();
+    const subfolders = categoryFolder.getFolders();
+
+    while (subfolders.hasNext()) {
+      const folder = subfolders.next();
+      const files = folder.getFiles();
+
+      let hasRecentFile = false;
+      let poster = '';
+
+      // Find poster image in folder files (png, jpg, jpeg)
+      while (files.hasNext()) {
+        const file = files.next();
+
+        // Set poster if image file found
+        const name = file.getName().toLowerCase();
+        if (!poster && (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg'))) {
+          poster = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w300';
+        }
+      }
+
+      // Reset files iterator to check video files for date
+      const filesForDateCheck = folder.getFiles();
+      while (filesForDateCheck.hasNext()) {
+        const file = filesForDateCheck.next();
+        if (file.getLastUpdated() >= cutoffDate) {
+          hasRecentFile = true;
+          break; // no need to check more files in this folder
+        }
+      }
+
+      if (hasRecentFile) {
+        recentVideosMap[folder.getName()] = {
+          title: folder.getName(),
+          poster: poster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(folder.getName()),
+          // You can add URL or other props if needed
+        };
+      }
+    }
+  });
+
+  // Convert map to array of unique folders
+  return Object.values(recentVideosMap);
+}
