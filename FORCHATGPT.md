@@ -1,4 +1,4 @@
-I will send you my app setup right now, just reply "okay" after every message I send until I say the magic words "lets go"
+I will send you my app setup right now, just reply "okay" after every message I send until I ask you a question.
 
 
 Rules for this chat:
