@@ -265,3 +265,54 @@ function getWishlistAllWithStatus() {
     poster: row[3]
   }));
 }
+
+function syncWishlistStatusWithDrive() {
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheet = ss.getSheetByName('Wishlist');
+  if (!sheet) throw new Error("Wishlist sheet not found");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return; // Nothing to update
+
+  // Get wishlist data: [title, timestamp, status, poster]
+  const dataRange = sheet.getRange(2, 1, lastRow - 1, 4);
+  const data = dataRange.getValues();
+
+  // Get all titles currently in Drive library (movies + tv)
+  const libraryData = getLibraryData(); // returns {movies: [], tv: []}
+  const driveTitlesSet = new Set();
+  libraryData.movies.forEach(item => driveTitlesSet.add(item.title.toLowerCase()));
+  libraryData.tv.forEach(item => driveTitlesSet.add(item.title.toLowerCase()));
+
+  // Prepare array for status updates
+  const updates = [];
+
+  for (let i = 0; i < data.length; i++) {
+    const title = data[i][0];
+    const currentStatus = data[i][2];
+    const titleLower = title.toLowerCase();
+
+    if (driveTitlesSet.has(titleLower)) {
+      // If found in Drive library and status not yet 'Available', update it
+      if (currentStatus !== 'Available') {
+        updates.push({row: i + 2, status: 'Available'});
+      }
+    } else {
+      // If not found in Drive, ensure status is 'Wishlist'
+      if (currentStatus !== 'Wishlist') {
+        updates.push({row: i + 2, status: 'Wishlist'});
+      }
+    }
+  }
+
+  // Batch update statuses in the sheet
+  updates.forEach(update => {
+    sheet.getRange(update.row, 3).setValue(update.status);
+  });
+}
+
+function getLibraryAndSyncWishlist() {
+  const library = getLibraryData();
+  syncWishlistStatusWithDrive();
+  return library;
+}
