@@ -63,7 +63,7 @@ header img {
   font-size: 90px;
   text-align: center;
   color: #fff;
-  margin: 80px auto 40px auto;
+  margin: 80px auto 5px auto;
   position: sticky;
   top: 55px; /* height of search bar */
   background: #141414;
@@ -116,7 +116,7 @@ header img {
   margin: 40px auto 20px auto;
   padding-left: 20px;
   padding-right: 20px;
-  padding-top: 20px;
+  padding-top: 50px;
   padding-bottom:10px;
 }
 
@@ -127,7 +127,7 @@ header img {
   overflow-x: auto;
   padding-left: 20px;
   padding-right: 20px;
-  padding-bottom: 35px;
+  padding-bottom: 10px;
 }
 .scroll-container::-webkit-scrollbar {
   display: none;
@@ -210,7 +210,7 @@ header img {
   background: #000;
   display: flex;
   justify-content: space-around;
-  padding: 20px 0;
+  padding: 10px 0;
   border-top: 1px solid #222;
   z-index: 9999; 
 }
@@ -440,7 +440,7 @@ header img {
   }
   .section-title {
     font-size: 55px !important;
-    margin: 60px auto 40px auto !important;
+    margin: 60px auto 5px auto !important;
     padding-top: 24px !important;
     position: sticky !important;
     top: 55px !important; /* sticky below search bar */
@@ -469,7 +469,7 @@ header img {
     font-size: 40px !important;
     padding-left: 20px;
     padding-right: 20px;
-    padding-top: 25px;
+    padding-top: 30px;
     padding-bottom: 10px;
   }
   .movie-card {
@@ -580,7 +580,7 @@ header img {
     font-size: 15px !important;
   }
   .nav-item i {
-    font-size: 15px !important;
+    font-size: 20px !important;
   }
   .add-btn {
     width: 40px !important;
@@ -623,7 +623,7 @@ header img {
   }
   .section-title {
     font-size: 35px !important;
-    margin: 40px auto 20px auto !important;
+    margin: 40px auto 5px auto !important;
     padding-top: 12px !important;
     position: sticky !important;
     top: 55px !important;
@@ -653,7 +653,7 @@ header img {
     font-size: 20px !important;
     padding-left: 20px;
     padding-right: 20px;
-    padding-top: 20px;
+    padding-top: 30px;
     padding-bottom: 10px;
   }
   .movie-title {
@@ -692,6 +692,25 @@ header img {
   #videoFrameContainer {
     min-height: 150px !important;
   }
+  .scroll-container {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: #888 #1f1f1f;
+  }
+  .scroll-container::-webkit-scrollbar {
+    height: 12px;
+  }
+  .scroll-container::-webkit-scrollbar-track {
+    background: #1f1f1f;
+    border-radius: 6px;
+  }
+  .scroll-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 6px;
+  }
+  .scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+  }
+}
 }
 </style>
 </head>
@@ -708,7 +727,7 @@ header img {
 <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
 
 <!-- Watch Header -->
-<h2 class="section-title">Ready to Watch</h2>
+<h2 class="section-title">Available to Watch</h2>
 
 <!-- Recently Added Section -->
 <div id="recentlyAddedSection">
