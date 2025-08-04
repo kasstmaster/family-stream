@@ -1075,12 +1075,37 @@ function showMovieDetails(data) {
 }
 
 // TMDB
-async function renderTMDbMovies(movies) {
+async function renderTMDbMovies(movies, wishlistTitles) {
   const row = document.getElementById('tmdbMoviesRow');
   row.innerHTML = '';
   const shuffled = shuffleArray(movies);
   shuffled.forEach(movie => {
-    row.appendChild(createCard(movie, true));
+    const card = createCard(movie, true);
+
+    // Check if title is in wishlistAvailableTitles (case-insensitive)
+    if (wishlistTitles.some(t => t === (movie.title || movie.name).toLowerCase())) {
+      const banner = document.createElement('div');
+      banner.textContent = 'AVAILABLE';
+      banner.style.cssText = `
+        position: absolute;
+        top: 10px;
+        left: 0;
+        width: 100%;
+        background-color: rgba(0, 128, 0, 0.75);
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        padding: 6px 0;
+        border-radius: 12px 12px 0 0;
+        font-size: 24px;
+        z-index: 20;
+        pointer-events: none;
+      `;
+      card.style.position = 'relative';
+      card.appendChild(banner);
+    }
+
+    row.appendChild(card);
   });
 
   if (shuffled.length > 0) {
@@ -1102,11 +1127,35 @@ async function renderTMDbMovies(movies) {
     document.getElementById('tmdbDetailsPreview').style.display = 'block';
   }
 }
-function renderTMDbTV(tvShows) {
+function renderTMDbTV(tvShows, wishlistTitles) {
   const row = document.getElementById('tmdbTVRow');
   row.innerHTML = '';
   shuffleArray(tvShows).forEach(show => {
-    row.appendChild(createCard(show, true));
+    const card = createCard(show, true);
+
+    if (wishlistTitles.some(t => t === (show.title || show.name).toLowerCase())) {
+      const banner = document.createElement('div');
+      banner.textContent = 'AVAILABLE';
+      banner.style.cssText = `
+        position: absolute;
+        top: 10px;
+        left: 0;
+        width: 100%;
+        background-color: rgba(0, 128, 0, 0.75);
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        padding: 6px 0;
+        border-radius: 12px 12px 0 0;
+        font-size: 24px;
+        z-index: 20;
+        pointer-events: none;
+      `;
+      card.style.position = 'relative';
+      card.appendChild(banner);
+    }
+
+    row.appendChild(card);
   });
 }
 function loadTMDbMovies() {
@@ -1284,6 +1333,17 @@ function loadTMDbTV() {
       renderTMDbTV(data);
       resolve();
     }).getPopularTVShows();
+  });
+}
+let wishlistAvailableTitles = [];
+function loadWishlistAvailable() {
+  return new Promise(resolve => {
+    google.script.run.withSuccessHandler(items => {
+      wishlistAvailableTitles = items
+        .filter(item => item.status === "Added")
+        .map(item => item.title.toLowerCase());
+      resolve();
+    }).getWishlistAllWithStatus(); // We'll create this server-side function next
   });
 }
 
