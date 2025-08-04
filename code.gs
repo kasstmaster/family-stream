@@ -8,7 +8,8 @@ function doGet(e) {
 
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('My Movie Browser')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .setSandboxMode(HtmlService.SandboxMode.IFRAME);
 }
 
 // Stream Video with Range Support
@@ -153,12 +154,11 @@ function addToWishlistSheet(title, poster) {
     for (let i = 0; i < data.length; i++) {
       if (data[i][0].toString().toLowerCase() === title.toLowerCase()) {
         const status = data[i][2];
-        if (status === "Requested") {
+        if (status === "Wishlist") {
           return { status: "requested", title };
-        } else if (status === "Added") {
-          return { status: "available", title };
+        } else if (status === "Available") {
+          return { status: "added", title };
         }
-        // If other statuses exist, treat as requested for simplicity
         return { status: "requested", title };
       }
     }
@@ -181,7 +181,7 @@ function getRequestedWishlist() {
 
   const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
 
-  return data.filter(row => row[2] === "Requested")
+  return data.filter(row => row[2] === "Wishlist")
     .map(row => ({
       title: row[0],
       poster: row[3]
