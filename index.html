@@ -867,8 +867,10 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
       document.getElementById('tmdbDetailsPreview').style.display = 'block';
 
     } else {
-      if (item.episodes && item.episodes.length > 0) {
-        showEpisodes(item);
+      if (item.episodes && item.episodes.length > 1) {
+        showEpisodes(item);  // Treat as TV with episodes
+      } else if (item.episodes && item.episodes.length === 1) {
+        openVideo(item.episodes[0].url, displayTitle);  // Treat as movie with single episode
       } else if (item.url) {
         openVideo(item.url, displayTitle);
       } else {
@@ -1348,7 +1350,13 @@ function renderRecentlyAdded(items) {
       <div class="movie-title">${item.title}</div>
     `;
     card.addEventListener('click', () => {
-      openVideo(item.url, item.title);
+      if (item.episodes && item.episodes.length > 0) {
+        showEpisodes(item);
+      } else if (item.url) {
+        openVideo(item.url, item.title);
+      } else {
+        alert("Video playback not available for this item.");
+      }
     });
     grid.appendChild(card);
   });
