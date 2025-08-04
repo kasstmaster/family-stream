@@ -883,18 +883,13 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
 }
 
 function openVideo(url, title) {
+console.log('Playing video URL:', url);
   document.getElementById("videoModal").classList.add("active");
 
   const videoContainer = document.getElementById("videoFrameContainer");
-  const escapedUrl = url.replace(/"/g, '&quot;');
+  videoContainer.innerHTML = `<iframe src="${url}" allowfullscreen sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" style="width:100%;height:450px;border:none;border-radius:12px;"></iframe>`;
 
-  videoContainer.innerHTML = '<video id="videoPlayer" controls autoplay style="width:100%;height:450px;border-radius:12px;">'
-  + '<source src="' + escapedUrl + '" type="video/mp4">'
-  + 'Your browser does not support the video tag.'
-  + '</video>';
-
-  document.getElementById("movieDetails").innerHTML =
-    '<h2 class="movie-title-text">' + title + '</h2>';
+  document.getElementById("movieDetails").innerHTML = `<h2 class="movie-title-text">${title}</h2>`;
 }
 
 function showEpisodes(show) {
@@ -1347,8 +1342,10 @@ function renderRecentlyAdded(items) {
       <div class="movie-title">${item.title}</div>
     `;
     card.addEventListener('click', () => {
-      if (item.episodes && item.episodes.length > 0) {
+      if (item.episodes && item.episodes.length > 1) {
         showEpisodes(item);
+      } else if (item.episodes && item.episodes.length === 1) {
+        openVideo(item.episodes[0].url, item.title);
       } else if (item.url) {
         openVideo(item.url, item.title);
       } else {
