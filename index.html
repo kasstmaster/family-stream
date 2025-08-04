@@ -18,15 +18,17 @@ body {
   margin: 0;
   font-size: 60px; /* Mobile default font-size */
 }
-
 #appContent {
+  padding-top: 0; /* header is static, so no padding needed */
   padding-bottom: 120px;
 }
-
 /* ====== HEADER ====== */
 header {
   background: #000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.7);
   text-align: center;
+  position: relative; /* static */
+  z-index: 1;
 }
 header img {
   max-width: 350px;
@@ -35,19 +37,15 @@ header img {
 
 /* ====== SEARCH BAR ====== */
 .search-bar {
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   width: 100%;
-  background: #000; /* same as header background */
+  height: 55px;
+  background: #141414;
   padding: 10px 0;
   text-align: center;
   z-index: 10000;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.7); /* optional for subtle shadow */
-}
-#appContent {
-  padding-top: 55px; /* adjust this height to match search bar height */
-  padding-bottom: 120px;
 }
 .search-bar input {
   padding: 40px;
@@ -62,21 +60,23 @@ header img {
 .section-title {
   font-family: 'Roboto', sans-serif;
   font-weight: 700;
-  font-size: 90px; /* Larger for prominence */
+  font-size: 90px;
   text-align: center;
   color: #fff;
   margin: 80px auto 40px auto;
-  position: relative;
+  position: sticky;
+  top: 55px; /* height of search bar */
+  background: #141414;
+  z-index: 9999;
   padding-top: 30px;
   letter-spacing: 0.05em;
 }
-/* Divider line above the section title */
 .section-title::before {
   content: "";
   display: block;
   width: 100px;
   height: 6px;
-  background-color: #e50914; /* Netflix red */
+  background-color: #e50914;
   position: absolute;
   top: 0;
   left: 50%;
@@ -86,11 +86,14 @@ header img {
 .tmdb-title {
   font-family: 'Roboto', sans-serif;
   font-weight: 700;
-  font-size: 90px; /* Larger for prominence */
+  font-size: 90px;
   text-align: center;
   color: #fff;
   margin: 80px auto 40px auto;
-  position: relative;
+  position: sticky;
+  top: 55px; /* height of search bar */
+  background: #141414;
+  z-index: 9999;
   padding-top: 30px;
   letter-spacing: 0.05em;
 }
@@ -99,7 +102,7 @@ header img {
   display: block;
   width: 100px;
   height: 6px;
-  background-color: #e50914; /* Netflix red */
+  background-color: #e50914;
   position: absolute;
   top: 0;
   left: 50%;
@@ -140,7 +143,7 @@ header img {
   overflow: hidden;
   width: 350px;
   flex: 0 0 auto;
-  position: relative; /* for add button */
+  position: relative;
   transition: transform 0.3s ease;
 }
 .movie-card:hover {
@@ -183,7 +186,7 @@ header img {
   flex-direction: column;
   font-family: 'Bebas Neue', sans-serif;
   font-size: 60px;
-  z-index: 9999;
+  z-index: 2147483647;
 }
 .loader {
   border: 12px solid #333;
@@ -291,7 +294,7 @@ header img {
   z-index: 3000;
   max-width: 90vw;
   text-align: center;
-  width: 500px;  /* Desktop width */
+  width: 500px;
   box-sizing: border-box;
 }
 
@@ -337,6 +340,10 @@ header img {
 }
 
 /* ====== OTHER ELEMENTS ====== */
+.sticky-shadow {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.7);
+  transition: box-shadow 0.3s ease;
+}
 .movie-grid {
   display: flex;
   flex-wrap: wrap;
@@ -406,11 +413,7 @@ header img {
 /* MOBILE - max-width 999px */
 @media (max-width: 999px) {
   body {
-    // background: yellow !important; /* TESTING ONLY: Remove for production */
     font-size: 30px !important;
-  }
-  .subsection-title .refresh-emoji {
-    display: none !important;
   }
   #mobileRefreshButtonsContainer {
     display: flex !important;
@@ -427,10 +430,22 @@ header img {
   .search-bar input {
     font-size: 40px !important;
   }
+  .section-title,
+  .tmdb-title {
+    box-shadow: none;
+    transition: box-shadow 0.3s ease;
+  }
+  .sticky-shadow {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+  }
   .section-title {
     font-size: 55px !important;
     margin: 60px auto 40px auto !important;
     padding-top: 24px !important;
+    position: sticky !important;
+    top: 55px !important; /* sticky below search bar */
+    background: #141414 !important;
+    z-index: 9999 !important;
   }
   .section-title::before {
     width: 80px !important;
@@ -440,6 +455,11 @@ header img {
     font-size: 55px !important;
     margin: 60px auto 40px auto !important;
     padding-top: 24px !important;
+
+    position: sticky !important;
+    top: 55px !important;
+    background: #141414 !important;
+    z-index: 9999 !important;
   }
   .tmdb-title::before {
     width: 80px !important;
@@ -450,7 +470,7 @@ header img {
     padding-left: 20px;
     padding-right: 20px;
     padding-top: 25px;
-    padding-bottom:10px;
+    padding-bottom: 10px;
   }
   .movie-card {
     width: 350px !important;
@@ -544,7 +564,6 @@ header img {
 /* DESKTOP - min-width 1000px */
 @media (min-width: 1000px) {
   body {
-    // background: red !important; /* TESTING ONLY: Remove for production */
     font-size: 15px !important;
   }
   #loadingScreen {
@@ -557,7 +576,7 @@ header img {
     padding: 10px !important;
     font-size: 20px !important;
   }
-    .nav-item {
+  .nav-item {
     font-size: 15px !important;
   }
   .nav-item i {
@@ -606,6 +625,10 @@ header img {
     font-size: 35px !important;
     margin: 40px auto 20px auto !important;
     padding-top: 12px !important;
+    position: sticky !important;
+    top: 55px !important;
+    background: #141414 !important;
+    z-index: 9999 !important;
   }
   .section-title::before {
     width: 60px !important;
@@ -615,6 +638,11 @@ header img {
     font-size: 35px !important;
     margin: 40px auto 20px auto !important;
     padding-top: 12px !important;
+
+    position: sticky !important;
+    top: 55px !important;
+    background: #141414 !important;
+    z-index: 9999 !important;
   }
   .tmdb-title::before {
     width: 60px !important;
@@ -626,7 +654,7 @@ header img {
     padding-left: 20px;
     padding-right: 20px;
     padding-top: 20px;
-    padding-bottom:10px;
+    padding-bottom: 10px;
   }
   .movie-title {
     font-size: 15px !important;
@@ -676,10 +704,8 @@ header img {
 
 <!-- App Content -->
 <div id="appContent" style="display:none;">
-<header>
-  <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div><br>
-  <img src="https://i.postimg.cc/mD3J6rqB/ILYMMD-8-2-2025.png" alt="ILYMMD+ Logo"><br><br>
-</header>
+<header><br><br><img src="https://i.postimg.cc/mD3J6rqB/ILYMMD-8-2-2025.png" alt="ILYMMD+ Logo"><br><br></header>
+<div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
 
 <!-- Watch Header -->
 <h2 class="section-title">Ready to Watch</h2>
@@ -788,6 +814,9 @@ header img {
 <script>
 let fullLibrary = [];
 let wishlistAvailableTitles = [];
+
+const appContent = document.getElementById('appContent');
+appContent.classList.add('loading');
 
 function showPopup(messageHtml) {
   const popup = document.getElementById('customPopup');
@@ -984,30 +1013,20 @@ function loadLibrary() {
 
 // Auto-load content on page load
 window.addEventListener("load", () => {
-  // Show app content once loaded
   document.getElementById("appContent").style.display = "block";
 
-  // Load your private Drive movie/TV library
-  loadLibrary();
+  Promise.all([
+    loadLibrary(),
+    loadCombinedPopular(),
+    loadWishlist(),
+    loadRecentlyAdded()
+  ]).then(() => {
+    document.getElementById("loadingScreen").style.display = "none";
 
-  // Load popular movies and TV shows from TMDb API
-  loadCombinedPopular()
-  .catch(err => {
-    alert('Failed to load popular content. Please try again.');
-    console.error(err);
+    // Show optional sections if needed
+    document.getElementById("wishlistSection").style.display = "block";
+    document.getElementById("recentlyAddedSection").style.display = "block";
   });
-
-  // Load requested wishlist items
-  loadWishlist();
-
-  // Load recently added videos
-  loadRecentlyAdded();
-
-  // Show wishlist section (optional)
-  document.getElementById("wishlistSection").style.display = "block";
-
-  // Show recently added section
-  document.getElementById("recentlyAddedSection").style.display = "block";
 });
 
 // Close modal and stop video
@@ -1123,9 +1142,13 @@ function showMovieDetails(data) {
 async function renderTMDbMovies(movies, wishlistTitles = [], wishlistAvailable = []) {
   const row = document.getElementById('tmdbMoviesRow');
   row.innerHTML = '';
-  const shuffled = shuffleArray(movies);
+
+  // Filter out adult movies
+  const filteredMovies = movies.filter(movie => !movie.adult);
+
+  const shuffled = shuffleArray(filteredMovies);
+
   shuffled.forEach(movie => {
-    // Pass wishlistTitles (Wishlist status) to createCard for checkmark logic
     const card = createCard(movie, true, wishlistTitles);
 
     // Check if movie is in wishlistAvailable (Available status) for AVAILABLE banner
@@ -1176,12 +1199,14 @@ async function renderTMDbMovies(movies, wishlistTitles = [], wishlistAvailable =
     document.getElementById('tmdbDetailsPreview').style.display = 'block';
   }
 }
-
 function renderTMDbTV(tvShows, wishlistTitles = [], wishlistAvailable = []) {
   const row = document.getElementById('tmdbTVRow');
   row.innerHTML = '';
-  shuffleArray(tvShows).forEach(show => {
-    // Pass wishlistTitles (Wishlist status) to createCard for checkmark logic
+
+  // Filter out adult TV shows
+  const filteredTV = tvShows.filter(show => !show.adult);
+
+  shuffleArray(filteredTV).forEach(show => {
     const card = createCard(show, true, wishlistTitles);
 
     // Check if show is in wishlistAvailable (Available status) for AVAILABLE banner
@@ -1375,7 +1400,7 @@ async function fetchTMDbDetails(item, isTV = false) {
   const apiKey = '48f719a14913f9d4ee92c684c2187625';
   const baseUrl = 'https://api.themoviedb.org/3';
   const type = isTV ? 'tv' : 'movie';
-  const url = `${baseUrl}/${type}/${item.id}?api_key=${apiKey}&language=en-US&append_to_response=videos`;
+  const url = `${baseUrl}/${type}/${item.id}?api_key=${apiKey}&language=en-US&append_to_response=videos,keywords`;
 
   try {
     const response = await fetch(url);
@@ -1435,37 +1460,26 @@ function closeModal() {
   if (lastFocusedElement) lastFocusedElement.focus();
 }
 
-function openModal() {
-  lastFocusedElement = document.activeElement;
-  document.getElementById('appContent').setAttribute('aria-hidden', 'true');
-  document.getElementById('videoModal').removeAttribute('aria-hidden');
-  document.getElementById('videoModal').classList.add('active');
-  document.getElementById('closeBtn').focus();
-
-  // Hide the fixed search bar
-  const searchBar = document.querySelector('.search-bar');
-  if (searchBar) searchBar.style.display = 'none';
+function checkStickyShadow() {
+  const stickyOffset = 100;  // or your preferred threshold
+  const titles = document.querySelectorAll('.section-title, .tmdb-title');
+  titles.forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top <= stickyOffset) {
+      el.classList.add('sticky-shadow');
+    } else {
+      el.classList.remove('sticky-shadow');
+    }
+  });
 }
 
-function closeModal() {
-  document.getElementById('appContent').removeAttribute('aria-hidden');
-  const modal = document.getElementById('videoModal');
-  modal.setAttribute('aria-hidden', 'true');
-  modal.classList.remove('active');
-  document.getElementById('videoFrameContainer').innerHTML = '';
-  if (lastFocusedElement) lastFocusedElement.focus();
-
-  // Show the fixed search bar again
-  const searchBar = document.querySelector('.search-bar');
-  if (searchBar) searchBar.style.display = 'block';
-}
+window.addEventListener('scroll', checkStickyShadow);
+window.addEventListener('load', checkStickyShadow);
 
 document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
   btn.addEventListener('click', () => {
     const section = btn.getAttribute('data-section');
-    if (section === 'moviesSection') {
-      loadLibrary();
-    } else if (section === 'tvSection') {
+    if (section === 'moviesSection' || section === 'tvSection') {
       loadLibrary();
     } else if (section === 'wishlistSection') {
       loadWishlist();
