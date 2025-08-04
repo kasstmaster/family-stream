@@ -968,7 +968,7 @@ function renderTV(tvShows) {
   });
 }
 
-// Load Library via google.script.run to avoid CORS and keep app private
+// Load Library via google.script.run and sync wishlist statuses automatically
 function loadLibrary() {
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(data => {
@@ -977,7 +977,7 @@ function loadLibrary() {
       renderTV(data.tv);
       document.getElementById("loadingScreen").style.display = "none";
       resolve();
-    }).getLibrary();
+    }).getLibraryAndSyncWishlist();
   });
 }
 
