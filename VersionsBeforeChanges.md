@@ -1,3 +1,5 @@
 Last working before adding:
 
-Nothing to change. Complete working condition.
+
+SRT = Subtitles files - How to have video player recognize
+Casting
