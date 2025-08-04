@@ -780,8 +780,8 @@ header img {
 </div>
 
 <script>
-console.log("Script loaded");
 let fullLibrary = [];
+let wishlistAvailableTitles = [];
 
 function showPopup(messageHtml) {
   const popup = document.getElementById('customPopup');
@@ -795,62 +795,87 @@ document.getElementById('popupCloseBtn').addEventListener('click', () => {
 });
 
 // Create card
-function createCard(item, isTMDb = false) {
+function createCard(item, isTMDb = false, wishlistTitles = []) {
   const displayTitle = item.title || item.name || "No Title";
   const card = document.createElement("div");
   card.classList.add("movie-card");
-  
-  let plusButtonHTML = '';
+
+  // Clear card content first
+  card.innerHTML = '';
+    
+  // Create image element
+  const img = document.createElement('img');
+  img.src = item.poster;
+  img.alt = displayTitle;
+  img.loading = 'lazy';
+  card.appendChild(img);
+
+  // Create title div
+  const titleDiv = document.createElement('div');
+  titleDiv.classList.add('movie-title');
+  titleDiv.textContent = displayTitle;
+  card.appendChild(titleDiv);
+
+  // If TMDb, create the add button based on wishlist status
   if (isTMDb) {
-    plusButtonHTML = '<button class="add-btn" title="Add to Wishlist">+</button>';
+    const btn = document.createElement('button');
+    btn.classList.add('add-btn');
+
+    if (wishlistTitles.some(w => 
+        w.title.toLowerCase().trim() === displayTitle.toLowerCase().trim() &&
+        w.status === "Wishlist"
+      )) {
+        btn.textContent = '✔';
+        btn.title = 'Requested';
+        btn.disabled = true;
+        btn.style.backgroundColor = 'green';
+      } else {
+        btn.textContent = '+';
+        btn.title = 'Add to Wishlist';
+        btn.disabled = false;
+        btn.style.backgroundColor = '#e50914';
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          addToWishlist(displayTitle, item.poster, btn);
+        });
+      }
+
+    card.appendChild(btn);
   }
 
-  card.innerHTML = `
-    <img src="${item.poster}" alt="${displayTitle}" loading="lazy">
-    <div class="movie-title">${displayTitle}</div>
-    ${plusButtonHTML}
-  `;
+  card.addEventListener("click", async () => {
+    if (isTMDb) {
+      const data = await fetchTMDbDetails(item, item.media_type === 'tv');
+      if (!data) return;
 
-  if (isTMDb) {
-    card.querySelector(".add-btn").addEventListener("click", (e) => {
-      e.stopPropagation();
-      addToWishlist(displayTitle, item.poster, e.target);
-    });
-  }
+      const trailer = data.videos?.results.find(
+        v => v.type === 'Trailer' && v.site === 'YouTube'
+      );
 
-card.addEventListener("click", async () => {
-  if (isTMDb) {
-    const data = await fetchTMDbDetails(item, item.media_type === 'tv');
-    if (!data) return;
+      // Fill trailer container
+      const trailerContainer = document.getElementById('tmdbTrailerContainer');
+      trailerContainer.innerHTML = trailer
+        ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+        : `<p><em>No trailer available.</em></p>`;
 
-    const trailer = data.videos?.results.find(
-      v => v.type === 'Trailer' && v.site === 'YouTube'
-    );
+      // Fill details
+      document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
+      document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
+      document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
 
-    // Fill trailer container
-    const trailerContainer = document.getElementById('tmdbTrailerContainer');
-    trailerContainer.innerHTML = trailer
-      ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
-      : `<p><em>No trailer available.</em></p>`;
+      // Show details container
+      document.getElementById('tmdbDetailsPreview').style.display = 'block';
 
-    // Fill details
-    document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
-    document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
-    document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
-
-    // Show details container
-    document.getElementById('tmdbDetailsPreview').style.display = 'block';
-
-  } else {
-    if (item.episodes && item.episodes.length > 0 && item.episodes[0].url) {
-      openVideo(item.episodes[0].url, displayTitle);
     } else {
-      alert("Video playback not available for this item.");
+      if (item.episodes && item.episodes.length > 0 && item.episodes[0].url) {
+        openVideo(item.episodes[0].url, displayTitle);
+      } else {
+        alert("Video playback not available for this item.");
+      }
     }
-  }
-});
+  });
 
-return card;
+  return card;
 }
 
 function openVideo(url, title) {
@@ -907,21 +932,17 @@ function showEpisodes(show) {
 }
 
 function renderMovies(movies) {
-console.log("renderMovies called with", movies.length, "items");
   const moviesRow = document.getElementById("moviesRow");
   moviesRow.innerHTML = "";
   shuffleArray(movies).forEach(item => {
-console.log("Adding movie:", item.title);
     moviesRow.appendChild(createCard(item));
   });
 }
 
 function renderTV(tvShows) {
-console.log("renderTV called with", tvShows.length, "items");
   const tvRow = document.getElementById("tvRow");
   tvRow.innerHTML = "";
   shuffleArray(tvShows).forEach(item => {
-console.log("Adding TV show:", item.title);
     tvRow.appendChild(createCard(item));
   });
 }
@@ -930,7 +951,6 @@ console.log("Adding TV show:", item.title);
 function loadLibrary() {
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(data => {
-console.log("Library data received", data);
       fullLibrary = data.movies.concat(data.tv);
       renderMovies(data.movies);
       renderTV(data.tv);
@@ -949,7 +969,14 @@ window.addEventListener("load", () => {
   loadLibrary();
 
   // Load popular movies and TV shows from TMDb API
-  loadCombinedPopular();
+  loadCombinedPopular()
+  .then(() => {
+    console.log('Popular content loaded successfully');
+  })
+  .catch(err => {
+    alert('Failed to load popular content. Please try again.');
+    console.error(err);
+  });
 
   // Load requested wishlist items
   loadWishlist();
@@ -989,7 +1016,6 @@ document.getElementById("searchInput").addEventListener("input", function(e) {
   ];
 
   if (!fullLibrary || fullLibrary.length === 0) {
-console.log("fullLibrary empty");
     return;
   }
 
@@ -1075,15 +1101,19 @@ function showMovieDetails(data) {
 }
 
 // TMDB
-async function renderTMDbMovies(movies, wishlistTitles) {
+async function renderTMDbMovies(movies, wishlistTitles = [], wishlistAvailable = []) {
   const row = document.getElementById('tmdbMoviesRow');
   row.innerHTML = '';
   const shuffled = shuffleArray(movies);
   shuffled.forEach(movie => {
-    const card = createCard(movie, true);
+    // Pass wishlistTitles (Wishlist status) to createCard for checkmark logic
+    const card = createCard(movie, true, wishlistTitles);
 
-    // Check if title is in wishlistAvailableTitles (case-insensitive)
-    if (wishlistTitles.some(t => t === (movie.title || movie.name).toLowerCase())) {
+    // Check if movie is in wishlistAvailable (Available status) for AVAILABLE banner
+    if (wishlistAvailable.some(w => 
+        w.title.toLowerCase() === (movie.title || movie.name).toLowerCase() &&
+        w.status === "Available"
+    )) {
       const banner = document.createElement('div');
       banner.textContent = 'AVAILABLE';
       banner.style.cssText = `
@@ -1127,13 +1157,19 @@ async function renderTMDbMovies(movies, wishlistTitles) {
     document.getElementById('tmdbDetailsPreview').style.display = 'block';
   }
 }
-function renderTMDbTV(tvShows, wishlistTitles) {
+
+function renderTMDbTV(tvShows, wishlistTitles = [], wishlistAvailable = []) {
   const row = document.getElementById('tmdbTVRow');
   row.innerHTML = '';
   shuffleArray(tvShows).forEach(show => {
-    const card = createCard(show, true);
+    // Pass wishlistTitles (Wishlist status) to createCard for checkmark logic
+    const card = createCard(show, true, wishlistTitles);
 
-    if (wishlistTitles.some(t => t === (show.title || show.name).toLowerCase())) {
+    // Check if show is in wishlistAvailable (Available status) for AVAILABLE banner
+    if (wishlistAvailable.some(w => 
+        w.title.toLowerCase() === (show.title || show.name).toLowerCase() &&
+        w.status === "Available"
+    )) {
       const banner = document.createElement('div');
       banner.textContent = 'AVAILABLE';
       banner.style.cssText = `
@@ -1177,16 +1213,33 @@ function loadTMDbTV() {
   });
 }
 function loadCombinedPopular() {
-  return new Promise(resolve => {
-    const randomPage = Math.floor(Math.random() * 500) + 1;
-    google.script.run.withSuccessHandler(data => {
-      const shuffledMovies = shuffleArray(data.movies);
-      const shuffledTV = shuffleArray(data.tv);
-      renderTMDbMovies(shuffledMovies);
-      renderTMDbTV(shuffledTV);
-      resolve();
-    }).getCombinedPopular(randomPage);
-  });
+  return loadWishlistRequested()
+    .then(() => {
+      return new Promise((resolve, reject) => {
+        const randomPage = Math.floor(Math.random() * 500) + 1;
+        google.script.run
+          .withSuccessHandler(data => {
+            if (!data || !Array.isArray(data.movies) || !Array.isArray(data.tv)) {
+              reject(new Error('Invalid data structure from getCombinedPopular'));
+              return;
+            }
+            const shuffledMovies = shuffleArray(data.movies);
+            const shuffledTV = shuffleArray(data.tv);
+
+            // Ensure wishlist arrays are arrays
+            wishlistRequestedTitles = Array.isArray(wishlistRequestedTitles) ? wishlistRequestedTitles : [];
+            wishlistAvailableTitles = Array.isArray(wishlistAvailableTitles) ? wishlistAvailableTitles : [];
+
+            renderTMDbMovies(shuffledMovies, wishlistRequestedTitles);
+            renderTMDbTV(shuffledTV, wishlistRequestedTitles);
+            resolve();
+          })
+          .withFailureHandler(error => {
+            reject(error);
+          })
+          .getCombinedPopular(randomPage);
+      });
+    });
 }
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -1207,17 +1260,7 @@ function addToWishlist(title, poster, btn) {
 
   google.script.run.withSuccessHandler(response => {
     if (!response) return;
-    switch(response.status) {
-      case "added":
-      case "requested":
-        showPopup(`<b>${response.title}</b><br><span style="color:green;">Added to your wishlist!</span>`);
-        break;
-      case "available":
-        showPopup(`<b>${response.title}</b><br><span style="color:yellow;">AVAILABLE TO WATCH</span>`);
-        break;
-      default:
-        showPopup("Unknown response from server.");
-    }
+    showPopup(`<b>${response.title}</b><br><span style="color:green;">Added to your wishlist!</span>`);
   }).withFailureHandler(err => {
     showPopup(`❌ Failed to add <b>${title}</b>. Error: ${err.message}`);
     // On failure, revert button UI back
@@ -1238,14 +1281,13 @@ function getRequestedWishlist() {
 
   const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
 
-  return data.filter(row => row[2] === "Requested")
+  return data.filter(row => row[2] === "Wishlist")
     .map(row => ({
       title: row[0],
       poster: row[3]
     }));
 }
 function renderWishlist(items) {
-console.log("Wishlist items:", items);
   const grid = document.getElementById('wishlistGrid');
   grid.innerHTML = '';
   if (items.length === 0) {
@@ -1335,15 +1377,14 @@ function loadTMDbTV() {
     }).getPopularTVShows();
   });
 }
-let wishlistAvailableTitles = [];
-function loadWishlistAvailable() {
+let wishlistRequestedTitles = [];
+function loadWishlistRequested() {
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(items => {
-      wishlistAvailableTitles = items
-        .filter(item => item.status === "Added")
-        .map(item => item.title.toLowerCase());
+      wishlistRequestedTitles = items.filter(item => item.status === "Wishlist");
+      wishlistAvailableTitles = items.filter(item => item.status === "Available");
       resolve();
-    }).getWishlistAllWithStatus(); // We'll create this server-side function next
+    }).getWishlistAllWithStatus();
   });
 }
 
@@ -1351,11 +1392,11 @@ document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
   btn.addEventListener('click', () => {
     const section = btn.getAttribute('data-section');
     if (section === 'moviesSection') {
-      loadLibrary().then(() => console.log('Movies refreshed'));
+      loadLibrary();
     } else if (section === 'tvSection') {
-      loadLibrary().then(() => console.log('TV refreshed'));
+      loadLibrary();
     } else if (section === 'wishlistSection') {
-      loadWishlist().then(() => console.log('Wishlist refreshed'));
+      loadWishlist();
     }
   });
 });
