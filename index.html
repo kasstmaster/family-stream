@@ -867,8 +867,10 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
       document.getElementById('tmdbDetailsPreview').style.display = 'block';
 
     } else {
-      if (item.episodes && item.episodes.length > 0 && item.episodes[0].url) {
-        openVideo(item.episodes[0].url, displayTitle);
+      if (item.episodes && item.episodes.length > 0) {
+        showEpisodes(item);
+      } else if (item.url) {
+        openVideo(item.url, displayTitle);
       } else {
         alert("Video playback not available for this item.");
       }
@@ -894,9 +896,17 @@ function openVideo(url, title) {
 }
 
 function showEpisodes(show) {
-  document.getElementById("moviesRow").parentElement.style.display = "none";
-  document.getElementById("tvRow").parentElement.style.display = "none";
+  // Hide main sections
+  document.getElementById("recentlyAddedSection").style.display = "none";
+  document.getElementById("moviesSection").style.display = "none";
+  document.getElementById("tvSection").style.display = "none";
+  document.querySelector('.tmdb-title').style.display = "none";
+  document.getElementById("tmdbDetailsPreview").style.display = "none";
+  document.getElementById("tmdbMoviesSection").style.display = "none";
+  document.getElementById("tmdbTVSection").style.display = "none";
+  document.getElementById("wishlistSection").style.display = "none";
 
+  // Show episodes section
   document.getElementById("episodesSection").style.display = "block";
   document.getElementById("episodesTitle").textContent = show.title;
 
@@ -923,8 +933,17 @@ function showEpisodes(show) {
   `;
   backBtn.addEventListener("click", () => {
     document.getElementById("episodesSection").style.display = "none";
-    document.getElementById("moviesRow").parentElement.style.display = "block";
-    document.getElementById("tvRow").parentElement.style.display = "block";
+
+    // Show all main sections again
+    document.getElementById("recentlyAddedSection").style.display = "block";
+    document.getElementById("moviesSection").style.display = "block";
+    document.getElementById("tvSection").style.display = "block";
+    document.querySelector('.tmdb-title').style.display = "block";
+    document.getElementById("tmdbDetailsPreview").style.display = "block";
+    document.getElementById("tmdbMoviesSection").style.display = "block";
+    document.getElementById("tmdbTVSection").style.display = "block";
+    document.getElementById("wishlistSection").style.display = "block";
+
     backBtn.remove();
   });
 
