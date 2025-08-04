@@ -73,6 +73,30 @@ header img {
   transform: translateX(-50%);
   border-radius: 3px;
 }
+.tmdb-title {
+  font-family: 'Roboto', sans-serif;
+  font-weight: 700;
+  font-size: 90px; /* Larger for prominence */
+  text-align: center;
+  color: #fff;
+  margin: 80px auto 40px auto;
+  position: relative;
+  padding-top: 30px;
+  letter-spacing: 0.05em;
+}
+.tmdb-title::before {
+  content: "";
+  display: block;
+  width: 100px;
+  height: 6px;
+  background-color: #e50914; /* Netflix red */
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 3px;
+}
+
 .subsection-title {
   font-family: 'Roboto', sans-serif;
   font-size: 80px;
@@ -80,6 +104,7 @@ header img {
   padding-left: 20px;
   padding-right: 20px;
   padding-top: 20px;
+  padding-bottom:10px;
 }
 
 /* ====== SCROLL CONTAINER ====== */
@@ -89,6 +114,7 @@ header img {
   overflow-x: auto;
   padding-left: 20px;
   padding-right: 20px;
+  padding-bottom: 35px;
 }
 .scroll-container::-webkit-scrollbar {
   display: none;
@@ -395,11 +421,20 @@ header img {
     font-size: 40px !important;
   }
   .section-title {
-    font-size: 50px !important;
+    font-size: 55px !important;
     margin: 60px auto 40px auto !important;
     padding-top: 24px !important;
   }
   .section-title::before {
+    width: 80px !important;
+    height: 5px !important;
+  }
+  .tmdb-title {
+    font-size: 55px !important;
+    margin: 60px auto 40px auto !important;
+    padding-top: 24px !important;
+  }
+  .tmdb-title::before {
     width: 80px !important;
     height: 5px !important;
   }
@@ -408,7 +443,7 @@ header img {
     padding-left: 20px;
     padding-right: 20px;
     padding-top: 25px;
-    padding-bottom:5px;
+    padding-bottom:10px;
   }
   .movie-card {
     width: 350px !important;
@@ -564,11 +599,20 @@ header img {
     align-items: center;
   }
   .section-title {
-    font-size: 24px !important;
+    font-size: 35px !important;
     margin: 40px auto 20px auto !important;
     padding-top: 12px !important;
   }
   .section-title::before {
+    width: 60px !important;
+    height: 4px !important;
+  }
+  .tmdb-title {
+    font-size: 35px !important;
+    margin: 40px auto 20px auto !important;
+    padding-top: 12px !important;
+  }
+  .tmdb-title::before {
     width: 60px !important;
     height: 4px !important;
   }
@@ -578,6 +622,7 @@ header img {
     padding-left: 20px;
     padding-right: 20px;
     padding-top: 20px;
+    padding-bottom:10px;
   }
   .movie-title {
     font-size: 15px !important;
@@ -630,6 +675,9 @@ header img {
   <header><img src="https://i.postimg.cc/mD3J6rqB/ILYMMD-8-2-2025.png" alt="ILYMMD+ Logo"></header>
   <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
 
+<!-- Watch Header -->
+<h2 class="section-title">Ready to Watch</h2>
+
 <!-- Recently Added Section -->
 <div id="recentlyAddedSection">
   <h2 class="subsection-title">Recently Added</h2>
@@ -658,14 +706,10 @@ header img {
   </div>
 </div>
 
-<!-- Wishlist Requested Section -->
-<div id="wishlistSection">
-  <h2 class="subsection-title">Wishlist</h2>
-  <div class="scroll-container" id="wishlistGrid"></div>
-</div>
+<!-- TMDb Header -->
+<h2 class="tmdb-title">Explore</h2>
 
 <!-- TMDb Details Preview -->
-<h2 class="section-title">Explore More Movies & TV Shows</h2>
 <div id="tmdbDetailsPreview" style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white;">
   <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
   <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
@@ -683,6 +727,12 @@ header img {
 <div id="tmdbTVSection">
   <h2 class="subsection-title">Explore TV Shows</h2>
   <div class="scroll-container" id="tmdbTVRow"></div>
+</div>
+
+<!-- Wishlist Requested Section -->
+<div id="wishlistSection">
+  <h2 class="subsection-title">Wishlist</h2>
+  <div class="scroll-container" id="wishlistGrid"></div>
 </div>
 
 <!-- Search Results -->
@@ -950,6 +1000,7 @@ console.log("fullLibrary empty");
       if (el) el.style.display = (id === "tmdbDetailsPreview") ? "block" : "block";
     });
     searchResults.style.display = "none";
+    document.querySelector('.tmdb-title').style.display = 'block';
     return;
   }
 
@@ -958,6 +1009,7 @@ console.log("fullLibrary empty");
     const el = document.getElementById(id);
     if (el) el.style.display = "none";
   });
+  document.querySelector('.tmdb-title').style.display = 'none';
 
   // Show search results
   searchResults.style.display = "block";
