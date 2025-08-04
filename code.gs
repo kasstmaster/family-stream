@@ -243,3 +243,20 @@ function getRecentVideos(days = 30) {
   // Convert map to array of unique folders
   return Object.values(recentVideosMap);
 }
+
+function getWishlistAllWithStatus() {
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheet = ss.getSheetByName('Wishlist');
+  if (!sheet) throw new Error("Wishlist sheet not found");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+
+  return data.map(row => ({
+    title: row[0],
+    status: row[2],
+    poster: row[3]
+  }));
+}
