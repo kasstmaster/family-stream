@@ -14,4 +14,4 @@ Things for you to know:
 5. My google drive folder ID is 1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1
 
 
-What will come next: 2 Apps Script codes.
+What will come next: 2 Apps Script codes. Please study and know them.
