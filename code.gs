@@ -118,24 +118,24 @@ function addPosterBasePath(items) {
     return item;
   });
 }
-function getPopularMovies() {
+function getPopularMovies(page = 1) {
   const apiKey = '48f719a14913f9d4ee92c684c2187625';
-  const url = `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=en-US&page=1`;
+  const url = `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=en-US&page=${page}`;
   const response = UrlFetchApp.fetch(url);
   const data = JSON.parse(response.getContentText());
   return addPosterBasePath(data.results);
 }
-function getPopularTVShows() {
+function getPopularTVShows(page = 1) {
   const apiKey = '48f719a14913f9d4ee92c684c2187625';
-  const url = `https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=en-US&page=1`;
+  const url = `https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=en-US&page=${page}`;
   const response = UrlFetchApp.fetch(url);
   const data = JSON.parse(response.getContentText());
   return addPosterBasePath(data.results);
 }
-function getCombinedPopular() {
+function getCombinedPopular(page = 1) {
   return {
-    movies: getPopularMovies(),
-    tv: getPopularTVShows()
+    movies: getPopularMovies(page),
+    tv: getPopularTVShows(page)
   };
 }
 function addToWishlistSheet(title, poster) {
