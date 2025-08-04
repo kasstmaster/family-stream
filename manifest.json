@@ -7,30 +7,35 @@
   "theme_color": "#111111",
   "icons": [
     {
-      "src": "moth-web-app-manifest-192x192.png",
+      "src": "web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
-   {
-      "src": "moth-apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png"
-    },
-  {
-      "src": "moth-favicon-96x96.png",
-      "sizes": "96x96",
+    {
+      "src": "web-app-manifest-512x512.png",
+      "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "moth-favicon.ico",
-      "sizes": "48x48",
-      "type": "image/x-icon"
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
     },
     {
       "src": "favicon.ico",
       "sizes": "48x48",
       "type": "image/x-icon"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ]
 }
