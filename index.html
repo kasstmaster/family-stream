@@ -27,7 +27,6 @@ body {
 header {
   background: #000;
   text-align: center;
-  padding: 40px 0;
 }
 header img {
   max-width: 350px;
@@ -36,8 +35,19 @@ header img {
 
 /* ====== SEARCH BAR ====== */
 .search-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: #000; /* same as header background */
+  padding: 10px 0;
   text-align: center;
-  padding: 20px;
+  z-index: 10000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.7); /* optional for subtle shadow */
+}
+#appContent {
+  padding-top: 55px; /* adjust this height to match search bar height */
+  padding-bottom: 120px;
 }
 .search-bar input {
   padding: 40px;
@@ -414,9 +424,6 @@ header img {
   header img {
     max-width: 350px !important;
   }
-  .search-bar {
-    padding: 20px !important;
-  }
   .search-bar input {
     font-size: 40px !important;
   }
@@ -546,9 +553,6 @@ header img {
   header img {
     max-width: 150px !important;
   }
-  .search-bar {
-    padding: 20px !important;
-  }
   .search-bar input {
     padding: 10px !important;
     font-size: 20px !important;
@@ -565,8 +569,8 @@ header img {
     font-size: 20px !important;
     line-height: 36px !important;
   }
-    #closeBtn {
-    font-size: 20px !important;
+  #closeBtn {
+    font-size: 80px !important;
     top: 10px !important;
     right: 10px !important;
   }
@@ -672,8 +676,10 @@ header img {
 
 <!-- App Content -->
 <div id="appContent" style="display:none;">
-  <header><img src="https://i.postimg.cc/mD3J6rqB/ILYMMD-8-2-2025.png" alt="ILYMMD+ Logo"></header>
-  <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
+<header>
+  <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div><br>
+  <img src="https://i.postimg.cc/mD3J6rqB/ILYMMD-8-2-2025.png" alt="ILYMMD+ Logo"><br><br>
+</header>
 
 <!-- Watch Header -->
 <h2 class="section-title">Ready to Watch</h2>
@@ -748,7 +754,7 @@ header img {
 </div>
 
 <!-- Modal -->
-<div class="modal" id="videoModal">
+<div class="modal" id="videoModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="movieDetails">
   <span id="closeBtn">&times;</span>
   <div class="modal-content">
     <div id="videoFrameContainer"></div>
@@ -883,14 +889,14 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
 }
 
 function openVideo(url, title) {
-console.log('Playing video URL:', url);
-  document.getElementById("videoModal").classList.add("active");
-
-  const videoContainer = document.getElementById("videoFrameContainer");
-  videoContainer.innerHTML = `<iframe src="${url}" allowfullscreen sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" style="width:100%;height:450px;border:none;border-radius:12px;"></iframe>`;
-
+  document.getElementById("videoFrameContainer").innerHTML = `<iframe src="${url}" allowfullscreen sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" style="width:100%;height:450px;border:none;border-radius:12px;"></iframe>`;
   document.getElementById("movieDetails").innerHTML = `<h2 class="movie-title-text">${title}</h2>`;
+  openModal();
 }
+
+document.getElementById("closeBtn").addEventListener("click", () => {
+  closeModal();
+});
 
 function showEpisodes(show) {
   // Hide main sections
@@ -1407,6 +1413,51 @@ function loadWishlistRequested() {
       resolve();
     }).getWishlistAllWithStatus();
   });
+}
+
+let lastFocusedElement = null;
+
+function openModal() {
+  lastFocusedElement = document.activeElement;
+  document.getElementById('appContent').setAttribute('aria-hidden', 'true');
+  const modal = document.getElementById('videoModal');
+  modal.removeAttribute('aria-hidden');
+  modal.classList.add('active');
+  document.getElementById('closeBtn').focus();
+}
+
+function closeModal() {
+  document.getElementById('appContent').removeAttribute('aria-hidden');
+  const modal = document.getElementById('videoModal');
+  modal.setAttribute('aria-hidden', 'true');
+  modal.classList.remove('active');
+  document.getElementById('videoFrameContainer').innerHTML = '';
+  if (lastFocusedElement) lastFocusedElement.focus();
+}
+
+function openModal() {
+  lastFocusedElement = document.activeElement;
+  document.getElementById('appContent').setAttribute('aria-hidden', 'true');
+  document.getElementById('videoModal').removeAttribute('aria-hidden');
+  document.getElementById('videoModal').classList.add('active');
+  document.getElementById('closeBtn').focus();
+
+  // Hide the fixed search bar
+  const searchBar = document.querySelector('.search-bar');
+  if (searchBar) searchBar.style.display = 'none';
+}
+
+function closeModal() {
+  document.getElementById('appContent').removeAttribute('aria-hidden');
+  const modal = document.getElementById('videoModal');
+  modal.setAttribute('aria-hidden', 'true');
+  modal.classList.remove('active');
+  document.getElementById('videoFrameContainer').innerHTML = '';
+  if (lastFocusedElement) lastFocusedElement.focus();
+
+  // Show the fixed search bar again
+  const searchBar = document.querySelector('.search-bar');
+  if (searchBar) searchBar.style.display = 'block';
 }
 
 document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
