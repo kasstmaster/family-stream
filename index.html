@@ -991,9 +991,6 @@ window.addEventListener("load", () => {
 
   // Load popular movies and TV shows from TMDb API
   loadCombinedPopular()
-  .then(() => {
-    console.log('Popular content loaded successfully');
-  })
   .catch(err => {
     alert('Failed to load popular content. Please try again.');
     console.error(err);
