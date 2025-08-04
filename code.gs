@@ -188,13 +188,15 @@ function getRequestedWishlist() {
     }));
 }
 function getRecentVideos(days = 30) {
+  const deploymentId = 'AKfycbyBnamMid90A6xc7rvm47w9R4NF5SYpBOdreX6gCs9A4xcXtVUNYmZ14lqGA2h8Jp4zxw';
+
   const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1';
   const rootFolder = DriveApp.getFolderById(rootFolderId);
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
 
   const categories = ['Movies', 'TV Shows'];
-  const recentVideosMap = {}; // Use object to group by folder title
+  const recentVideosMap = {};
 
   categories.forEach(cat => {
     const folderIterator = rootFolder.getFoldersByName(cat);
@@ -208,25 +210,28 @@ function getRecentVideos(days = 30) {
 
       let hasRecentFile = false;
       let poster = '';
+      let videos = [];
 
-      // Find poster image in folder files (png, jpg, jpeg)
       while (files.hasNext()) {
         const file = files.next();
-
-        // Set poster if image file found
         const name = file.getName().toLowerCase();
+
         if (!poster && (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg'))) {
           poster = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w300';
+        } else if (/\.(mp4|mov|mkv)$/i.test(name)) {
+          videos.push({
+            title: file.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
+            url: `https://script.google.com/macros/s/${deploymentId}/exec?action=stream&id=${file.getId()}`
+          });
         }
       }
 
-      // Reset files iterator to check video files for date
       const filesForDateCheck = folder.getFiles();
       while (filesForDateCheck.hasNext()) {
         const file = filesForDateCheck.next();
         if (file.getLastUpdated() >= cutoffDate) {
           hasRecentFile = true;
-          break; // no need to check more files in this folder
+          break;
         }
       }
 
@@ -234,13 +239,13 @@ function getRecentVideos(days = 30) {
         recentVideosMap[folder.getName()] = {
           title: folder.getName(),
           poster: poster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(folder.getName()),
-          // You can add URL or other props if needed
+          episodes: videos.length > 1 ? videos : [],
+          url: videos.length === 1 ? videos[0].url : null
         };
       }
     }
   });
 
-  // Convert map to array of unique folders
   return Object.values(recentVideosMap);
 }
 
