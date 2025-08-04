@@ -1,7 +1,6 @@
 Last working before adding:
 
 Arrows
-Clicking on TV doesnt go to episodes
 Clicking recently added media does not function the same as Movies media or TV Shows media
 
 ERROR: This error won’t break your app’s core functionality—it just means the Cast API features (like Chromecast support) won’t work because the required permission (allow-presentation) is missing.
