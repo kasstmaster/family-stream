@@ -9,7 +9,7 @@ function doGet(e) {
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('My Movie Browser')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .setSandboxMode(HtmlService.SandboxMode.IFRAME);
+    .setSandboxMode(HtmlService.SandboxMode.NONE);
 }
 
 // Stream Video with Range Support
@@ -17,37 +17,15 @@ function streamVideo(fileId, e) {
   try {
     const file = DriveApp.getFileById(fileId);
     if (!file.getSharingAccess || file.getSharingAccess() === DriveApp.Access.NONE) {
-      return ContentService.createTextOutput("Access denied");
+      return HtmlService.createHtmlOutput("Access denied");
     }
     const blob = file.getBlob();
-    const size = blob.getBytes().length;
-    const rangeHeader = e?.parameter?.range || e?.parameter?.Range;
 
-    let start = 0;
-    let end = size - 1;
-    let status = 200;
-
-    if (rangeHeader) {
-      const matches = rangeHeader.match(/bytes=(\d+)-(\d*)/);
-      if (matches) {
-        start = parseInt(matches[1], 10);
-        if (matches[2]) end = parseInt(matches[2], 10);
-        status = 206; // Partial Content
-      }
-    }
-
-    const chunk = blob.getBytes().slice(start, end + 1);
-
-    const response = ContentService.createTextOutput(chunk);
-    response.setMimeType(blob.getContentType());
-    response.setHeader('Accept-Ranges', 'bytes');
-    response.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
-    response.setHeader('Content-Length', chunk.length);
-    response.setHeader('Cache-Control', 'no-cache');
-
-    return response;
+    return HtmlService.createHtmlOutput(blob)
+      .setMimeType(blob.getContentType())
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (err) {
-    return ContentService.createTextOutput("Error: " + err.message);
+    return HtmlService.createHtmlOutput("Error: " + err.message);
   }
 }
 
@@ -72,7 +50,7 @@ function processCategory(categoryFolder) {
       } else if (/\.(mp4|mov|mkv)$/i.test(name)) {
         videos.push({
           title: file.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
-          url: `https://script.google.com/macros/s/AKfycbxWJoC3T9cQchL62dJNv3-A-xSu0lHmmKe4091wR9MkifkfoTw074s5JG3vME_XwZ9mhg/exec?action=stream&id=${file.getId()}`
+          url: `https://drive.google.com/file/d/${file.getId()}/preview`
         });
       }
     }
@@ -221,7 +199,7 @@ function getRecentVideos(days = 30) {
         } else if (/\.(mp4|mov|mkv)$/i.test(name)) {
           videos.push({
             title: file.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
-            url: `https://script.google.com/macros/s/${deploymentId}/exec?action=stream&id=${file.getId()}`
+            url: `https://drive.google.com/file/d/${file.getId()}/preview`
           });
         }
       }
@@ -239,8 +217,7 @@ function getRecentVideos(days = 30) {
         recentVideosMap[folder.getName()] = {
           title: folder.getName(),
           poster: poster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(folder.getName()),
-          episodes: videos.length > 1 ? videos : [],
-          url: videos.length === 1 ? videos[0].url : null
+          episodes: videos  // Always assign videos array here
         };
       }
     }
