@@ -1354,24 +1354,6 @@ function renderTMDbTV(tvShows, wishlistTitles = [], wishlistAvailable = []) {
     row.appendChild(card);
   });
 }
-function loadTMDbMovies() {
-  return new Promise(resolve => {
-    google.script.run.withSuccessHandler(data => {
-      const shuffledMovies = shuffleArray(data.movies);
-      renderTMDbMovies(shuffledMovies);
-      resolve();
-    }).getPopularMovies();
-  });
-}
-function loadTMDbTV() {
-  return new Promise(resolve => {
-    google.script.run.withSuccessHandler(data => {
-      const shuffledTV = shuffleArray(data.tv);
-      renderTMDbTV(shuffledTV);
-      resolve();
-    }).getPopularTVShows();
-  });
-}
 function loadCombinedPopular() {
   return loadWishlistRequested()
     .then(() => {
