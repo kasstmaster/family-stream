@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ILYMMD+</title>
 
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" as="style">
+  <link rel="preload" href="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" as="image">
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" media="all" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"></noscript>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
 
 <style>
 /* ====== GLOBAL STYLES ====== */
@@ -33,6 +37,21 @@ header {
 header img {
   max-width: 350px;
   height: auto;
+}
+
+/* ====== PROFILES ====== */
+.profile-btn {
+  background: #1f1f1f;
+  color: white;
+  font-size: 40px;
+  border: none;
+  padding: 30px 50px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.profile-btn:hover {
+  background: #00a7b0;
 }
 
 /* ====== SEARCH BAR ====== */
@@ -238,7 +257,7 @@ header img {
   background: rgba(0, 0, 0, 0.95);
   justify-content: center;
   align-items: center;
-  z-index: 2147483647;
+  z-index: 2147483646;
   padding: 0;
 }
 .modal.active {
@@ -718,18 +737,17 @@ header img {
 <div id="profileModal" class="modal active" role="dialog" aria-modal="true">
   <div class="modal-content" style="align-items:center; justify-content:center; text-align:center; padding: 50px;">
     <h2 style="font-size: 60px; margin-bottom: 40px;">Who's watching?</h2>
-    <select id="profileChoice" style="font-size: 40px; padding: 20px 40px; border-radius: 12px;">
-      <option value="">-- Select Profile --</option>
-      <option value="Kassandra">Kassandra</option>
-      <option value="Dave">Dave</option>
-      <option value="Melissa">Melissa</option>
-      <option value="Ben">Ben</option>
-      <option value="Aiden">Aiden</option>
-    </select>
+    <div id="profileList" style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;">
+      <button class="profile-btn" data-profile="Kassandra">Kassandra</button>
+      <button class="profile-btn" data-profile="Dave">Dave</button>
+      <button class="profile-btn" data-profile="Melissa">Melissa</button>
+      <button class="profile-btn" data-profile="Ben">Ben</button>
+      <button class="profile-btn" data-profile="Aiden">Aiden</button>
+    </div>
   </div>
 </div>
 
-<div id="appContent" style="display: none;">
+<div id="appContent" style="display: none;" style="visibility: hidden;">
 
   <!-- App Content -->
   <header><br><br><img src="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" alt="ILYMMD+ Logo"><br><br></header>
@@ -834,6 +852,23 @@ header img {
 
 </div>
 
+<div id="loadingScreen" style="
+  font-family: 'Roboto', sans-serif;
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  pointer-events: none;
+">
+  Loading...
+</div>
+
 <script>
 let fullLibrary = [];
 let wishlistAvailableTitles = [];
@@ -846,6 +881,7 @@ let currentVideoData = {
 
 const appContent = document.getElementById('appContent');
 appContent.classList.add('loading');
+appContent.style.display = "block";
 
 function showPopup(messageHtml) {
   const popup = document.getElementById('customPopup');
@@ -859,13 +895,15 @@ document.getElementById('popupCloseBtn').addEventListener('click', () => {
 });
 
 function waitForImagesToLoad(container) {
-  const images = container.querySelectorAll("img");
-  const promises = Array.from(images).map(img => {
+  const images = Array.from(container.querySelectorAll("img"));
+
+  const promises = images.map(img => {
     if (img.complete) return Promise.resolve();
     return new Promise(resolve => {
       img.onload = img.onerror = resolve;
     });
   });
+
   return Promise.all(promises);
 }
 
@@ -972,10 +1010,6 @@ function openVideo(url, title, episode = "", startTime = 0) {
   openModal();
 }
 
-document.getElementById("closeBtn").addEventListener("click", () => {
-  closeModal();
-});
-
 function showEpisodes(show) {
   // Hide main sections
   document.getElementById("recentlyAddedSection").style.display = "none";
@@ -1043,7 +1077,20 @@ function renderAvailableToWatch(movies, tvShows) {
 
 // Load Library via google.script.run and sync wishlist statuses automatically
 function loadLibrary() {
+  if (libraryLoaded) return Promise.resolve();
+  libraryLoaded = true;
   console.log("🔄 Starting loadLibrary()");
+
+  const container = document.getElementById("availableToWatchGrid");
+  container.innerHTML = `
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  `;
+
+  loadingScreen.style.display = "flex"; // Show loading screen
+
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(data => {
       fullLibrary = data.movies.concat(data.tv);
@@ -1055,12 +1102,16 @@ function loadLibrary() {
       } catch (err) {
         console.error("❌ Error in renderAvailableToWatch:", err);
         showPopup("Error rendering library.");
+        resolve();
+      } finally {
+        hideLoadingScreen(); // Hide loading screen
       }
 
     }).withFailureHandler(err => {
       console.error("❌ Failed to load library:", err);
       showPopup("Error loading library.");
-      resolve(); // still resolve to allow app flow to continue
+      hideLoadingScreen(); // Hide loading screen
+      resolve();
     }).getLibraryAndSyncWishlist();
   });
 }
@@ -1074,74 +1125,67 @@ function saveProgress() {
 
 let currentProfile = null;
 
+const loadingScreen = document.getElementById("loadingScreen");
+function hideLoadingScreen(delay = 1500) {
+  setTimeout(() => {
+    loadingScreen.style.display = "none";
+  }, delay);
+}
+
 window.addEventListener("load", () => {
-  const dropdown = document.getElementById("profileChoice");
   const app = document.getElementById("appContent");
   const profileModal = document.getElementById("profileModal");
 
-  app.style.display = "none";
+  app.style.display = "block";
   profileModal.classList.add("active");
+  loadingScreen.style.display = "flex"; // Show loading screen
 
-  // Begin preloading app in background
+  // Preload shared content
   Promise.all([
-    loadLibrary(),         // Only load Available to Watch
-    loadRecentlyAdded()    // Only load Recently Added
+    loadLibrary(),
+    loadRecentlyAdded()
   ])
-  .then(() => waitForImagesToLoad(app))
-  .catch(err => {
-    console.error("❌ Error during background preload:", err);
-    showPopup("Something went wrong while preloading content.");
-  });
+    .then(() => waitForImagesToLoad(app))
+    .then(() => {
+      hideLoadingScreen(); // ✅ Hide after images finish loading
+      console.log("✅ Initial content loaded with images");
+    })
+    .catch(err => {
+      console.error("❌ Error during preload:", err);
+      showPopup("Something went wrong while preloading content.");
+      hideLoadingScreen(); // Fail-safe to unblock UI
+    });
 
-  function isContinueWatchingLoaded() {
-    const container = document.getElementById("continueWatchingGrid");
-    return container && container.children.length > 0;
-  }
-
-  dropdown.addEventListener("change", () => {
-    if (dropdown.value) {
-      currentProfile = dropdown.value;
+  // Handle profile selection via buttons
+  document.querySelectorAll('.profile-btn').forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentProfile = btn.dataset.profile;
       console.log("✅ Profile selected:", currentProfile);
 
-      app.style.display = "block";
       profileModal.classList.remove("active");
+      app.style.display = "block";
+      loadingScreen.style.display = "flex"; // Show loading screen again
 
-      // Load personalized sections
-      Promise.all([
-        loadContinueWatching(),
-        loadWishlist(),
-        loadCombinedPopular()
-      ])
-      .then(() => waitForImagesToLoad(app))
-      .then(() => {
-        const continueWatchingSection = document.getElementById("continueWatchingSection");
-        if (continueWatchingSection) continueWatchingSection.style.display = "block";
+      loadContinueWatching()
+        .then(() => Promise.all([
+          loadWishlist(),
+          loadCombinedPopular()
+        ]))
+        .then(() => waitForImagesToLoad(app))
+        .then(() => {
+          document.getElementById("continueWatchingSection").style.display = "block";
+          document.getElementById("wishlistSection").style.display = "block";
+          document.getElementById("recentlyAddedSection").style.display = "block";
 
-        const wishlistSection = document.getElementById("wishlistSection");
-        if (wishlistSection) wishlistSection.style.display = "block";
-
-        const recentlyAddedSection = document.getElementById("recentlyAddedSection");
-        if (recentlyAddedSection) recentlyAddedSection.style.display = "block";
-
-        // ✅ Retry Continue Watching if it failed
-        if (!isContinueWatchingLoaded()) {
-          console.warn("⚠️ Continue Watching was empty, retrying...");
-          loadContinueWatching().then(() => {
-            if (!isContinueWatchingLoaded()) {
-              console.error("❌ Retry failed: Continue Watching still empty.");
-              showPopup("Could not load Continue Watching. Try refreshing the page.");
-            } else {
-              console.log("✅ Retry succeeded: Continue Watching loaded.");
-              if (continueWatchingSection) continueWatchingSection.style.display = "block";
-            }
-          });
-        }
-      })
-      .catch(err => {
-        console.error("❌ Error during post-profile loading:", err);
-        showPopup("Something went wrong while loading personalized content.");
-      });
-    }
+          hideLoadingScreen(); // ✅ Hide after profile content fully loads
+          console.log("✅ Profile-based content loaded with images");
+        })
+        .catch(err => {
+          console.error("❌ Error during profile-based loading:", err);
+          showPopup("Something went wrong while loading personalized content.");
+          hideLoadingScreen();
+        });
+    });
   });
 });
 
@@ -1261,13 +1305,13 @@ async function renderTMDbMovies(movies, wishlistTitles = [], wishlistAvailable =
 
   // Filter out adult movies
   const filteredMovies = movies.filter(movie => !movie.adult);
-
   const shuffled = shuffleArray(filteredMovies);
 
+  // Render movie cards
   shuffled.forEach(movie => {
     const card = createCard(movie, true, wishlistTitles);
 
-    // Check if movie is in wishlistAvailable (Available status) for AVAILABLE banner
+    // Show "AVAILABLE" banner if applicable
     if (wishlistAvailable.some(w => 
         w.title.toLowerCase() === (movie.title || movie.name).toLowerCase() &&
         w.status === "Available"
@@ -1296,23 +1340,35 @@ async function renderTMDbMovies(movies, wishlistTitles = [], wishlistAvailable =
     row.appendChild(card);
   });
 
-  if (shuffled.length > 0) {
-    const data = await fetchTMDbDetails(shuffled[0], false);
-    if (!data) return;
+  // Clear preview initially
+  const trailerContainer = document.getElementById('tmdbTrailerContainer');
+  const preview = document.getElementById('tmdbDetailsPreview');
+  preview.style.display = 'none';
+  trailerContainer.innerHTML = '';
 
-    const trailer = data.videos?.results.find(
+  // Load trailer preview only if a valid trailer exists
+  for (const movie of shuffled) {
+    const data = await fetchTMDbDetails(movie, false);
+    if (!data || !data.videos || !data.videos.results) continue;
+
+    const trailer = data.videos.results.find(
       v => v.type === 'Trailer' && v.site === 'YouTube'
     );
+    if (!trailer) continue;
 
-    const trailerContainer = document.getElementById('tmdbTrailerContainer');
-    trailerContainer.innerHTML = trailer
-      ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
-      : `<p><em>No trailer available.</em></p>`;
+    trailerContainer.innerHTML = `
+      <iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" 
+        sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
+        allowfullscreen
+        style="width:100%;height:100%;border:none;border-radius:12px;">
+      </iframe>
+    `;
 
     document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
     document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
     document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
-    document.getElementById('tmdbDetailsPreview').style.display = 'block';
+    preview.style.display = 'block';
+    break; // success — stop the loop
   }
 }
 function renderTMDbTV(tvShows, wishlistTitles = [], wishlistAvailable = []) {
@@ -1541,9 +1597,24 @@ function renderRecentlyAdded(items) {
   });
 }
 function loadRecentlyAdded() {
+  const grid = document.getElementById('recentlyAddedGrid');
+  grid.innerHTML = `
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  `;
+
+  loadingScreen.style.display = "flex"; // Show loading screen
+
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(items => {
       renderRecentlyAdded(items);
+      hideLoadingScreen(); // Hide loading screen
+      resolve();
+    }).withFailureHandler(err => {
+      console.error("❌ Failed to load recently added:", err);
+      showPopup("Error loading recently added.");
+      hideLoadingScreen(); // Hide loading screen
       resolve();
     }).getRecentVideos();
   });
@@ -1614,22 +1685,22 @@ async function fetchTMDbDetails(item, isTV = false) {
 
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch details');
-    const data = await response.json();
-    return data;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
   } catch (error) {
-    console.warn(`⚠️ TMDb fetch failed for "${item.title || item.name}": ${error.message}`);
+    console.warn(`⚠️ TMDb fetch failed for "${item.title || item.name || 'Unknown'}": ${error.message}`);
 
-    // Soft fallback content (optional UI update)
     const trailerContainer = document.getElementById('tmdbTrailerContainer');
     const titleElem = document.getElementById('tmdbDetailsTitle');
     const dateElem = document.getElementById('tmdbDetailsReleaseDate');
     const overviewElem = document.getElementById('tmdbDetailsOverview');
+    const preview = document.getElementById('tmdbDetailsPreview');
 
     if (trailerContainer) trailerContainer.innerHTML = '<p><em>Details not available for this title.</em></p>';
     if (titleElem) titleElem.textContent = item.title || item.name || 'Unknown';
     if (dateElem) dateElem.innerHTML = '';
     if (overviewElem) overviewElem.textContent = 'We could not load details from TMDb.';
+    if (preview) preview.style.display = 'block';
 
     return null;
   }
@@ -1749,6 +1820,22 @@ function checkStickyShadow() {
 window.addEventListener('scroll', checkStickyShadow);
 window.addEventListener('load', checkStickyShadow);
 
+window.addEventListener("DOMContentLoaded", () => {
+  document.documentElement.style.visibility = "visible";
+
+  const profileModal = document.getElementById("profileModal");
+  if (profileModal) {
+    profileModal.classList.add("active");
+    console.log("✅ Modal forced visible");
+  } else {
+    console.warn("⚠️ Modal not found");
+  }
+});
+
+waitForImagesToLoad(document.getElementById('appContent')).then(() => {
+  console.log("✅ All images loaded");
+});
+
 document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
   btn.addEventListener('click', () => {
     const section = btn.getAttribute('data-section');
@@ -1763,6 +1850,8 @@ document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
 document.getElementById('mobileExploreRefresh').addEventListener('click', () => {
   loadCombinedPopular().then(() => console.log('Explore refreshed'));
 });
+
+let libraryLoaded = false;
 </script>
 </body>
 </html>
