@@ -1,15 +1,19 @@
+// !DOCTYPE Code.gs
+
 function doGet(e) {
+  // Optional: Serve JSON data via API if action=api
   if (e && e.parameter && e.parameter.action === 'api') {
     const data = getLibraryData();
     return ContentService.createTextOutput(JSON.stringify(data))
       .setMimeType(ContentService.MimeType.JSON)
-      .setHeader('Access-Control-Allow-Origin', '*');
+      .setHeader('Access-Control-Allow-Origin', '*'); // Allow external API calls if needed
   }
 
+  // Default: Serve the frontend HTML (index.html)
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('My Movie Browser')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .setSandboxMode(HtmlService.SandboxMode.NONE);
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL) // Embed in iframe if needed
+    .setSandboxMode(HtmlService.SandboxMode.IFRAME); // Recommended for google.script.run to work
 }
 
 // Stream Video with Range Support
@@ -165,7 +169,7 @@ function getRequestedWishlist() {
       poster: row[3]
     }));
 }
-function getRecentVideos(days = 30) {
+function getRecentVideos(days = 7) {
   const deploymentId = 'AKfycbyBnamMid90A6xc7rvm47w9R4NF5SYpBOdreX6gCs9A4xcXtVUNYmZ14lqGA2h8Jp4zxw';
 
   const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1';
@@ -309,4 +313,77 @@ function getLibraryAndSyncWishlist() {
   const library = getLibraryData();
   syncWishlistStatusWithDrive();
   return library;
+}
+
+function getContinueWatching(profileName) {
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheet = ss.getSheetByName('Profiles');
+  if (!sheet) throw new Error("Profiles sheet not found");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues(); // [Profile, Title, Episode, Time]
+
+  const filtered = data.filter(row => {
+    return String(row[0]).toLowerCase().trim() === profileName.toLowerCase().trim();
+  });
+
+  if (!filtered.length) return [];
+
+  return filtered.map(row => ({
+    profile: row[0],
+    title: row[1],
+    episode: row[2] || '',
+    time: parseFloat(row[3]) || 0
+  }));
+}
+
+function saveProfileProgress(profile, fullTitle, episode, time) {
+  const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
+  let ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("Profiles");
+  if (!sheet) throw new Error("'Profiles' sheet not found");
+
+  const lastWatched = new Date();
+  const lastRow = sheet.getLastRow();
+  let existing = lastRow >= 2 ? sheet.getRange(2, 1, lastRow - 1, 4).getValues() : [];
+
+  const titleParts = fullTitle.split(/\s*-\s*/);
+  const baseTitle = titleParts[0].trim();
+  const epTitle = titleParts[1] ? titleParts[1].trim() : "";
+
+  const rowIndex = existing.findIndex(row =>
+    (row[0] || '').toLowerCase().trim() === profile.toLowerCase().trim() &&
+    (row[1] || '').toLowerCase().trim() === baseTitle.toLowerCase()
+  );
+
+  if (rowIndex >= 0) {
+    const updateRow = rowIndex + 2;
+    sheet.getRange(updateRow, 3, 1, 2).setValues([[epTitle, lastWatched]]);
+  } else {
+    sheet.appendRow([profile, baseTitle, epTitle, lastWatched]);
+  }
+}
+
+function testSave() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetNames = ss.getSheets().map(s => s.getName());
+  Logger.log("Sheet names: " + sheetNames.join(", "));
+
+  // Try exact match
+  const exact = ss.getSheetByName("Profiles");
+  Logger.log("Exact match for 'Profiles': " + (exact ? "✅ FOUND" : "❌ NOT FOUND"));
+
+  // Try fuzzy match
+  const fuzzy = sheetNames.find(n => n.toLowerCase().includes("profile"));
+  Logger.log("Fuzzy match: " + fuzzy);
+}
+
+function testBound() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  Logger.log("ss is null: " + (ss === null));
+  const names = ss.getSheets().map(s => s.getName());
+  Logger.log("Sheet names: " + names.join(", "));
 }
