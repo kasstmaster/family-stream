@@ -1336,7 +1336,7 @@ function addToWishlist(title, poster, btn) {
 }
 function getRequestedWishlist() {
   const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
-  const sheet = ss.getSheetByName('Wishlist');
+  const sheet = ss.getSheetByName('Titles');
   if (!sheet) throw new Error("Wishlist sheet not found");
 
   const lastRow = sheet.getLastRow();
