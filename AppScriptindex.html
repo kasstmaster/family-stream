@@ -238,7 +238,7 @@ header img {
   background: rgba(0, 0, 0, 0.95);
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 2147483647;
   padding: 0;
 }
 .modal.active {
@@ -711,128 +711,159 @@ header img {
     background: #aaa;
   }
 }
-}
 </style>
 </head>
 <body>
-<!-- Loading Screen -->
-<div id="loadingScreen">
-  <p>Loading...</p>
-  <div class="loader"></div>
+
+<div id="profileSelector" style="text-align:center; padding: 40px;">
+
+  <h2>Who's watching?</h2>
+  <select id="profileChoice" style="font-size: 24px; padding: 10px 20px;">
+    <option value="">-- Select Profile --</option>
+    <option value="Kassandra">Kassandra</option>
+    <option value="Dave">Dave</option>
+    <option value="Melissa">Melissa</option>
+    <option value="Ben">Ben</option>
+    <option value="Aiden">Aiden</option>
+  </select>
+  
 </div>
 
-<!-- App Content -->
-<div id="appContent" style="display:none;">
-<header><br><br><img src="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" alt="ILYMMD+ Logo"><br><br></header>
-<div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
+<div id="appContent" style="display: none;">
 
-<!-- Watch Header -->
-<h2 class="section-title">Available to Watch</h2>
-
-<!-- Recently Added Section -->
-<div id="recentlyAddedSection">
-  <h2 class="subsection-title">Recently Added</h2>
-  <div class="scroll-container" id="recentlyAddedGrid"></div>
-</div>
-
-<!-- Movies Section -->
-<div id="moviesSection">
-  <h2 class="subsection-title">Movies</h2>
-  <div class="scroll-container" id="moviesRow">
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
+  <!-- Loading Screen -->
+  <div id="loadingScreen">
+    <p>Loading...</p>
+    <div class="loader"></div>
   </div>
-</div>
 
-<!-- TV Shows Section -->
-<div id="tvSection">
-  <h2 class="subsection-title">TV Shows</h2>
-  <div class="scroll-container" id="tvRow">
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
+  <!-- App Content -->
+  <header><br><br><img src="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" alt="ILYMMD+ Logo"><br><br></header>
+  <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
+
+  <!-- Watch Header -->
+  <h2 class="section-title">Available to Watch</h2>
+
+  <!-- Continue Watching Section -->
+  <div id="continueWatchingSection">
+    <h2 class="subsection-title">Continue Watching</h2>
+    <div class="scroll-container" id="continueWatchingGrid"></div>
   </div>
-</div>
 
-<!-- TMDb Header -->
-<h2 class="tmdb-title">Explore</h2>
-
-<!-- TMDb Details Preview -->
-<div id="tmdbDetailsPreview" style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white;">
-  <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
-  <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
-  <p id="tmdbDetailsReleaseDate"></p>
-  <p class="movie-overview" id="tmdbDetailsOverview"></p>
-</div>
-
-<!-- TMDb Movies Section -->
-<div id="tmdbMoviesSection">
-  <h2 class="subsection-title">Explore Movies</h2>
-  <div class="scroll-container" id="tmdbMoviesRow"></div>
-</div>
-
-<!-- TMDb TV Shows Section -->
-<div id="tmdbTVSection">
-  <h2 class="subsection-title">Explore TV Shows</h2>
-  <div class="scroll-container" id="tmdbTVRow"></div>
-</div>
-
-<!-- Wishlist Requested Section -->
-<div id="wishlistSection">
-  <h2 class="subsection-title">Wishlist</h2>
-  <div class="scroll-container" id="wishlistGrid"></div>
-</div>
-
-<!-- Search Results -->
-<div id="searchResultsSection" style="display:none;">
-  <h2 class="subsection-title">Search Results</h2>
-  <div class="scroll-container" id="searchResultsGrid"></div>
-</div>
-
-<!-- Episodes -->
-<div id="episodesSection" style="display:none;">
-  <h2 class="subsection-title" id="episodesTitle"></h2>
-  <div class="scroll-container" id="episodesGrid"></div>
-</div>
-
-<!-- Modal -->
-<div class="modal" id="videoModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="movieDetails">
-  <span id="closeBtn">&times;</span>
-  <div class="modal-content">
-    <div id="videoFrameContainer"></div>
-    <div class="movie-info-scroll" id="movieDetails"></div>
+  <!-- Recently Added Section -->
+  <div id="recentlyAddedSection">
+    <h2 class="subsection-title">Recently Added</h2>
+    <div class="scroll-container" id="recentlyAddedGrid"></div>
   </div>
-</div>
 
-<!-- Custom Popup -->
-<div id="customPopup" style="display:none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 30px 50px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.8); font-size: 28px; z-index: 3000; max-width: 90vw; text-align: center;">
-  <span id="popupMessage"></span>
-  <button id="popupCloseBtn" style="display:block; margin: 20px auto 0 auto; padding: 10px 30px; font-size: 24px; border: none; border-radius: 8px; background: #e50914; color: white; cursor: pointer;">Close</button>
-</div>
-
-<div class="bottom-bar">
-  <div id="mobileRefreshButtonsContainer" style="display:none; width: 100%; justify-content: space-around;">
-    <div class="nav-item" data-section="moviesSection" role="button" tabindex="0" aria-label="Refresh Movies">
-      <i class="fa-solid fa-rotate"></i><span>Movies</span>
-    </div>
-    <div class="nav-item" data-section="tvSection" role="button" tabindex="0" aria-label="Refresh TV Shows">
-      <i class="fa-solid fa-rotate"></i><span>TV Shows</span>
-    </div>
-    <div class="nav-item" data-section="wishlistSection" role="button" tabindex="0" aria-label="Refresh Wishlist">
-      <i class="fa-solid fa-rotate"></i><span>Wishlist</span>
-    </div>
-    <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
-      <i class="fa-solid fa-rotate"></i><span>Explore</span>
+  <!-- Movies Section -->
+  <div id="moviesSection">
+    <h2 class="subsection-title">Movies</h2>
+    <div class="scroll-container" id="moviesRow">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
     </div>
   </div>
+
+  <!-- TV Shows Section -->
+  <div id="tvSection">
+    <h2 class="subsection-title">TV Shows</h2>
+    <div class="scroll-container" id="tvRow">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+  </div>
+
+  <!-- TMDb Header -->
+  <h2 class="tmdb-title">Explore</h2>
+
+  <!-- TMDb Details Preview -->
+  <div id="tmdbDetailsPreview" style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white;">
+    <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
+    <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
+    <p id="tmdbDetailsReleaseDate"></p>
+    <p class="movie-overview" id="tmdbDetailsOverview"></p>
+  </div>
+
+  <!-- TMDb Movies Section -->
+  <div id="tmdbMoviesSection">
+    <h2 class="subsection-title">Explore Movies</h2>
+    <div class="scroll-container" id="tmdbMoviesRow"></div>
+  </div>
+
+  <!-- TMDb TV Shows Section -->
+  <div id="tmdbTVSection">
+    <h2 class="subsection-title">Explore TV Shows</h2>
+    <div class="scroll-container" id="tmdbTVRow"></div>
+  </div>
+
+  <!-- Wishlist Requested Section -->
+  <div id="wishlistSection">
+    <h2 class="subsection-title">Wishlist</h2>
+    <div class="scroll-container" id="wishlistGrid"></div>
+  </div>
+
+  <!-- Search Results -->
+  <div id="searchResultsSection" style="display:none;">
+    <h2 class="subsection-title">Search Results</h2>
+    <div class="scroll-container" id="searchResultsGrid"></div>
+  </div>
+
+  <!-- Episodes -->
+  <div id="episodesSection" style="display:none;">
+    <h2 class="subsection-title" id="episodesTitle"></h2>
+    <div class="scroll-container" id="episodesGrid"></div>
+  </div>
+
+  <!-- Video Modal -->
+  <div id="videoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="movieDetails">
+    <span id="closeBtn">&times;</span>
+    <div class="modal-content">
+      <div id="videoFrameContainer">
+        <iframe src="https://drive.google.com/file/d/FILE_ID/preview" allow="autoplay"></iframe>
+      </div>
+      <div class="movie-info-scroll" id="movieDetails"></div>
+    </div>
+  </div>
+
+  <!-- Custom Popup -->
+  <div id="customPopup" style="display:none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 30px 50px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.8); font-size: 28px; z-index: 3000; max-width: 90vw; text-align: center;">
+    <span id="popupMessage"></span>
+    <button id="popupCloseBtn" style="display:block; margin: 20px auto 0 auto; padding: 10px 30px; font-size: 24px; border: none; border-radius: 8px; background: #e50914; color: white; cursor: pointer;">Close</button>
+  </div>
+
+  <div class="bottom-bar">
+    <div id="mobileRefreshButtonsContainer" style="display:none; width: 100%; justify-content: space-around;">
+      <div class="nav-item" data-section="moviesSection" role="button" tabindex="0" aria-label="Refresh Movies">
+        <i class="fa-solid fa-rotate"></i><span>Movies</span>
+      </div>
+      <div class="nav-item" data-section="tvSection" role="button" tabindex="0" aria-label="Refresh TV Shows">
+        <i class="fa-solid fa-rotate"></i><span>TV Shows</span>
+      </div>
+      <div class="nav-item" data-section="wishlistSection" role="button" tabindex="0" aria-label="Refresh Wishlist">
+        <i class="fa-solid fa-rotate"></i><span>Wishlist</span>
+      </div>
+      <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
+        <i class="fa-solid fa-rotate"></i><span>Explore</span>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
 let fullLibrary = [];
 let wishlistAvailableTitles = [];
+let currentVideoData = {
+  profile: null,
+  title: null,
+  episode: null,
+  time: 0
+};
 
 const appContent = document.getElementById('appContent');
 appContent.classList.add('loading');
@@ -936,8 +967,20 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
   return card;
 }
 
-function openVideo(url, title) {
-  document.getElementById("videoFrameContainer").innerHTML = `<iframe src="${url}" allowfullscreen sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" style="width:100%;height:450px;border:none;border-radius:12px;"></iframe>`;
+function openVideo(url, title, episode = "", startTime = 0) {
+  currentVideoData = {
+    profile: currentProfile,
+    title,
+    episode,
+    time: startTime // Store it now
+  };
+
+  document.getElementById("videoFrameContainer").innerHTML = `
+    <iframe id="videoFrame" src="${url}#t=${startTime}" allowfullscreen
+      sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
+      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+      style="width:100%;height:450px;border:none;border-radius:12px;"></iframe>
+  `;
   document.getElementById("movieDetails").innerHTML = `<h2 class="movie-title-text">${title}</h2>`;
   openModal();
 }
@@ -1022,6 +1065,7 @@ function loadLibrary() {
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(data => {
       fullLibrary = data.movies.concat(data.tv);
+      window.library = data; // ✅ Add this line
       renderMovies(data.movies);
       renderTV(data.tv);
       document.getElementById("loadingScreen").style.display = "none";
@@ -1030,21 +1074,55 @@ function loadLibrary() {
   });
 }
 
-// Auto-load content on page load
+function saveProgress() {
+  google.script.run
+    .withSuccessHandler(() => console.log("✅ Progress saved!"))
+    .withFailureHandler(err => console.error("❌ Save failed:", err))
+    .saveProfileProgress(currentProfile, currentVideoData.title, currentVideoData.episode, currentVideoData.time);
+}
+
+let currentProfile = null;
+
 window.addEventListener("load", () => {
-  document.getElementById("appContent").style.display = "block";
+  const selector = document.getElementById("profileSelector");
+  const dropdown = document.getElementById("profileChoice");
+  const app = document.getElementById("appContent");
 
-  Promise.all([
-    loadLibrary(),
-    loadCombinedPopular(),
-    loadWishlist(),
-    loadRecentlyAdded()
-  ]).then(() => {
-    document.getElementById("loadingScreen").style.display = "none";
+  app.style.display = "none";
 
-    // Show optional sections if needed
-    document.getElementById("wishlistSection").style.display = "block";
-    document.getElementById("recentlyAddedSection").style.display = "block";
+  dropdown.addEventListener("change", () => {
+    if (dropdown.value) {
+      currentProfile = dropdown.value;
+      console.log("✅ Profile selected:", currentProfile);
+
+      selector.style.display = "none";
+      app.style.display = "block";
+
+      loadLibrary().then(() => {
+        return Promise.all([
+          loadCombinedPopular(),
+          loadWishlist(),
+          loadRecentlyAdded()
+        ]);
+      }).then(() => {
+          return loadContinueWatching(); // ✅ now waits until library is ready
+        }).then(() => {
+            console.log("✅ All content loaded");
+
+            document.getElementById("loadingScreen").style.display = "none";
+
+            const wishlistSection = document.getElementById("wishlistSection");
+            if (wishlistSection) wishlistSection.style.display = "block";
+
+            const recentlyAddedSection = document.getElementById("recentlyAddedSection");
+            if (recentlyAddedSection) recentlyAddedSection.style.display = "block";
+
+            const continueWatchingSection = document.getElementById("continueWatchingSection");
+            if (continueWatchingSection) continueWatchingSection.style.display = "block";
+          });
+
+      loadContinueWatching?.();
+    }
   });
 });
 
@@ -1336,6 +1414,7 @@ function addToWishlist(title, poster, btn) {
 }
 function getRequestedWishlist() {
   const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+Logger.log("Sheets in this spreadsheet: " + ss.getSheets().map(s => s.getName()).join(", "));
   const sheet = ss.getSheetByName('Titles');
   if (!sheet) throw new Error("Wishlist sheet not found");
 
@@ -1414,7 +1493,59 @@ function loadRecentlyAdded() {
   });
 }
 
-// Details & Trailers
+// CONTINUE WATCHING
+function loadContinueWatching() {
+  if (!currentProfile) return;
+
+  google.script.run.withSuccessHandler(data => {
+    console.log("🧪 Continue Watching items (raw):", data);
+    renderContinueWatching(data || []);
+  }).getContinueWatching(currentProfile);
+}
+function renderContinueWatching(items) {
+  const container = document.getElementById("continueWatchingGrid");
+  if (!container) return;
+  container.innerHTML = "";
+
+console.log("🧪 Continue Watching items (raw):", items);
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    container.innerHTML = "<p>No titles to continue watching yet.</p>";
+    return;
+  }
+
+  const library = window.library;
+  if (!library) return;
+
+  items.forEach(item => {
+    const normalize = str => str.replace(/\u00A0/g, ' ').trim().toLowerCase();
+    const driveItem = [...library.movies, ...library.tv].find(lib =>
+      normalize(lib.title) === normalize(item.title)
+    );
+    if (!driveItem) return;
+
+    const episodeTitle = item.episode || "";
+    const episode = driveItem.episodes?.find(ep =>
+      normalize(ep.title) === normalize(episodeTitle)
+    );
+    const videoUrl = episode?.url || driveItem.episodes?.[0]?.url || driveItem.url;
+    if (!videoUrl) return;
+
+    const card = document.createElement("div");
+    card.className = "movie-card";
+    card.innerHTML = `
+      <img src="${driveItem.poster}" alt="${driveItem.title}" loading="lazy">
+      <div class="movie-title">${driveItem.title}</div>
+    `;
+    card.addEventListener("click", () => {
+      openVideo(videoUrl, driveItem.title, item.episode, item.time);
+    });
+    container.appendChild(card);
+  });
+
+  document.getElementById("continueWatchingSection").style.display = "block";
+}
+
+// DETAILS & TRAILERS
 async function fetchTMDbDetails(item, isTV = false) {
   const apiKey = '48f719a14913f9d4ee92c684c2187625';
   const baseUrl = 'https://api.themoviedb.org/3';
@@ -1463,20 +1594,34 @@ let lastFocusedElement = null;
 
 function openModal() {
   lastFocusedElement = document.activeElement;
-  document.getElementById('appContent').setAttribute('aria-hidden', 'true');
+
+  if (lastFocusedElement && typeof lastFocusedElement.blur === 'function') {
+    lastFocusedElement.blur();
+  }
+
   const modal = document.getElementById('videoModal');
-  modal.removeAttribute('aria-hidden');
   modal.classList.add('active');
   document.getElementById('closeBtn').focus();
 }
 
 function closeModal() {
-  document.getElementById('appContent').removeAttribute('aria-hidden');
   const modal = document.getElementById('videoModal');
-  modal.setAttribute('aria-hidden', 'true');
+  const videoFrameContainer = document.getElementById('videoFrameContainer');
+
+  if (!modal || !videoFrameContainer) return;
+
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
+
+  saveProgress();
+
   modal.classList.remove('active');
-  document.getElementById('videoFrameContainer').innerHTML = '';
-  if (lastFocusedElement) lastFocusedElement.focus();
+  videoFrameContainer.innerHTML = '';
+
+  if (lastFocusedElement && document.body.contains(lastFocusedElement)) {
+    lastFocusedElement.focus();
+  }
 }
 
 function checkStickyShadow() {
