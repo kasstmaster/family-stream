@@ -715,27 +715,21 @@ header img {
 </head>
 <body>
 
-<div id="profileSelector" style="text-align:center; padding: 40px;">
-
-  <h2>Who's watching?</h2>
-  <select id="profileChoice" style="font-size: 24px; padding: 10px 20px;">
-    <option value="">-- Select Profile --</option>
-    <option value="Kassandra">Kassandra</option>
-    <option value="Dave">Dave</option>
-    <option value="Melissa">Melissa</option>
-    <option value="Ben">Ben</option>
-    <option value="Aiden">Aiden</option>
-  </select>
-  
+<div id="profileModal" class="modal active" role="dialog" aria-modal="true">
+  <div class="modal-content" style="align-items:center; justify-content:center; text-align:center; padding: 50px;">
+    <h2 style="font-size: 60px; margin-bottom: 40px;">Who's watching?</h2>
+    <select id="profileChoice" style="font-size: 40px; padding: 20px 40px; border-radius: 12px;">
+      <option value="">-- Select Profile --</option>
+      <option value="Kassandra">Kassandra</option>
+      <option value="Dave">Dave</option>
+      <option value="Melissa">Melissa</option>
+      <option value="Ben">Ben</option>
+      <option value="Aiden">Aiden</option>
+    </select>
+  </div>
 </div>
 
 <div id="appContent" style="display: none;">
-
-  <!-- Loading Screen -->
-  <div id="loadingScreen">
-    <p>Loading...</p>
-    <div class="loader"></div>
-  </div>
 
   <!-- App Content -->
   <header><br><br><img src="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" alt="ILYMMD+ Logo"><br><br></header>
@@ -744,22 +738,18 @@ header img {
   <!-- Watch Header -->
   <h2 class="section-title">Available to Watch</h2>
 
-  <!-- Continue Watching Section -->
-  <div id="continueWatchingSection">
-    <h2 class="subsection-title">Continue Watching</h2>
-    <div class="scroll-container" id="continueWatchingGrid"></div>
-  </div>
-
   <!-- Recently Added Section -->
   <div id="recentlyAddedSection">
     <h2 class="subsection-title">Recently Added</h2>
     <div class="scroll-container" id="recentlyAddedGrid"></div>
   </div>
 
-  <!-- Movies Section -->
-  <div id="moviesSection">
-    <h2 class="subsection-title">Movies</h2>
-    <div class="scroll-container" id="moviesRow">
+  <!-- Combined Available to Watch Section -->
+  <div id="availableToWatchSection">
+    <h2 class="subsection-title">Available to Watch</h2>
+
+    <!-- Combined Scroll Container -->
+    <div class="scroll-container" id="availableToWatchGrid">
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
@@ -767,16 +757,11 @@ header img {
     </div>
   </div>
 
-  <!-- TV Shows Section -->
-  <div id="tvSection">
-    <h2 class="subsection-title">TV Shows</h2>
-    <div class="scroll-container" id="tvRow">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
+    <!-- Continue Watching Section -->
+    <div id="continueWatchingSection">
+      <h2 class="subsection-title">Continue Watching</h2>
+      <div class="scroll-container" id="continueWatchingGrid"></div>
     </div>
-  </div>
 
   <!-- TMDb Header -->
   <h2 class="tmdb-title">Explore</h2>
@@ -789,16 +774,10 @@ header img {
     <p class="movie-overview" id="tmdbDetailsOverview"></p>
   </div>
 
-  <!-- TMDb Movies Section -->
-  <div id="tmdbMoviesSection">
-    <h2 class="subsection-title">Explore Movies</h2>
-    <div class="scroll-container" id="tmdbMoviesRow"></div>
-  </div>
-
-  <!-- TMDb TV Shows Section -->
-  <div id="tmdbTVSection">
-    <h2 class="subsection-title">Explore TV Shows</h2>
-    <div class="scroll-container" id="tmdbTVRow"></div>
+  <!-- Combined TMDb Section -->
+  <div id="tmdbExploreSection">
+    <h2 class="subsection-title">Explore Movies & TV Shows</h2>
+    <div class="scroll-container" id="tmdbExploreRow"></div>
   </div>
 
   <!-- Wishlist Requested Section -->
@@ -824,7 +803,7 @@ header img {
     <span id="closeBtn">&times;</span>
     <div class="modal-content">
       <div id="videoFrameContainer">
-        <iframe src="https://drive.google.com/file/d/FILE_ID/preview" allow="autoplay"></iframe>
+        <div id="videoFrameContainer"></div>
       </div>
       <div class="movie-info-scroll" id="movieDetails"></div>
     </div>
@@ -878,6 +857,17 @@ function showPopup(messageHtml) {
 document.getElementById('popupCloseBtn').addEventListener('click', () => {
   document.getElementById('customPopup').style.display = 'none';
 });
+
+function waitForImagesToLoad(container) {
+  const images = container.querySelectorAll("img");
+  const promises = Array.from(images).map(img => {
+    if (img.complete) return Promise.resolve();
+    return new Promise(resolve => {
+      img.onload = img.onerror = resolve;
+    });
+  });
+  return Promise.all(promises);
+}
 
 // Create card
 function createCard(item, isTMDb = false, wishlistTitles = []) {
@@ -940,7 +930,7 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
       // Fill trailer container
       const trailerContainer = document.getElementById('tmdbTrailerContainer');
       trailerContainer.innerHTML = trailer
-        ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+        ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
         : `<p><em>No trailer available.</em></p>`;
 
       // Fill details
@@ -976,10 +966,7 @@ function openVideo(url, title, episode = "", startTime = 0) {
   };
 
   document.getElementById("videoFrameContainer").innerHTML = `
-    <iframe id="videoFrame" src="${url}#t=${startTime}" allowfullscreen
-      sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
-      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-      style="width:100%;height:450px;border:none;border-radius:12px;"></iframe>
+    <iframe id="videoFrame" src="${url}#t=${startTime}" sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" style="width:100%;height:450px;border:none;border-radius:12px;"></iframe>
   `;
   document.getElementById("movieDetails").innerHTML = `<h2 class="movie-title-text">${title}</h2>`;
   openModal();
@@ -1044,32 +1031,36 @@ function showEpisodes(show) {
   document.getElementById("episodesSection").prepend(backBtn);
 }
 
-function renderMovies(movies) {
-  const moviesRow = document.getElementById("moviesRow");
-  moviesRow.innerHTML = "";
-  shuffleArray(movies).forEach(item => {
-    moviesRow.appendChild(createCard(item));
-  });
-}
+function renderAvailableToWatch(movies, tvShows) {
+  const container = document.getElementById("availableToWatchGrid");
+  container.innerHTML = "";
 
-function renderTV(tvShows) {
-  const tvRow = document.getElementById("tvRow");
-  tvRow.innerHTML = "";
-  shuffleArray(tvShows).forEach(item => {
-    tvRow.appendChild(createCard(item));
+  const combined = shuffleArray([...movies, ...tvShows]);
+  combined.forEach(item => {
+    container.appendChild(createCard(item));
   });
 }
 
 // Load Library via google.script.run and sync wishlist statuses automatically
 function loadLibrary() {
+  console.log("🔄 Starting loadLibrary()");
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(data => {
       fullLibrary = data.movies.concat(data.tv);
-      window.library = data; // ✅ Add this line
-      renderMovies(data.movies);
-      renderTV(data.tv);
-      document.getElementById("loadingScreen").style.display = "none";
-      resolve();
+      window.library = data;
+
+      try {
+        renderAvailableToWatch(data.movies, data.tv);
+        resolve();
+      } catch (err) {
+        console.error("❌ Error in renderAvailableToWatch:", err);
+        showPopup("Error rendering library.");
+      }
+
+    }).withFailureHandler(err => {
+      console.error("❌ Failed to load library:", err);
+      showPopup("Error loading library.");
+      resolve(); // still resolve to allow app flow to continue
     }).getLibraryAndSyncWishlist();
   });
 }
@@ -1084,44 +1075,72 @@ function saveProgress() {
 let currentProfile = null;
 
 window.addEventListener("load", () => {
-  const selector = document.getElementById("profileSelector");
   const dropdown = document.getElementById("profileChoice");
   const app = document.getElementById("appContent");
+  const profileModal = document.getElementById("profileModal");
 
   app.style.display = "none";
+  profileModal.classList.add("active");
+
+  // Begin preloading app in background
+  Promise.all([
+    loadLibrary(),         // Only load Available to Watch
+    loadRecentlyAdded()    // Only load Recently Added
+  ])
+  .then(() => waitForImagesToLoad(app))
+  .catch(err => {
+    console.error("❌ Error during background preload:", err);
+    showPopup("Something went wrong while preloading content.");
+  });
+
+  function isContinueWatchingLoaded() {
+    const container = document.getElementById("continueWatchingGrid");
+    return container && container.children.length > 0;
+  }
 
   dropdown.addEventListener("change", () => {
     if (dropdown.value) {
       currentProfile = dropdown.value;
       console.log("✅ Profile selected:", currentProfile);
 
-      selector.style.display = "none";
       app.style.display = "block";
+      profileModal.classList.remove("active");
 
-      loadLibrary().then(() => {
-        return Promise.all([
-          loadCombinedPopular(),
-          loadWishlist(),
-          loadRecentlyAdded()
-        ]);
-      }).then(() => {
-          return loadContinueWatching(); // ✅ now waits until library is ready
-        }).then(() => {
-            console.log("✅ All content loaded");
+      // Load personalized sections
+      Promise.all([
+        loadContinueWatching(),
+        loadWishlist(),
+        loadCombinedPopular()
+      ])
+      .then(() => waitForImagesToLoad(app))
+      .then(() => {
+        const continueWatchingSection = document.getElementById("continueWatchingSection");
+        if (continueWatchingSection) continueWatchingSection.style.display = "block";
 
-            document.getElementById("loadingScreen").style.display = "none";
+        const wishlistSection = document.getElementById("wishlistSection");
+        if (wishlistSection) wishlistSection.style.display = "block";
 
-            const wishlistSection = document.getElementById("wishlistSection");
-            if (wishlistSection) wishlistSection.style.display = "block";
+        const recentlyAddedSection = document.getElementById("recentlyAddedSection");
+        if (recentlyAddedSection) recentlyAddedSection.style.display = "block";
 
-            const recentlyAddedSection = document.getElementById("recentlyAddedSection");
-            if (recentlyAddedSection) recentlyAddedSection.style.display = "block";
-
-            const continueWatchingSection = document.getElementById("continueWatchingSection");
-            if (continueWatchingSection) continueWatchingSection.style.display = "block";
+        // ✅ Retry Continue Watching if it failed
+        if (!isContinueWatchingLoaded()) {
+          console.warn("⚠️ Continue Watching was empty, retrying...");
+          loadContinueWatching().then(() => {
+            if (!isContinueWatchingLoaded()) {
+              console.error("❌ Retry failed: Continue Watching still empty.");
+              showPopup("Could not load Continue Watching. Try refreshing the page.");
+            } else {
+              console.log("✅ Retry succeeded: Continue Watching loaded.");
+              if (continueWatchingSection) continueWatchingSection.style.display = "block";
+            }
           });
-
-      loadContinueWatching?.();
+        }
+      })
+      .catch(err => {
+        console.error("❌ Error during post-profile loading:", err);
+        showPopup("Something went wrong while loading personalized content.");
+      });
     }
   });
 });
@@ -1287,7 +1306,7 @@ async function renderTMDbMovies(movies, wishlistTitles = [], wishlistAvailable =
 
     const trailerContainer = document.getElementById('tmdbTrailerContainer');
     trailerContainer.innerHTML = trailer
-      ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+      ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
       : `<p><em>No trailer available.</em></p>`;
 
     document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
@@ -1364,20 +1383,65 @@ function loadCombinedPopular() {
               reject(new Error('Invalid data structure from getCombinedPopular'));
               return;
             }
-            const shuffledMovies = shuffleArray(data.movies);
-            const shuffledTV = shuffleArray(data.tv);
 
-            // Ensure wishlist arrays are arrays
-            wishlistRequestedTitles = Array.isArray(wishlistRequestedTitles) ? wishlistRequestedTitles : [];
-            wishlistAvailableTitles = Array.isArray(wishlistAvailableTitles) ? wishlistAvailableTitles : [];
+            const row = document.getElementById('tmdbExploreRow');
+            row.innerHTML = ''; // Clear previous results
 
-            renderTMDbMovies(shuffledMovies, wishlistRequestedTitles);
-            renderTMDbTV(shuffledTV, wishlistRequestedTitles);
+            const limitedMovies = shuffleArray(data.movies).slice(0, 7);
+            const limitedTV = shuffleArray(data.tv).slice(0, 7);
+            const allItems = shuffleArray([...limitedMovies, ...limitedTV]);
+
+            allItems.forEach(item => {
+              const card = createCard(item, true, wishlistRequestedTitles);
+
+              // Add AVAILABLE banner if already in wishlistAvailable
+              const itemTitle = (item.title || item.name || '').toLowerCase();
+              if (wishlistAvailableTitles.some(w => w.title.toLowerCase() === itemTitle && w.status === "Available")) {
+                const banner = document.createElement('div');
+                banner.textContent = 'AVAILABLE';
+                banner.style.cssText = `
+                  position: absolute;
+                  top: 10px;
+                  left: 0;
+                  width: 100%;
+                  background-color: rgba(0, 128, 0, 0.75);
+                  color: white;
+                  font-weight: bold;
+                  text-align: center;
+                  padding: 6px 0;
+                  border-radius: 12px 12px 0 0;
+                  font-size: 24px;
+                  z-index: 20;
+                  pointer-events: none;
+                `;
+                card.style.position = 'relative';
+                card.appendChild(banner);
+              }
+
+              row.appendChild(card);
+            });
+
+            // Optionally show details preview for the first item
+            if (allItems.length > 0) {
+              fetchTMDbDetails(allItems[0], allItems[0].media_type === 'tv').then(data => {
+                if (!data) return;
+                const trailer = data.videos?.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+                const trailerContainer = document.getElementById('tmdbTrailerContainer');
+                trailerContainer.innerHTML = trailer
+                  ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+                  : `<p><em>No trailer available.</em></p>`;
+                document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
+                document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
+                document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
+                document.getElementById('tmdbDetailsPreview').style.display = 'block';
+              });
+            }
+
+            loadRandomTMDbPreview();
+            startAutoPreviewRotation();
             resolve();
           })
-          .withFailureHandler(error => {
-            reject(error);
-          })
+          .withFailureHandler(error => reject(error))
           .getCombinedPopular(randomPage);
       });
     });
@@ -1388,6 +1452,17 @@ function shuffleArray(array) {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+}
+let previewRotationInterval = null;
+function startAutoPreviewRotation() {
+  // Clear any existing interval to avoid duplicates
+  if (previewRotationInterval) {
+    clearInterval(previewRotationInterval);
+  }
+
+  previewRotationInterval = setInterval(() => {
+    loadRandomTMDbPreview();
+  }, 30000); // every 30 seconds
 }
 
 // WISHLIST
@@ -1414,7 +1489,6 @@ function addToWishlist(title, poster, btn) {
 }
 function getRequestedWishlist() {
   const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
-Logger.log("Sheets in this spreadsheet: " + ss.getSheets().map(s => s.getName()).join(", "));
   const sheet = ss.getSheetByName('Titles');
   if (!sheet) throw new Error("Wishlist sheet not found");
 
@@ -1495,19 +1569,23 @@ function loadRecentlyAdded() {
 
 // CONTINUE WATCHING
 function loadContinueWatching() {
-  if (!currentProfile) return;
+  return new Promise(resolve => {
+    if (!currentProfile) {
+      console.log("⚠️ No currentProfile, skipping continue watching");
+      return resolve();
+    }
 
-  google.script.run.withSuccessHandler(data => {
-    console.log("🧪 Continue Watching items (raw):", data);
-    renderContinueWatching(data || []);
-  }).getContinueWatching(currentProfile);
+    google.script.run.withSuccessHandler(data => {
+      renderContinueWatching(data || []);
+      resolve();
+    }).getContinueWatching(currentProfile);
+  });
 }
 function renderContinueWatching(items) {
   const container = document.getElementById("continueWatchingGrid");
   if (!container) return;
   container.innerHTML = "";
 
-console.log("🧪 Continue Watching items (raw):", items);
   if (!items || !Array.isArray(items) || items.length === 0) {
     container.innerHTML = "<p>No titles to continue watching yet.</p>";
     return;
@@ -1558,27 +1636,69 @@ async function fetchTMDbDetails(item, isTV = false) {
     const data = await response.json();
     return data;
   } catch (error) {
-    alert('Error fetching details: ' + error.message);
+    console.warn(`⚠️ TMDb fetch failed for "${item.title || item.name}": ${error.message}`);
+
+    // Soft fallback content (optional UI update)
+    const trailerContainer = document.getElementById('tmdbTrailerContainer');
+    const titleElem = document.getElementById('tmdbDetailsTitle');
+    const dateElem = document.getElementById('tmdbDetailsReleaseDate');
+    const overviewElem = document.getElementById('tmdbDetailsOverview');
+
+    if (trailerContainer) trailerContainer.innerHTML = '<p><em>Details not available for this title.</em></p>';
+    if (titleElem) titleElem.textContent = item.title || item.name || 'Unknown';
+    if (dateElem) dateElem.innerHTML = '';
+    if (overviewElem) overviewElem.textContent = 'We could not load details from TMDb.';
+
     return null;
   }
 }
 
-function loadTMDbMovies() {
-  return new Promise(resolve => {
-    google.script.run.withSuccessHandler(data => {
-      renderTMDbMovies(data);
-      resolve();
-    }).getPopularMovies();
-  });
+function loadRandomTMDbPreview() {
+  const cards = document.querySelectorAll('#tmdbExploreRow .movie-card');
+  if (!cards.length) return;
+
+  const randomIndex = Math.floor(Math.random() * cards.length);
+  const randomCard = cards[randomIndex];
+
+  const title = randomCard.querySelector('.movie-title')?.textContent || '';
+  const poster = randomCard.querySelector('img')?.src || '';
+  const isTV = title.includes('(TV)'); // Only if you're marking it visibly
+
+  // You can also store media_type in dataset:
+  // const mediaType = randomCard.dataset.mediaType;
+
+  // Reuse the data from your render method
+  const matched = [...fullLibrary].find(item =>
+    (item.title || item.name)?.toLowerCase() === title.toLowerCase()
+  );
+
+  if (!matched) return;
+
+  fetchTMDbDetails(matched, matched.media_type === 'tv')
+    .then(data => {
+      if (!data) return;
+
+      const trailer = data.videos?.results.find(
+        v => v.type === 'Trailer' && v.site === 'YouTube'
+      );
+
+      const trailerContainer = document.getElementById('tmdbTrailerContainer');
+      trailerContainer.innerHTML = trailer
+        ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+        : `<p><em>No trailer available.</em></p>`;
+
+      document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
+      document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
+      document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
+      document.getElementById('tmdbDetailsPreview').style.display = 'block';
+    });
 }
-function loadTMDbTV() {
-  return new Promise(resolve => {
-    google.script.run.withSuccessHandler(data => {
-      renderTMDbTV(data);
-      resolve();
-    }).getPopularTVShows();
-  });
+
+function isContinueWatchingLoaded() {
+  const container = document.getElementById("continueWatchingGrid");
+  return container && container.children.length > 0;
 }
+
 let wishlistRequestedTitles = [];
 function loadWishlistRequested() {
   return new Promise(resolve => {
@@ -1602,6 +1722,11 @@ function openModal() {
   const modal = document.getElementById('videoModal');
   modal.classList.add('active');
   document.getElementById('closeBtn').focus();
+
+  if (previewRotationInterval) {
+    clearInterval(previewRotationInterval);
+    previewRotationInterval = null;
+  }
 }
 
 function closeModal() {
@@ -1618,6 +1743,8 @@ function closeModal() {
 
   modal.classList.remove('active');
   videoFrameContainer.innerHTML = '';
+
+  startAutoPreviewRotation();
 
   if (lastFocusedElement && document.body.contains(lastFocusedElement)) {
     lastFocusedElement.focus();
