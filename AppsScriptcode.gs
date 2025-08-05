@@ -120,7 +120,7 @@ function getCombinedPopular(page = 1) {
 function addToWishlistSheet(title, poster) {
   try {
     const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
-    const sheet = ss.getSheetByName('Wishlist');
+    const sheet = ss.getSheetByName('Titles');
     if (!sheet) throw new Error("Wishlist sheet not found");
 
     const lastRow = sheet.getLastRow();
@@ -142,7 +142,7 @@ function addToWishlistSheet(title, poster) {
     }
 
     const timestamp = new Date();
-    sheet.appendRow([title, timestamp, "Requested", poster]);
+    sheet.appendRow([title, "Requested", poster]);
 
     return { status: "added", title };
   } catch (error) {
@@ -151,13 +151,13 @@ function addToWishlistSheet(title, poster) {
 }
 function getRequestedWishlist() {
   const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
-  const sheet = ss.getSheetByName('Wishlist');
+  const sheet = ss.getSheetByName('Titles');
   if (!sheet) throw new Error("Wishlist sheet not found");
 
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
 
   return data.filter(row => row[2] === "Wishlist")
     .map(row => ({
@@ -228,63 +228,80 @@ function getRecentVideos(days = 30) {
 
 function getWishlistAllWithStatus() {
   const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
-  const sheet = ss.getSheetByName('Wishlist');
+  const sheet = ss.getSheetByName('Titles');
   if (!sheet) throw new Error("Wishlist sheet not found");
 
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
 
   return data.map(row => ({
     title: row[0],
-    status: row[2],
-    poster: row[3]
+    status: row[1],
+    poster: row[2]
   }));
 }
 
 function syncWishlistStatusWithDrive() {
   const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
-  const sheet = ss.getSheetByName('Wishlist');
-  if (!sheet) throw new Error("Wishlist sheet not found");
+  const sheet = ss.getSheetByName('Titles');
+  if (!sheet) throw new Error("Titles sheet not found");
 
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return; // Nothing to update
+  const data = lastRow < 2 ? [] : sheet.getRange(2, 1, lastRow - 1, 3).getValues();
 
-  // Get wishlist data: [title, timestamp, status, poster]
-  const dataRange = sheet.getRange(2, 1, lastRow - 1, 4);
-  const data = dataRange.getValues();
+  // Build a map of existing titles in the sheet (lowercased)
+  const sheetMap = new Map();
+  data.forEach((row, i) => {
+    const title = row[0]?.toLowerCase().trim();
+    if (title) {
+      sheetMap.set(title, {
+        row: i + 2,
+        status: row[1],
+        poster: row[2]
+      });
+    }
+  });
 
-  // Get all titles currently in Drive library (movies + tv)
-  const libraryData = getLibraryData(); // returns {movies: [], tv: []}
-  const driveTitlesSet = new Set();
-  libraryData.movies.forEach(item => driveTitlesSet.add(item.title.toLowerCase()));
-  libraryData.tv.forEach(item => driveTitlesSet.add(item.title.toLowerCase()));
+  // Get titles from Drive (both Movies and TV)
+  const libraryData = getLibraryData(); // returns { movies: [], tv: [] }
+  const driveTitles = [...libraryData.movies, ...libraryData.tv];
 
-  // Prepare array for status updates
-  const updates = [];
+  // Track updates
+  const statusUpdates = [];
+  const posterUpdates = [];
 
-  for (let i = 0; i < data.length; i++) {
-    const title = data[i][0];
-    const currentStatus = data[i][2];
-    const titleLower = title.toLowerCase();
+  driveTitles.forEach(item => {
+    const titleKey = item.title.toLowerCase().trim();
+    const poster = item.poster;
 
-    if (driveTitlesSet.has(titleLower)) {
-      // If found in Drive library and status not yet 'Available', update it
-      if (currentStatus !== 'Available') {
-        updates.push({row: i + 2, status: 'Available'});
+    if (sheetMap.has(titleKey)) {
+      const existing = sheetMap.get(titleKey);
+
+      // Update status if needed
+      if (existing.status !== "Available") {
+        statusUpdates.push({ row: existing.row, status: "Available" });
+      }
+
+      // Update poster if different
+      if (existing.poster !== poster) {
+        posterUpdates.push({ row: existing.row, poster });
       }
     } else {
-      // If not found in Drive, ensure status is 'Wishlist'
-      if (currentStatus !== 'Wishlist') {
-        updates.push({row: i + 2, status: 'Wishlist'});
-      }
+      // Not in sheet — add it
+      sheet.appendRow([item.title, "Available", poster]);
     }
-  }
+  });
 
-  // Batch update statuses in the sheet
-  updates.forEach(update => {
-    sheet.getRange(update.row, 3).setValue(update.status);
+  // Apply status updates
+  statusUpdates.forEach(update => {
+    sheet.getRange(update.row, 2).setValue(update.status);
+  });
+
+  // Apply poster updates
+  posterUpdates.forEach(update => {
+    sheet.getRange(update.row, 3).setValue(update.poster);
   });
 }
 
