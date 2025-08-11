@@ -20,41 +20,6 @@ function pingWishlistVersion() {
   // Bump this string anytime you redeploy to confirm it’s the version you expect.
   return 'wishlist-ping v1 ' + new Date().toISOString();
 }
-function getRequestedWishlist() {
-  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
-  const sheet = ss.getSheetByName('Titles');
-  if (!sheet) {
-    console.log('❌ Sheet "Titles" not found.');
-    return [];
-  }
-
-  const lastRow = sheet.getLastRow();
-  const lastCol = sheet.getLastColumn();
-  console.log('Last row:', lastRow, 'Last col:', lastCol);
-  if (lastRow < 2) {
-    console.log('❌ No data rows found.');
-    return [];
-  }
-
-  // Read the header + first few data rows for inspection
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  const preview = sheet.getRange(2, 1, Math.min(lastRow - 1, 5), lastCol).getValues();
-  console.log('Headers:', headers);
-  console.log('First 5 rows:', preview);
-
-  const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
-
-  const rows = data
-    .filter(row => String(row[1]).trim() === 'Wishlist' && String(row[0]).trim() !== '')
-    .map(row => ({
-      title: String(row[0]).trim(),
-      poster: String(row[2] || '').trim(),
-      status: 'Wishlist'
-    }));
-
-  console.log('Filtered rows:', rows);
-  return rows;
-}
 function debugWishlistSnapshot() {
   const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
   const SHEET_NAME = 'Titles';
@@ -241,20 +206,22 @@ function getRequestedWishlist() {
   const posterCol = headers.indexOf('poster') + 1; // optional
 
   if (!titleCol || !statusCol) {
-    // Required headers missing
     return [];
   }
 
   const rows = sh.getRange(2, 1, lastRow - 1, lastCol).getValues().map(r => {
     const title  = String(r[titleCol - 1] || '').trim();
-    const status = String(r[statusCol - 1] || '').trim();
+    const status = String(r[statusCol - 1] || '').trim().toLowerCase();
     const poster = posterCol ? String(r[posterCol - 1] || '').trim() : '';
     return { title, status, poster };
   });
 
-  // Only Wishlist rows with a non-empty title
-  return rows.filter(r => r.title && r.status.toLowerCase() === 'wishlist')
-             .map(({ title, poster }) => ({ title, poster }));
+  // Accept both "wishlist" and legacy "requested"
+  const wanted = new Set(['wishlist', 'requested']);
+
+  return rows
+    .filter(r => r.title && wanted.has(r.status))
+    .map(({ title, poster }) => ({ title, poster }));
 }
 function getRecentVideos(days = 7) {
   const deploymentId = 'AKfycbyBnamMid90A6xc7rvm47w9R4NF5SYpBOdreX6gCs9A4xcXtVUNYmZ14lqGA2h8Jp4zxw';
