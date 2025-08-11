@@ -16,6 +16,71 @@ function doGet(e) {
     .setSandboxMode(HtmlService.SandboxMode.IFRAME); // Recommended for google.script.run to work
 }
 
+function pingWishlistVersion() {
+  // Bump this string anytime you redeploy to confirm it’s the version you expect.
+  return 'wishlist-ping v1 ' + new Date().toISOString();
+}
+function getRequestedWishlist() {
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheet = ss.getSheetByName('Titles');
+  if (!sheet) {
+    console.log('❌ Sheet "Titles" not found.');
+    return [];
+  }
+
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  console.log('Last row:', lastRow, 'Last col:', lastCol);
+  if (lastRow < 2) {
+    console.log('❌ No data rows found.');
+    return [];
+  }
+
+  // Read the header + first few data rows for inspection
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const preview = sheet.getRange(2, 1, Math.min(lastRow - 1, 5), lastCol).getValues();
+  console.log('Headers:', headers);
+  console.log('First 5 rows:', preview);
+
+  const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+
+  const rows = data
+    .filter(row => String(row[1]).trim() === 'Wishlist' && String(row[0]).trim() !== '')
+    .map(row => ({
+      title: String(row[0]).trim(),
+      poster: String(row[2] || '').trim(),
+      status: 'Wishlist'
+    }));
+
+  console.log('Filtered rows:', rows);
+  return rows;
+}
+function debugWishlistSnapshot() {
+  const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
+  const SHEET_NAME = 'Titles';
+
+  const out = { sheetFound: false, lastRow: 0, lastCol: 0, headers: [], preview: [] };
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sh = ss.getSheetByName(SHEET_NAME);
+    if (!sh) return out;
+
+    out.sheetFound = true;
+    out.lastRow = sh.getLastRow();
+    out.lastCol = sh.getLastColumn();
+
+    if (out.lastRow >= 1 && out.lastCol >= 1) {
+      out.headers = sh.getRange(1, 1, 1, out.lastCol).getValues()[0].map(String);
+    }
+    if (out.lastRow > 1) {
+      const rowsToShow = Math.min(out.lastRow - 1, 5);
+      out.preview = sh.getRange(2, 1, rowsToShow, out.lastCol).getValues();
+    }
+  } catch (e) {
+    out.error = String(e);
+  }
+  return out;
+}
 // Stream Video with Range Support
 function streamVideo(fileId, e) {
   try {
@@ -130,12 +195,14 @@ function addToWishlistSheet(title, poster) {
     const lastRow = sheet.getLastRow();
     let data = [];
     if (lastRow > 1) {
+      // Title (col A), Status (col B), Poster (col C)
       data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
     }
 
     for (let i = 0; i < data.length; i++) {
-      if (data[i][0].toString().toLowerCase() === title.toLowerCase()) {
-        const status = data[i][2];
+      if (String(data[i][0]).toLowerCase() === title.toLowerCase()) {
+        // ✅ status is in column B (index 1), not column C (index 2)
+        const status = String(data[i][1]);
         if (status === "Wishlist") {
           return { status: "requested", title };
         } else if (status === "Available") {
@@ -145,8 +212,8 @@ function addToWishlistSheet(title, poster) {
       }
     }
 
-    const timestamp = new Date();
-    sheet.appendRow([title, "Requested", poster]);
+    // ✅ write "Wishlist" so the reader can find it
+    sheet.appendRow([title, "Wishlist", poster]);
 
     return { status: "added", title };
   } catch (error) {
@@ -154,20 +221,40 @@ function addToWishlistSheet(title, poster) {
   }
 }
 function getRequestedWishlist() {
-  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
-  const sheet = ss.getSheetByName('Titles');
-  if (!sheet) throw new Error("Wishlist sheet not found");
+  // Reads headers to find: Title / Status / Poster (order doesn’t matter)
+  const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
+  const SHEET_NAME = 'Titles';
 
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) return [];
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
 
-  return data.filter(row => row[2] === "Wishlist")
-    .map(row => ({
-      title: row[0],
-      poster: row[3]
-    }));
+  const headers = sh.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(h => String(h).trim().toLowerCase());
+
+  const titleCol  = headers.indexOf('title') + 1;
+  const statusCol = headers.indexOf('status') + 1;
+  const posterCol = headers.indexOf('poster') + 1; // optional
+
+  if (!titleCol || !statusCol) {
+    // Required headers missing
+    return [];
+  }
+
+  const rows = sh.getRange(2, 1, lastRow - 1, lastCol).getValues().map(r => {
+    const title  = String(r[titleCol - 1] || '').trim();
+    const status = String(r[statusCol - 1] || '').trim();
+    const poster = posterCol ? String(r[posterCol - 1] || '').trim() : '';
+    return { title, status, poster };
+  });
+
+  // Only Wishlist rows with a non-empty title
+  return rows.filter(r => r.title && r.status.toLowerCase() === 'wishlist')
+             .map(({ title, poster }) => ({ title, poster }));
 }
 function getRecentVideos(days = 7) {
   const deploymentId = 'AKfycbyBnamMid90A6xc7rvm47w9R4NF5SYpBOdreX6gCs9A4xcXtVUNYmZ14lqGA2h8Jp4zxw';
