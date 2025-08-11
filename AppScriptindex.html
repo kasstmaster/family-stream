@@ -756,6 +756,15 @@ header img {
   <!-- Watch Header -->
   <h2 class="section-title">Available to Watch</h2>
 
+  <!-- TMDb Details Preview -->
+  <div id="tmdbDetailsPreview" 
+      style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white; display:none;">
+    <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
+    <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
+    <p id="tmdbDetailsReleaseDate"></p>
+    <p class="movie-overview" id="tmdbDetailsOverview"></p>
+  </div>
+
   <!-- Recently Added Section -->
   <div id="recentlyAddedSection">
     <h2 class="subsection-title">Recently Added</h2>
@@ -783,14 +792,6 @@ header img {
 
   <!-- TMDb Header -->
   <h2 class="tmdb-title">Explore</h2>
-
-  <!-- TMDb Details Preview -->
-  <div id="tmdbDetailsPreview" style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white;">
-    <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
-    <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
-    <p id="tmdbDetailsReleaseDate"></p>
-    <p class="movie-overview" id="tmdbDetailsOverview"></p>
-  </div>
 
   <!-- Combined TMDb Section -->
   <div id="tmdbExploreSection">
@@ -1001,83 +1002,113 @@ function openVideo(url, title, episode = "", startTime = 0) {
     time: startTime
   };
 
+  // ✅ Remove any previous Episodes row so it doesn't linger
+  const episodesSection = document.getElementById("tmdbEpisodesSection");
+  if (episodesSection && episodesSection.parentNode) {
+    episodesSection.parentNode.removeChild(episodesSection);
+  }
+
   // Ensure details preview is visible
-  const preview = document.getElementById('tmdbDetailsPreview');
-  if (preview) preview.style.display = 'block';
+  const preview = document.getElementById("tmdbDetailsPreview");
+  if (preview) {
+    preview.style.display = "block";
+    preview.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   // Play inside the TMDb preview area
-  const trailerContainer = document.getElementById('tmdbTrailerContainer');
+  const trailerContainer = document.getElementById("tmdbTrailerContainer");
   if (trailerContainer) {
-    trailerContainer.innerHTML = `
-      <iframe id="tmdbTrailerFrame"
-        src="${url}#t=${startTime}"
-        sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
-        allowfullscreen
-        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-        style="width:100%;height:100%;border:none;border-radius:12px;">
-      </iframe>`;
+    trailerContainer.textContent = "";
+    const iframe = document.createElement("iframe");
+    iframe.id = "tmdbTrailerFrame";
+    iframe.src = `${url}#t=${startTime}`;
+    iframe.setAttribute("sandbox", "allow-same-origin allow-scripts allow-presentation allow-popups allow-forms");
+    iframe.setAttribute("allowfullscreen", "");
+    iframe.setAttribute("allow", "autoplay; encrypted-media; fullscreen; picture-in-picture");
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "none";
+    iframe.style.borderRadius = "12px";
+    trailerContainer.appendChild(iframe);
   }
 
   // Update title (and clear date since this is a Drive video)
-  const titleEl = document.getElementById('tmdbDetailsTitle');
+  const titleEl = document.getElementById("tmdbDetailsTitle");
   if (titleEl) titleEl.textContent = title;
-  const dateEl = document.getElementById('tmdbDetailsReleaseDate');
-  if (dateEl) dateEl.innerHTML = '';
+  const dateEl = document.getElementById("tmdbDetailsReleaseDate");
+  if (dateEl) dateEl.innerHTML = "";
+
+  // Close any open modal
+  if (typeof closeModal === "function") closeModal();
 }
 
+// Put this where your current showEpisodes() is defined
 function showEpisodes(show) {
-  // Hide main sections
-  document.getElementById("recentlyAddedSection").style.display = "none";
-  document.getElementById("moviesSection").style.display = "none";
-  document.getElementById("tvSection").style.display = "none";
-  document.querySelector('.tmdb-title').style.display = "none";
-  document.getElementById("tmdbDetailsPreview").style.display = "none";
-  document.getElementById("tmdbMoviesSection").style.display = "none";
-  document.getElementById("tmdbTVSection").style.display = "none";
-  document.getElementById("wishlistSection").style.display = "none";
+  // Ensure details panel is visible and scrolled into view
+  const preview = document.getElementById("tmdbDetailsPreview");
+  if (preview) {
+    preview.style.display = "block";
+    preview.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
-  // Show episodes section
-  document.getElementById("episodesSection").style.display = "block";
-  document.getElementById("episodesTitle").textContent = show.title;
+  // Clear any trailer in the preview if this is a Drive show
+  const trailerContainer = document.getElementById("tmdbTrailerContainer");
+  if (trailerContainer) trailerContainer.textContent = "";
 
-  const episodesGrid = document.getElementById("episodesGrid");
-  episodesGrid.innerHTML = "";
+  // Update heading to the show's title
+  const titleEl = document.getElementById("tmdbDetailsTitle");
+  const dateEl = document.getElementById("tmdbDetailsReleaseDate");
+  const overviewEl = document.getElementById("tmdbDetailsOverview");
+  if (titleEl) titleEl.textContent = show.title || show.name || "Episodes";
+  if (dateEl) dateEl.innerHTML = "";
+  if (overviewEl) overviewEl.textContent = "";
 
-  show.episodes.forEach(ep => {
-    const epCard = document.createElement("div");
-    epCard.classList.add("movie-card");
-    epCard.innerHTML = '<img src="' + show.poster + '" alt="' + ep.title + '">'
-                 + '<div class="movie-title">' + ep.title + '</div>';
-    epCard.addEventListener("click", () => {
-      openVideo(ep.url, `${show.title} - ${ep.title}`);
+  // Create or reuse a horizontal episodes section under the preview
+  let section = document.getElementById("tmdbEpisodesSection");
+  if (!section) {
+    section = document.createElement("div");
+    section.id = "tmdbEpisodesSection";
+    section.style.marginTop = "16px";
+    section.style.paddingTop = "12px";
+    section.style.borderTop = "1px solid rgba(255,255,255,0.1)";
+    preview.appendChild(section);
+  }
+
+  // Rebuild the section contents
+  section.innerHTML = "";
+
+  // Section title styled like others
+  const h2 = document.createElement("h2");
+  h2.className = "subsection-title";
+  h2.textContent = "Episodes";
+  section.appendChild(h2);
+
+  // Horizontal scroll row (reuse your .scroll-container styles)
+  const row = document.createElement("div");
+  row.className = "scroll-container";
+  row.id = "episodesScrollRow";
+  section.appendChild(row);
+
+  const eps = Array.isArray(show.episodes) ? show.episodes : [];
+  if (eps.length === 0) {
+    row.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No episodes found.</p>';
+    return;
+  }
+
+  // Build episode cards just like other lists
+  eps.forEach(ep => {
+    const card = document.createElement("div");
+    card.className = "movie-card";
+    card.style.width = ""; // let CSS handle widths
+    card.innerHTML = `
+      <img src="${show.poster}" alt="${ep.title}" loading="lazy">
+      <div class="movie-title">${ep.title}</div>
+    `;
+    card.addEventListener("click", () => {
+      openVideo(ep.url, `${show.title || show.name} - ${ep.title}`);
     });
-    episodesGrid.appendChild(epCard);
+    row.appendChild(card);
   });
-
-  const backBtn = document.createElement("button");
-  backBtn.textContent = "⬅ Back";
-  backBtn.style.cssText = `
-    margin: 20px; padding: 12px 24px; font-size: 20px;
-    background: #e50914; color: #fff; border: none; border-radius: 8px;
-    cursor: pointer;
-  `;
-  backBtn.addEventListener("click", () => {
-    document.getElementById("episodesSection").style.display = "none";
-
-    // Show all main sections again
-    document.getElementById("recentlyAddedSection").style.display = "block";
-    document.getElementById("moviesSection").style.display = "block";
-    document.getElementById("tvSection").style.display = "block";
-    document.querySelector('.tmdb-title').style.display = "block";
-    document.getElementById("tmdbDetailsPreview").style.display = "block";
-    document.getElementById("tmdbMoviesSection").style.display = "block";
-    document.getElementById("tmdbTVSection").style.display = "block";
-    document.getElementById("wishlistSection").style.display = "block";
-
-    backBtn.remove();
-  });
-
-  document.getElementById("episodesSection").prepend(backBtn);
 }
 
 function renderAvailableToWatch(movies, tvShows) {
@@ -1474,24 +1505,12 @@ function loadCombinedPopular() {
               row.appendChild(card);
             });
 
-            // Optionally show details preview for the first item
-            if (allItems.length > 0) {
-              fetchTMDbDetails(allItems[0], allItems[0].media_type === 'tv').then(data => {
-                if (!data) return;
-                const trailer = data.videos?.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
-                const trailerContainer = document.getElementById('tmdbTrailerContainer');
-                trailerContainer.innerHTML = trailer
-                  ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
-                  : `<p><em>No trailer available.</em></p>`;
-                document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
-                document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
-                document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
-                document.getElementById('tmdbDetailsPreview').style.display = 'block';
-              });
-            }
+            // Keep preview hidden/blank until the user selects an item
+            const trailerContainer = document.getElementById('tmdbTrailerContainer');
+            const preview = document.getElementById('tmdbDetailsPreview');
+            if (trailerContainer) trailerContainer.innerHTML = '';
+            if (preview) preview.style.display = 'none';
 
-            loadRandomTMDbPreview();
-            startAutoPreviewRotation();
             resolve();
           })
           .withFailureHandler(error => reject(error))
