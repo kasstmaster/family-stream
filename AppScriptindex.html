@@ -1574,45 +1574,59 @@ function addToWishlist(title, poster, btn) {
     }
   }).addToWishlistSheet(title, poster);
 }
-function getRequestedWishlist() {
-  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
-  const sheet = ss.getSheetByName('Titles');
-  if (!sheet) throw new Error("Wishlist sheet not found");
-
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-
-  const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-
-  return data.filter(row => row[2] === "Wishlist")
-    .map(row => ({
-      title: row[0],
-      poster: row[3]
-    }));
-}
 function renderWishlist(items) {
   const grid = document.getElementById('wishlistGrid');
   grid.innerHTML = '';
-  if (items.length === 0) {
+
+  // Normalize shapes/keys coming from server: {title, poster} OR {Title, Poster} etc.
+  const normalized = (Array.isArray(items) ? items : []).map(it => {
+    const title = (it && (it.title || it.Title || it.name || it.Name)) || 'Untitled';
+    const poster = (it && (it.poster || it.Poster || it.image || it.Image)) || '';
+    return { title: String(title).trim(), poster: String(poster).trim() };
+  }).filter(it => it.title); // keep only valid titles
+
+  console.log('Wishlist items (normalized):', normalized);
+
+  if (normalized.length === 0) {
     grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No requested items found.</p>';
     return;
   }
-  shuffleArray(items).forEach(item => {
+
+  shuffleArray(normalized).forEach(item => {
     const card = document.createElement('div');
     card.classList.add('movie-card');
     card.innerHTML = `
-      <img src="${item.poster}" alt="${item.title}" loading="lazy">
+      <img src="${item.poster}" alt="${item.title}" loading="lazy" onerror="this.style.display='none'">
       <div class="movie-title">${item.title}</div>
     `;
     grid.appendChild(card);
   });
+
+  // Make sure the section is visible (harmless if already visible)
+  const section = document.getElementById('wishlistSection');
+  if (section) section.style.display = 'block';
 }
 function loadWishlist() {
   return new Promise(resolve => {
-    google.script.run.withSuccessHandler(items => {
-      renderWishlist(items);
-      resolve();
-    }).getRequestedWishlist();
+    // Ping (optional but useful to confirm we’re on the right deployment)
+    google.script.run
+      .withSuccessHandler(v => console.log('PING (server version):', v))
+      .withFailureHandler(err => console.warn('PING failed:', err))
+      .pingWishlistVersion();
+
+    // Fetch wishlist from the server
+    google.script.run
+      .withSuccessHandler(items => {
+        console.log('Wishlist items (raw):', items);
+        renderWishlist(items || []);
+        resolve();
+      })
+      .withFailureHandler(err => {
+        console.error('getRequestedWishlist failed:', err);
+        renderWishlist([]);
+        resolve();
+      })
+      .getRequestedWishlist();
   });
 }
 
