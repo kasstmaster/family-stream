@@ -998,14 +998,31 @@ function openVideo(url, title, episode = "", startTime = 0) {
     profile: currentProfile,
     title,
     episode,
-    time: startTime // Store it now
+    time: startTime
   };
 
-  document.getElementById("videoFrameContainer").innerHTML = `
-    <iframe id="videoFrame" src="${url}#t=${startTime}" sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" style="width:100%;height:450px;border:none;border-radius:12px;"></iframe>
-  `;
-  document.getElementById("movieDetails").innerHTML = `<h2 class="movie-title-text">${title}</h2>`;
-  openModal();
+  // Ensure details preview is visible
+  const preview = document.getElementById('tmdbDetailsPreview');
+  if (preview) preview.style.display = 'block';
+
+  // Play inside the TMDb preview area
+  const trailerContainer = document.getElementById('tmdbTrailerContainer');
+  if (trailerContainer) {
+    trailerContainer.innerHTML = `
+      <iframe id="tmdbTrailerFrame"
+        src="${url}#t=${startTime}"
+        sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
+        allowfullscreen
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+        style="width:100%;height:100%;border:none;border-radius:12px;">
+      </iframe>`;
+  }
+
+  // Update title (and clear date since this is a Drive video)
+  const titleEl = document.getElementById('tmdbDetailsTitle');
+  if (titleEl) titleEl.textContent = title;
+  const dateEl = document.getElementById('tmdbDetailsReleaseDate');
+  if (dateEl) dateEl.innerHTML = '';
 }
 
 function showEpisodes(show) {
