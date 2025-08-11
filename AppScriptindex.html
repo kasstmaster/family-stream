@@ -957,6 +957,12 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
 
   card.addEventListener("click", async () => {
     if (isTMDb) {
+      // Clear any previous Episodes row so it doesn't linger
+      const epSection = document.getElementById("tmdbEpisodesSection");
+      if (epSection && epSection.parentNode) {
+        epSection.parentNode.removeChild(epSection);
+      }
+
       const data = await fetchTMDbDetails(item, item.media_type === 'tv');
       if (!data) return;
 
@@ -975,8 +981,14 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
       document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
       document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
 
-      // Show details container
-      document.getElementById('tmdbDetailsPreview').style.display = 'block';
+      // Show and scroll to the details container
+      const preview = document.getElementById('tmdbDetailsPreview');
+      if (preview) {
+        preview.style.display = 'block';
+        setTimeout(() => {
+          preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+      }
 
     } else {
       if (item.episodes && item.episodes.length > 1) {
@@ -1012,7 +1024,10 @@ function openVideo(url, title, episode = "", startTime = 0) {
   const preview = document.getElementById("tmdbDetailsPreview");
   if (preview) {
     preview.style.display = "block";
-    preview.scrollIntoView({ behavior: "smooth", block: "start" });
+    // ✅ Always scroll when item starts playing
+    setTimeout(() => {
+      preview.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   }
 
   // Play inside the TMDb preview area
