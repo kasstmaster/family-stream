@@ -39,6 +39,30 @@ header img {
   height: auto;
 }
 
+.active-episode {
+  outline: 3px solid #00a7b0;
+  outline-offset: 2px;
+}
+/* Smaller episode cards */
+#tmdbEpisodesSection .movie-card {
+  flex: 0 0 90px;     /* much narrower */
+  max-width: 90px;    /* cap width */
+  margin: 3px;
+}
+#tmdbEpisodesSection .movie-poster {
+  width: 100%;
+  height: auto;       /* keep proportions */
+}
+#tmdbEpisodesSection .movie-title {
+  font-size: 0.65rem; /* smaller text */
+  line-height: 1.1;
+  padding: 4px;
+}
+/* Reduce gap for horizontal scroll */
+#tmdbEpisodesSection .scroll-container {
+  gap: 8px;
+}
+
 /* ====== PROFILES ====== */
 .profile-btn {
   background: #1f1f1f;
@@ -1014,10 +1038,22 @@ function openVideo(url, title, episode = "", startTime = 0) {
     time: startTime
   };
 
-  // ✅ Remove any previous Episodes row so it doesn't linger
+  // Keep Episodes visible if we’re playing a specific episode
   const episodesSection = document.getElementById("tmdbEpisodesSection");
   if (episodesSection && episodesSection.parentNode) {
-    episodesSection.parentNode.removeChild(episodesSection);
+    if (!episode) {
+      // No episode name means this is likely a single-video (movie) play -> clear it
+      episodesSection.parentNode.removeChild(episodesSection);
+    } else {
+      // Keep it visible and mark the active episode
+      const cards = episodesSection.querySelectorAll('.movie-card');
+      cards.forEach(c => c.classList.remove('active-episode'));
+      const match = Array.from(cards).find(c => {
+        const t = c.querySelector('.movie-title')?.textContent?.trim();
+        return t && t.toLowerCase() === episode.trim().toLowerCase();
+      });
+      if (match) match.classList.add('active-episode');
+    }
   }
 
   // Ensure details preview is visible
@@ -1120,7 +1156,7 @@ function showEpisodes(show) {
       <div class="movie-title">${ep.title}</div>
     `;
     card.addEventListener("click", () => {
-      openVideo(ep.url, `${show.title || show.name} - ${ep.title}`);
+      openVideo(ep.url, show.title || show.name, ep.title);
     });
     row.appendChild(card);
   });
