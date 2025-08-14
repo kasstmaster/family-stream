@@ -771,7 +771,7 @@ header img {
   </div>
 </div>
 
-<div id="appContent" style="display: none;" style="visibility: hidden;">
+<div id="appContent" style="display: none;">
 
   <!-- App Content -->
   <header><br><br><img src="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" alt="ILYMMD+ Logo"><br><br></header>
@@ -787,6 +787,12 @@ header img {
     <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
     <p id="tmdbDetailsReleaseDate"></p>
     <p class="movie-overview" id="tmdbDetailsOverview"></p>
+  </div>
+
+  <!-- Continue Watching Section -->
+  <div id="continueWatchingSection">
+    <h2 class="subsection-title">Continue Watching</h2>
+    <div class="scroll-container" id="continueWatchingGrid"></div>
   </div>
 
   <!-- Recently Added Section -->
@@ -807,12 +813,6 @@ header img {
       <div class="skeleton-card"></div>
     </div>
   </div>
-
-    <!-- Continue Watching Section -->
-    <div id="continueWatchingSection">
-      <h2 class="subsection-title">Continue Watching</h2>
-      <div class="scroll-container" id="continueWatchingGrid"></div>
-    </div>
 
   <!-- TMDb Header -->
   <h2 class="tmdb-title">Explore</h2>
@@ -883,7 +883,6 @@ header img {
   background: rgba(0, 0, 0, 0.85);
   color: white;
   font-size: 48px;
-  display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2147483647;
@@ -903,8 +902,6 @@ let currentVideoData = {
 };
 
 const appContent = document.getElementById('appContent');
-appContent.classList.add('loading');
-appContent.style.display = "block";
 
 function showPopup(messageHtml) {
   const popup = document.getElementById('customPopup');
@@ -917,17 +914,38 @@ document.getElementById('popupCloseBtn').addEventListener('click', () => {
   document.getElementById('customPopup').style.display = 'none';
 });
 
-function waitForImagesToLoad(container) {
+function waitForImagesToLoad(container, { timeoutMs = 2500 } = {}) {
+  // Fast‑path: if container missing, resolve immediately
+  if (!container) return Promise.resolve();
+
   const images = Array.from(container.querySelectorAll("img"));
 
+  // Fast‑path: nothing to wait on
+  if (images.length === 0) return Promise.resolve();
+
+  const inViewport = el => {
+    const r = el.getBoundingClientRect();
+    return r.top < window.innerHeight && r.bottom > 0 && r.left < window.innerWidth && r.right > 0;
+  };
+
   const promises = images.map(img => {
-    if (img.complete) return Promise.resolve();
+    // Already loaded (covers cached images and ones with naturalWidth > 0)
+    if (img.complete || img.naturalWidth > 0) return Promise.resolve();
+
+    // If it's lazy and off‑screen, don't block the loader on it
+    const isLazy = img.loading === 'lazy' || img.getAttribute('loading') === 'lazy';
+    if (isLazy && !inViewport(img)) return Promise.resolve();
+
+    // Otherwise, wait for load/error
     return new Promise(resolve => {
-      img.onload = img.onerror = resolve;
+      const done = () => { img.onload = img.onerror = null; resolve(); };
+      img.onload = done;
+      img.onerror = done;
     });
   });
 
-  return Promise.all(promises);
+  const timeout = new Promise(res => setTimeout(res, timeoutMs));
+  return Promise.race([Promise.all(promises), timeout]);
 }
 
 // Create card
@@ -1186,8 +1204,6 @@ function loadLibrary() {
     <div class="skeleton-card"></div>
   `;
 
-  loadingScreen.style.display = "flex"; // Show loading screen
-
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(data => {
       fullLibrary = data.movies.concat(data.tv);
@@ -1195,19 +1211,14 @@ function loadLibrary() {
 
       try {
         renderAvailableToWatch(data.movies, data.tv);
-        resolve();
       } catch (err) {
         console.error("❌ Error in renderAvailableToWatch:", err);
         showPopup("Error rendering library.");
-        resolve();
-      } finally {
-        hideLoadingScreen(); // Hide loading screen
       }
-
+      resolve();
     }).withFailureHandler(err => {
       console.error("❌ Failed to load library:", err);
       showPopup("Error loading library.");
-      hideLoadingScreen(); // Hide loading screen
       resolve();
     }).getLibraryAndSyncWishlist();
   });
@@ -1223,9 +1234,15 @@ function saveProgress() {
 let currentProfile = null;
 
 const loadingScreen = document.getElementById("loadingScreen");
-function hideLoadingScreen(delay = 1500) {
-  setTimeout(() => {
+let _hideLoaderTimer = null;
+function hideLoadingScreen(delay = 300) {
+  if (_hideLoaderTimer) {
+    clearTimeout(_hideLoaderTimer);
+    _hideLoaderTimer = null;
+  }
+  _hideLoaderTimer = setTimeout(() => {
     loadingScreen.style.display = "none";
+    _hideLoaderTimer = null;
   }, delay);
 }
 
@@ -1238,19 +1255,13 @@ window.addEventListener("load", () => {
   loadingScreen.style.display = "flex"; // Show loading screen
 
   // Preload shared content
-  Promise.all([
-    loadLibrary(),
-    loadRecentlyAdded()
-  ])
-    .then(() => waitForImagesToLoad(app))
-    .then(() => {
-      hideLoadingScreen(); // ✅ Hide after images finish loading
-      console.log("✅ Initial content loaded with images");
-    })
+  Promise.all([ loadLibrary(), loadRecentlyAdded() ])
+    .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
+    .then(() => hideLoadingScreen())
     .catch(err => {
       console.error("❌ Error during preload:", err);
       showPopup("Something went wrong while preloading content.");
-      hideLoadingScreen(); // Fail-safe to unblock UI
+      hideLoadingScreen();
     });
 
   // Handle profile selection via buttons
@@ -1264,24 +1275,19 @@ window.addEventListener("load", () => {
       loadingScreen.style.display = "flex"; // Show loading screen again
 
       loadContinueWatching()
-        .then(() => Promise.all([
-          loadWishlist(),
-          loadCombinedPopular()
-        ]))
-        .then(() => waitForImagesToLoad(app))
-        .then(() => {
-          document.getElementById("continueWatchingSection").style.display = "block";
-          document.getElementById("wishlistSection").style.display = "block";
-          document.getElementById("recentlyAddedSection").style.display = "block";
-
-          hideLoadingScreen(); // ✅ Hide after profile content fully loads
-          console.log("✅ Profile-based content loaded with images");
-        })
-        .catch(err => {
-          console.error("❌ Error during profile-based loading:", err);
-          showPopup("Something went wrong while loading personalized content.");
-          hideLoadingScreen();
-        });
+      .then(() => Promise.all([ loadWishlist(), loadCombinedPopular() ]))
+      .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
+      .then(() => {
+        document.getElementById("continueWatchingSection").style.display = "block";
+        document.getElementById("wishlistSection").style.display = "block";
+        document.getElementById("recentlyAddedSection").style.display = "block";
+        hideLoadingScreen();
+      })
+      .catch(err => {
+        console.error("❌ Error during profile-based loading:", err);
+        showPopup("Something went wrong while loading personalized content.");
+        hideLoadingScreen();
+      });
     });
   });
 });
@@ -1703,17 +1709,13 @@ function loadRecentlyAdded() {
     <div class="skeleton-card"></div>
   `;
 
-  loadingScreen.style.display = "flex"; // Show loading screen
-
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(items => {
       renderRecentlyAdded(items);
-      hideLoadingScreen(); // Hide loading screen
       resolve();
     }).withFailureHandler(err => {
       console.error("❌ Failed to load recently added:", err);
       showPopup("Error loading recently added.");
-      hideLoadingScreen(); // Hide loading screen
       resolve();
     }).getRecentVideos();
   });
@@ -1918,18 +1920,6 @@ function checkStickyShadow() {
 
 window.addEventListener('scroll', checkStickyShadow);
 window.addEventListener('load', checkStickyShadow);
-
-window.addEventListener("DOMContentLoaded", () => {
-  document.documentElement.style.visibility = "visible";
-
-  const profileModal = document.getElementById("profileModal");
-  if (profileModal) {
-    profileModal.classList.add("active");
-    console.log("✅ Modal forced visible");
-  } else {
-    console.warn("⚠️ Modal not found");
-  }
-});
 
 waitForImagesToLoad(document.getElementById('appContent')).then(() => {
   console.log("✅ All images loaded");
