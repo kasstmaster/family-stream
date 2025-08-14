@@ -1,114 +1,48 @@
 // !DOCTYPE Code.gs
 
 function doGet(e) {
-  // Optional: Serve JSON data via API if action=api
-  if (e && e.parameter && e.parameter.action === 'api') {
-    const data = getLibraryData();
-    return ContentService.createTextOutput(JSON.stringify(data))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader('Access-Control-Allow-Origin', '*'); // Allow external API calls if needed
-  }
-
-  // Default: Serve the frontend HTML (index.html)
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('My Movie Browser')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL) // Embed in iframe if needed
-    .setSandboxMode(HtmlService.SandboxMode.IFRAME); // Recommended for google.script.run to work
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function pingWishlistVersion() {
   // Bump this string anytime you redeploy to confirm it’s the version you expect.
   return 'wishlist-ping v1 ' + new Date().toISOString();
 }
-function debugWishlistSnapshot() {
-  const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
-  const SHEET_NAME = 'Titles';
 
-  const out = { sheetFound: false, lastRow: 0, lastCol: 0, headers: [], preview: [] };
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sh = ss.getSheetByName(SHEET_NAME);
-    if (!sh) return out;
+function collectRecentVideosFromFolder(folder, cutoffDate) {
+  const videos = [];
+  const files = folder.getFiles();
+  let poster = '';
 
-    out.sheetFound = true;
-    out.lastRow = sh.getLastRow();
-    out.lastCol = sh.getLastColumn();
+  while (files.hasNext()) {
+    const f = files.next();
+    const name = String(f.getName() || '').toLowerCase();
 
-    if (out.lastRow >= 1 && out.lastCol >= 1) {
-      out.headers = sh.getRange(1, 1, 1, out.lastCol).getValues()[0].map(String);
+    if (!poster && isPosterName(name)) {
+      poster = 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w300';
     }
-    if (out.lastRow > 1) {
-      const rowsToShow = Math.min(out.lastRow - 1, 5);
-      out.preview = sh.getRange(2, 1, rowsToShow, out.lastCol).getValues();
-    }
-  } catch (e) {
-    out.error = String(e);
-  }
-  return out;
-}
-// Stream Video with Range Support
-function streamVideo(fileId, e) {
-  try {
-    const file = DriveApp.getFileById(fileId);
-    if (!file.getSharingAccess || file.getSharingAccess() === DriveApp.Access.NONE) {
-      return HtmlService.createHtmlOutput("Access denied");
-    }
-    const blob = file.getBlob();
 
-    return HtmlService.createHtmlOutput(blob)
-      .setMimeType(blob.getContentType())
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  } catch (err) {
-    return HtmlService.createHtmlOutput("Error: " + err.message);
-  }
-}
-
-function debugOneCategory() {
-  const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1'; // your root
-  const root = DriveApp.getFolderById(rootFolderId);
-
-  const movies = root.getFoldersByName('Movies');
-  if (!movies.hasNext()) { Logger.log('No Movies folder found'); return; }
-  const mv = movies.next();
-
-  const out = processCategory(mv);
-  Logger.log('processCategory output count: ' + out.length);
-}
-// Build Movie/TV JSON by processing Drive folders
-function processCategory(categoryFolder) {
-  const results = [];
-  const DEBUG = true; // set false after testing
-
-  const isPoster = n =>
-    n.endsWith('.png') || n.endsWith('.jpg') || n.endsWith('.jpeg') || n.endsWith('.webp');
-
-  const getPosterFromFolder = (folder) => {
-    const files = folder.getFiles();
-    while (files.hasNext()) {
-      const f = files.next();
-      const n = String(f.getName() || '').toLowerCase();
-      if (isPoster(n)) {
-        return 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w300';
-      }
-    }
-    return '';
-  };
-
-  const getVideosFromFolder = (folder) => {
-    const out = [];
-    const files = folder.getFiles();
-    while (files.hasNext()) {
-      const f = files.next();
-      const n = String(f.getName() || '').toLowerCase();
-      if (/\.(mp4|mov|mkv)$/i.test(n)) {
-        out.push({
+    if (/\.(mp4|mov|mkv)$/i.test(name)) {
+      const created = (typeof f.getDateCreated === 'function') ? f.getDateCreated() : f.getLastUpdated();
+      if (created >= cutoffDate) {
+        videos.push({
           title: f.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
-          url: `https://drive.google.com/file/d/${f.getId()}/preview`
+          url: `https://drive.google.com/file/d/${f.getId()}/preview`,
+          poster: poster || ''
         });
       }
     }
-    return out;
-  };
+  }
+  return videos;
+}
+
+// Build Movie/TV JSON by processing Drive folders
+// Build Movie/TV JSON by processing Drive folders
+function processCategory(categoryFolder) {
+  const results = [];
+  const DEBUG = false; // set false after testing
 
   // ---- SNAPSHOT title folders as IDs, then re-fetch handles
   const titleFolderInfos = [];
@@ -140,9 +74,9 @@ function processCategory(categoryFolder) {
     const childEpisodes = [];
     for (const ci of childInfos) {
       const epFolder = DriveApp.getFolderById(ci.id);
-      const vids = getVideosFromFolder(epFolder);
+      const vids = getVideosFromDriveFolder(epFolder);
       if (vids.length > 0) {
-        const epPoster = getPosterFromFolder(epFolder);
+        const epPoster = getPosterFromDriveFolder(epFolder);
         childEpisodes.push({
           title: epFolder.getName(),
           url: vids[0].url,
@@ -152,7 +86,7 @@ function processCategory(categoryFolder) {
     }
 
     // Only now touch files on the parent
-    const parentPoster = getPosterFromFolder(titleFolder);
+    const parentPoster = getPosterFromDriveFolder(titleFolder);
 
     if (childEpisodes.length > 0) {
       results.push({
@@ -166,7 +100,7 @@ function processCategory(categoryFolder) {
     }
 
     // Fallback: direct videos on the title folder
-    const directVideos = getVideosFromFolder(titleFolder);
+    const directVideos = getVideosFromDriveFolder(titleFolder);
     results.push({
       title,
       poster: parentPoster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(title),
@@ -179,39 +113,47 @@ function processCategory(categoryFolder) {
   return results;
 }
 
+// --- Shared Drive helpers (used by processCategory & getEpisodesByTitle) ---
+function isPosterName(name) {
+  const n = String(name || '').toLowerCase();
+  return /\.(png|jpe?g|webp)$/i.test(n);
+}
+
+function getPosterFromDriveFolder(folder) {
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    if (isPosterName(f.getName())) {
+      return 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w300';
+    }
+  }
+  return '';
+}
+
+function getVideosFromDriveFolder(folder) {
+  const out = [];
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    const n = String(f.getName() || '').toLowerCase();
+    if (/\.(mp4|mov|mkv)$/i.test(n)) {
+      out.push({
+        title: f.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
+        url: `https://drive.google.com/file/d/${f.getId()}/preview`
+      });
+    }
+  }
+  return out;
+}
+
+function normTitle(s) {
+  return String(s || '').replace(/\u00A0/g, ' ').trim().toLowerCase();
+}
+
 function getEpisodesByTitle(title) {
   const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1'; // your root
   const root = DriveApp.getFolderById(rootFolderId);
   const categories = ['Movies', 'TV Shows'];
-
-  const isPoster = n => /\.(png|jpe?g|webp)$/i.test(n);
-  const getPosterFromFolder = (folder) => {
-    const files = folder.getFiles();
-    while (files.hasNext()) {
-      const f = files.next();
-      if (isPoster(String(f.getName()).toLowerCase())) {
-        return 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w300';
-      }
-    }
-    return '';
-  };
-  const getVideosFromFolder = (folder) => {
-    const out = [];
-    const files = folder.getFiles();
-    while (files.hasNext()) {
-      const f = files.next();
-      const n = String(f.getName() || '').toLowerCase();
-      if (/\.(mp4|mov|mkv)$/i.test(n)) {
-        out.push({
-          title: f.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
-          url: `https://drive.google.com/file/d/${f.getId()}/preview`
-        });
-      }
-    }
-    return out;
-  };
-
-  const norm = s => String(s || '').replace(/\u00A0/g,' ').trim().toLowerCase();
 
   for (const cat of categories) {
     const it = root.getFoldersByName(cat);
@@ -222,30 +164,30 @@ function getEpisodesByTitle(title) {
     const tfIt = catFolder.getFolders();
     while (tfIt.hasNext()) {
       const titleFolder = tfIt.next();
-      if (norm(titleFolder.getName()) !== norm(title)) continue;
+      if (normTitle(titleFolder.getName()) !== normTitle(title)) continue;
 
       // children as episodes
       const childEpisodes = [];
       const childIt = titleFolder.getFolders();
       while (childIt.hasNext()) {
         const epFolder = childIt.next();
-        const vids = getVideosFromFolder(epFolder);
+        const vids = getVideosFromDriveFolder(epFolder);
         if (vids.length) {
           childEpisodes.push({
             title: epFolder.getName(),
             url: vids[0].url,
-            poster: getPosterFromFolder(epFolder) || ''
+            poster: getPosterFromDriveFolder(epFolder) || ''
           });
         }
       }
 
-      const parentPoster = getPosterFromFolder(titleFolder);
+      const parentPoster = getPosterFromDriveFolder(titleFolder);
       if (childEpisodes.length) {
         return { title: titleFolder.getName(), poster: parentPoster, episodes: childEpisodes };
       }
 
       // fallback: direct videos
-      const direct = getVideosFromFolder(titleFolder);
+      const direct = getVideosFromDriveFolder(titleFolder);
       return { title: titleFolder.getName(), poster: parentPoster, episodes: direct };
     }
   }
@@ -271,11 +213,19 @@ function getLibraryData() {
   return { movies, tv };
 }
 
-function getLibrary() {
-  return getLibraryData();
-}
-
 // TMDB
+function getTMDbDetails(id, isTV) {
+  const apiKey = '48f719a14913f9d4ee92c684c2187625'; // keep server-side
+  const type = isTV ? 'tv' : 'movie';
+  const url = `https://api.themoviedb.org/3/${type}/${id}?api_key=${apiKey}&language=en-US&append_to_response=videos,keywords`;
+
+  const resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const code = resp.getResponseCode();
+  if (code < 200 || code >= 300) {
+    return { error: true, status: code };
+  }
+  return JSON.parse(resp.getContentText());
+}
 function addPosterBasePath(items) {
   return items.map(item => {
     item.poster = item.poster_path
@@ -376,9 +326,7 @@ function getRequestedWishlist() {
     .filter(r => r.title && wanted.has(r.status))
     .map(({ title, poster }) => ({ title, poster }));
 }
-function getRecentVideos(days = 7) {
-  const deploymentId = 'AKfycbyBnamMid90A6xc7rvm47w9R4NF5SYpBOdreX6gCs9A4xcXtVUNYmZ14lqGA2h8Jp4zxw';
-
+function getRecentVideos(days = 14) { // <-- changed default to 14
   const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1';
   const rootFolder = DriveApp.getFolderById(rootFolderId);
   const cutoffDate = new Date();
@@ -395,32 +343,36 @@ function getRecentVideos(days = 7) {
 
     while (subfolders.hasNext()) {
       const folder = subfolders.next();
-      const files = folder.getFiles();
 
       let hasRecentFile = false;
       let poster = '';
-      let videos = [];
+      const videos = [];
+      let newestTime = 0;
 
+      const files = folder.getFiles();
       while (files.hasNext()) {
         const file = files.next();
-        const name = file.getName().toLowerCase();
+        const name = String(file.getName() || '').toLowerCase();
 
-        if (!poster && (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg'))) {
+        if (!poster && isPosterName(name)) {
           poster = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w300';
-        } else if (/\.(mp4|mov|mkv)$/i.test(name)) {
+        }
+
+        if (/\.(mp4|mov|mkv)$/i.test(name)) {
           videos.push({
             title: file.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
             url: `https://drive.google.com/file/d/${file.getId()}/preview`
           });
         }
-      }
 
-      const filesForDateCheck = folder.getFiles();
-      while (filesForDateCheck.hasNext()) {
-        const file = filesForDateCheck.next();
-        if (file.getLastUpdated() >= cutoffDate) {
+        const updated = file.getLastUpdated();
+        if (!hasRecentFile && updated >= cutoffDate) {
           hasRecentFile = true;
-          break;
+        }
+
+        // track newest file timestamp for sorting
+        if (updated.getTime() > newestTime) {
+          newestTime = updated.getTime();
         }
       }
 
@@ -428,13 +380,15 @@ function getRecentVideos(days = 7) {
         recentVideosMap[folder.getName()] = {
           title: folder.getName(),
           poster: poster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(folder.getName()),
-          episodes: videos  // Always assign videos array here
+          episodes: videos,
+          newestTime // store for sorting
         };
       }
     }
   });
 
-  return Object.values(recentVideosMap);
+  // sort newest first
+  return Object.values(recentVideosMap).sort((a, b) => b.newestTime - a.newestTime);
 }
 
 function getWishlistAllWithStatus() {
@@ -545,17 +499,29 @@ function getContinueWatching(profileName) {
   const profileCol = findCol(['profile']);
   const titleCol   = findCol(['title']);
   const episodeCol = findCol(['episode', 'episode title', 'episodetitle']);
+  const updatedCol = findCol(['updatedat', 'updated', 'updated_at']); // may be 0 if legacy
 
   if (!profileCol || !titleCol) return [];
 
   const rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  return rows
+
+  const items = rows
     .filter(r => String(r[profileCol - 1]).trim().toLowerCase() === String(profileName).trim().toLowerCase())
     .map(r => ({
       profile: r[profileCol - 1],
       title:   r[titleCol   - 1],
-      episode: episodeCol ? (r[episodeCol - 1] || '') : ''
+      episode: episodeCol ? (r[episodeCol - 1] || '') : '',
+      updatedAt: updatedCol ? String(r[updatedCol - 1] || '') : '' // ISO string if present
     }));
+
+  // Sort newest first (fallback to 0 when missing)
+  items.sort((a, b) => {
+    const ta = Date.parse(a.updatedAt || '') || 0;
+    const tb = Date.parse(b.updatedAt || '') || 0;
+    return tb - ta;
+  });
+
+  return items;
 }
 
 function saveProfileProgress(profile, fullTitle, episode /* , time */) {
@@ -564,7 +530,6 @@ function saveProfileProgress(profile, fullTitle, episode /* , time */) {
   const sheet = ss.getSheetByName('Profiles');
   if (!sheet) throw new Error("'Profiles' sheet not found");
 
-  // Normalize
   const baseTitle = String(fullTitle || '').split(/\s*-\s*/)[0].trim();
   const epTitle   = String(episode || '').trim();
   const profKey   = String(profile || '').trim().toLowerCase();
@@ -584,62 +549,50 @@ function saveProfileProgress(profile, fullTitle, episode /* , time */) {
     return 0;
   };
 
-  // Require Profile & Title; Episode optional (we'll append if missing)
-  let profileCol = findCol(['profile']);
-  let titleCol   = findCol(['title']);
-  let episodeCol = findCol(['episode', 'episode title', 'episodetitle']);
+  // Ensure headers: A=Profile, B=Title, C=Episode, D=UpdatedAt
+  let profileCol = findCol(['profile']) || 1;
+  let titleCol   = findCol(['title'])   || 2;
+  let episodeCol = findCol(['episode','episode title','episodetitle']) || 3;
+  let updatedCol = findCol(['updatedat','updated','updated_at']) || 4;
 
-  // If headers missing, create them in order A:Profile B:Title C:Episode
-  if (!profileCol || !titleCol) {
-    if (lastRow === 0) sheet.insertRowBefore(1);
-    sheet.getRange(1, 1).setValue('Profile');
-    sheet.getRange(1, 2).setValue('Title');
-    sheet.getRange(1, 3).setValue('Episode');
-    profileCol = 1; titleCol = 2; episodeCol = 3;
-  } else if (!episodeCol) {
-    // Add an Episode header if not present
-    episodeCol = lastCol + 1;
-    sheet.getRange(1, episodeCol).setValue('Episode');
+  if (lastRow === 0) sheet.insertRowBefore(1);
+  // Write headers if missing
+  if (!headers.length) {
+    sheet.getRange(1, 1, 1, 4).setValues([['Profile','Title','Episode','UpdatedAt']]);
+  } else {
+    if (!findCol(['profile']))    sheet.getRange(1, profileCol).setValue('Profile');
+    if (!findCol(['title']))      sheet.getRange(1, titleCol).setValue('Title');
+    if (!findCol(['episode','episode title','episodetitle'])) sheet.getRange(1, episodeCol).setValue('Episode');
+    if (!findCol(['updatedat','updated','updated_at'])) {
+      updatedCol = Math.max(lastCol, 4);
+      sheet.getRange(1, updatedCol).setValue('UpdatedAt');
+    }
   }
 
-  const data = (lastRow >= 2) ? sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, episodeCol)).getValues() : [];
+  const widest = Math.max(profileCol, titleCol, episodeCol, updatedCol);
+  const data = (sheet.getLastRow() >= 2)
+    ? sheet.getRange(2, 1, sheet.getLastRow() - 1, widest).getValues()
+    : [];
 
   const rowIndex = data.findIndex(r =>
     String(r[profileCol - 1] || '').trim().toLowerCase() === profKey &&
     String(r[titleCol   - 1] || '').trim().toLowerCase() === baseTitle.toLowerCase()
   );
 
+  const nowIso = new Date().toISOString();
+
   if (rowIndex >= 0) {
     const updateRow = rowIndex + 2;
     sheet.getRange(updateRow, episodeCol).setValue(epTitle);
+    sheet.getRange(updateRow, updatedCol).setValue(nowIso);
   } else {
-    const newRow = Array(Math.max(lastCol, episodeCol)).fill('');
+    const newRow = Array(widest).fill('');
     newRow[profileCol - 1] = profile;
     newRow[titleCol   - 1] = baseTitle;
     newRow[episodeCol - 1] = epTitle;
+    newRow[updatedCol - 1] = nowIso;
     sheet.appendRow(newRow);
   }
-}
-
-function testSave() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheetNames = ss.getSheets().map(s => s.getName());
-  Logger.log("Sheet names: " + sheetNames.join(", "));
-
-  // Try exact match
-  const exact = ss.getSheetByName("Profiles");
-  Logger.log("Exact match for 'Profiles': " + (exact ? "✅ FOUND" : "❌ NOT FOUND"));
-
-  // Try fuzzy match
-  const fuzzy = sheetNames.find(n => n.toLowerCase().includes("profile"));
-  Logger.log("Fuzzy match: " + fuzzy);
-}
-
-function testBound() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  Logger.log("ss is null: " + (ss === null));
-  const names = ss.getSheets().map(s => s.getName());
-  Logger.log("Sheet names: " + names.join(", "));
 }
 
 /**
