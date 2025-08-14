@@ -1064,6 +1064,11 @@ function showEpisodesList(showLike) {
     eps = [{ title: "Play", url: showLike.url }];
   }
 
+  // ✅ Sort episodes alphabetically by title (case-insensitive)
+  eps.sort((a, b) => {
+    return (a.title || "").toLowerCase().localeCompare((b.title || "").toLowerCase());
+  });
+
   const label = (eps.length > 1) ? "Episodes" : "Collection";
   titleEl.innerHTML = `${displayTitle} — <span style="opacity:.8">${label}</span>`;
 
