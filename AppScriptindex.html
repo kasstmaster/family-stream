@@ -671,6 +671,7 @@ header img {
       <button class="profile-btn" data-profile="Dave">Dave</button>
       <button class="profile-btn" data-profile="Melissa">Melissa</button>
       <button class="profile-btn" data-profile="Ben">Ben</button>
+      <button class="profile-btn" data-profile="Liadan">Liadan</button>
       <button class="profile-btn" data-profile="Aiden">Aiden</button>
     </div>
   </div>
@@ -785,7 +786,8 @@ header img {
   align-items: center;
   justify-content: center;
   z-index: 2147483647;
-  pointer-events: none;
+  pointer-events: auto; /* blocks clicks while visible */
+  cursor: wait;
 ">
   Loading...
 </div>
@@ -1268,22 +1270,33 @@ window.addEventListener("load", () => {
 
       profileModal.classList.remove("active");
       app.style.display = "block";
-      loadingScreen.style.display = "flex"; // Show loading screen again
+      loadingScreen.style.display = "flex"; // show while CW loads
 
+      // 1) Load Continue Watching first; hide loader as soon as it's ready
       loadContinueWatching()
-      .then(() => Promise.all([ loadWishlist(), loadCombinedPopular() ]))
-      .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
-      .then(() => {
-        document.getElementById("continueWatchingSection").style.display = "block";
-        document.getElementById("wishlistSection").style.display = "block";
-        document.getElementById("recentlyAddedSection").style.display = "block";
-        hideLoadingScreen();
-      })
-      .catch(err => {
-        console.error("❌ Error during profile-based loading:", err);
-        showPopup("Something went wrong while loading personalized content.");
-        hideLoadingScreen();
-      });
+        .then(() => {
+          const cw = document.getElementById("continueWatchingSection");
+          if (cw) cw.style.display = "block";
+          hideLoadingScreen(0); // <- stop the loading screen right after CW loads
+        })
+        .catch(err => {
+          console.error("❌ Error loading Continue Watching:", err);
+          hideLoadingScreen(0); // fail-safe: don't keep the loader up
+        });
+
+      // 2) Kick off the rest in parallel (no loader blocking)
+      Promise.all([ loadWishlist(), loadCombinedPopular() ])
+        .then(() => {
+          const wl = document.getElementById("wishlistSection");
+          const ra = document.getElementById("recentlyAddedSection");
+          if (wl) wl.style.display = "block";
+          if (ra) ra.style.display = "block";
+          return waitForImagesToLoad(app, { timeoutMs: 2500 });
+        })
+        .catch(err => {
+          console.error("❌ Error during background loads:", err);
+          showPopup("Some items are still loading. Try again if they don't appear.");
+        });
     });
   });
 });
