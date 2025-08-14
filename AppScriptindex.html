@@ -89,14 +89,28 @@ header img {
 .profile-btn {
   background: #1f1f1f;
   color: #fff;
-  font-size: 40px;
+  font-size: 30px;
   border: none;
-  padding: 30px 50px;
+  padding: 20px;
   border-radius: 20px;
   cursor: pointer;
   transition: background 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px; /* space between icon and name */
 }
-.profile-btn:hover { background: #00a7b0; }
+
+.profile-btn img {
+  width: 100px;   /* icon size */
+  height: 100px;
+  border-radius: 50%; /* round icons */
+  object-fit: cover;
+}
+
+.profile-btn:hover { 
+  background: #00a7b0; 
+}
 
 /* =======================
    SEARCH BAR
@@ -462,6 +476,11 @@ header img {
     align-items: center;
   }
 
+  .profile-btn img {
+    width: 150px;
+    height: 150px;
+  }
+
   .movie-card.last-watched::after {
     font-size: 40px;        /* larger text for mobile */
     padding: 14px 16px;     /* taller banner for readability */
@@ -631,13 +650,32 @@ header img {
 <div id="profileModal" class="modal active" role="dialog" aria-modal="true">
   <div class="modal-content" style="align-items:center; justify-content:center; text-align:center; padding: 50px;">
     <h2 style="font-size: 60px; margin-bottom: 40px;">Who's watching?</h2>
-    <div id="profileList" style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;">
-      <button class="profile-btn" data-profile="Dave">Dave</button>
-      <button class="profile-btn" data-profile="Melissa">Melissa</button>
-      <button class="profile-btn" data-profile="Ben">Ben</button>
-      <button class="profile-btn" data-profile="Kassandra">Kassandra</button>
-      <button class="profile-btn" data-profile="Aiden">Aiden</button>
-      <button class="profile-btn" data-profile="Liadan">Liadan</button>
+    <div id="profileList" style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;">    
+      <button class="profile-btn" data-profile="Dave">
+        <img src="https://i.postimg.cc/nVvJZm7y/dave.png" alt="Dave">
+        <span>Dave</span>
+      </button>    
+      <button class="profile-btn" data-profile="Melissa">
+        <img src="https://i.postimg.cc/htGW93wn/melissa.png" alt="Melissa">
+        <span>Melissa</span>
+      </button>
+    
+      <button class="profile-btn" data-profile="Ben">
+        <img src="https://i.postimg.cc/D0K3LfVp/ben.jpg" alt="Ben">
+        <span>Ben</span>
+      </button>      
+      <button class="profile-btn" data-profile="Kassandra">
+        <img src="https://i.postimg.cc/Fzg5ZtNr/kassandra.jpg" alt="Kassandra">
+        <span>Kassandra</span>
+      </button>     
+      <button class="profile-btn" data-profile="Aiden">
+        <img src="https://i.postimg.cc/JhvL7cpL/aiden.png" alt="Aiden">
+        <span>Aiden</span>
+      </button>
+      <button class="profile-btn" data-profile="Liadan">
+        <img src="https://i.postimg.cc/RZbrGL5H/liadan.png" alt="Liadan">
+        <span>Liadan</span>
+      </button>
     </div>
   </div>
 </div>
