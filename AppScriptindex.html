@@ -984,123 +984,31 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
 }
 
 function openVideo(url, title, episode = "") {
-  // Set the new “currently playing” context
-  currentVideo = {
-    profile: currentProfile,
-    title,
-    episode
-  };
+  // Update context
+  currentVideo = { profile: currentProfile, title, episode };
 
-  // Keep the “Continue the story” list visible always.
-  // Only highlight when we know a specific episode/part.
-  const episodesSection = document.getElementById("tmdbEpisodesSection");
-  if (episodesSection && episodesSection.parentNode) {
-    const cards = episodesSection.querySelectorAll(".movie-card");
-    cards.forEach(c => c.classList.remove("active-episode"));
-
-    if (episode) {
-      const match = Array.from(cards).find(c => {
-        const t = c.querySelector(".movie-title")?.textContent?.trim();
-        return t && t.toLowerCase() === episode.trim().toLowerCase();
-      });
-      if (match) match.classList.add("active-episode");
-    }
+  // Highlight the chosen episode inside the visible episodes list (if present)
+  const grid = document.getElementById("episodesGrid");
+  if (grid && episode) {
+    const want = episode.trim().toLowerCase();
+    grid.querySelectorAll(".movie-card").forEach(c => {
+      const t = c.querySelector(".movie-title")?.textContent?.trim().toLowerCase();
+      c.classList.toggle("active-episode", t === want);
+    });
   }
 
-  // Ensure details preview is visible
-  const preview = document.getElementById("tmdbDetailsPreview");
-  if (preview) {
-    preview.style.display = "block";
-    // Scroll it into view just below sticky header/search
-    setTimeout(() => {
-      const yOffset = -80; // adjust for your sticky header height
-      const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }, 50);
-  }
-
-  // Play inside the TMDb preview area (no #t param)
-    const trailerContainer = document.getElementById("tmdbTrailerContainer");
-    if (trailerContainer) {
-      // Make sure nothing overlays this area.
-      trailerContainer.textContent = "";
-      trailerContainer.style.position = "relative";
-      trailerContainer.style.zIndex = "1"; // above surrounding content
-      trailerContainer.style.pointerEvents = "auto";
-
-      const iframe = document.createElement("iframe");
-      iframe.id = "tmdbTrailerFrame";
-      iframe.src = url; // e.g. https://drive.google.com/file/<id>/preview
-      // IMPORTANT: don't sandbox the Drive iframe — it can block interaction on mobile.
-      // iframe.removeAttribute("sandbox");
-      iframe.setAttribute("allowfullscreen", "");
-      iframe.setAttribute(
-        "allow",
-        "autoplay; encrypted-media; fullscreen; picture-in-picture"
-      );
-      // keep it interactable
-      iframe.style.width = "100%";
-      iframe.style.height = "100%";
-      iframe.style.border = "none";
-      iframe.style.borderRadius = "12px";
-      iframe.style.pointerEvents = "auto";
-      iframe.style.background = "black";
-      trailerContainer.appendChild(iframe);
-
-      // Mobile fallback: if tapping the container doesn't focus the iframe,
-      // offer an "Open in Drive" button.
-      const isTouch =
-        "ontouchstart" in window ||
-        navigator.maxTouchPoints > 0 ||
-        navigator.msMaxTouchPoints > 0;
-
-      if (isTouch) {
-        const fallback = document.createElement("button");
-        fallback.textContent = "▶";
-        fallback.type = "button";
-        fallback.style.cssText = `
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 32px;
-          padding: 20px 40px;
-          border: none;
-          border-radius: 12px;
-          background: rgba(229, 9, 20, 0.95); /* Netflix red with opacity */
-          color: #fff;
-          font-weight: bold;
-          cursor: pointer;
-          z-index: 5; /* sits above the iframe */
-        `;
-        fallback.addEventListener("click", (e) => {
-          e.stopPropagation();
-          window.open(url, "_blank", "noopener");
-        });
-        trailerContainer.appendChild(fallback);
-
-        // Hide fallback after the user taps anywhere on the iframe
-        trailerContainer.addEventListener(
-          "touchstart",
-          () => {
-            setTimeout(() => (fallback.style.display = "none"), 300);
-          },
-          { once: true }
-        );
-      }
-    }
-
-  // Update title (and clear date since this is a Drive video)
-  const titleEl = document.getElementById("tmdbDetailsTitle");
-  if (titleEl) titleEl.textContent = title;
-  const dateEl = document.getElementById("tmdbDetailsReleaseDate");
-  if (dateEl) dateEl.innerHTML = "";
-
-  // Save “last episode watched” immediately on selection
+  // Save progress
   if (currentProfile && title) {
     google.script.run
       .withFailureHandler(err => console.warn("saveProfileProgress failed:", err))
       .saveProfileProgress(currentProfile, title, episode);
+  }
+
+  // Open in a new tab (no TMDb preview iframe)
+  try {
+    window.open(url, "_blank", "noopener");
+  } catch {
+    location.href = url;
   }
 }
 
@@ -1124,9 +1032,8 @@ function openEpisodeInNewTab(url, showTitle, episodeTitle = "") {
   }
 }
 
-// Put this where your current showEpisodes() is defined
 function showEpisodesList(showLike) {
-  // Ensure episodesSection exists in the DOM
+  // Ensure episodesSection exists
   let section = document.getElementById("episodesSection");
   if (!section) {
     section = document.createElement("div");
@@ -1137,30 +1044,34 @@ function showEpisodesList(showLike) {
       <div class="scroll-container" id="episodesGrid"></div>
     `;
     const cwSection = document.getElementById("continueWatchingSection");
-    if (cwSection) {
-      cwSection.insertAdjacentElement("beforebegin", section);
-    } else {
-      document.body.appendChild(section); // fallback
-    }
+    if (cwSection) cwSection.insertAdjacentElement("beforebegin", section);
+    else document.body.appendChild(section);
   }
 
   const titleEl = document.getElementById("episodesTitle");
   const grid = document.getElementById("episodesGrid");
   if (!grid) return;
 
-  // Hide TMDb preview
+  // Hide TMDb preview for local items
   const preview = document.getElementById("tmdbDetailsPreview");
   if (preview) preview.style.display = "none";
 
-  // Clear + prep
+  // Clear + show section
   grid.innerHTML = "";
   section.style.display = "block";
 
-  // Title + close button
   const displayTitle = showLike.title || showLike.name || "Episodes";
-  const label = (showLike.episodes?.length > 1) ? "Episodes" : "Collection";
+  let eps = Array.isArray(showLike.episodes) ? [...showLike.episodes] : [];
+
+  // If no episodes but we have a direct URL, create a single "Play" card
+  if ((!eps || eps.length === 0) && showLike.url) {
+    eps = [{ title: "Play", url: showLike.url }];
+  }
+
+  const label = (eps.length > 1) ? "Episodes" : "Collection";
   titleEl.innerHTML = `${displayTitle} — <span style="opacity:.8">${label}</span>`;
 
+  // Close button
   let closeBtn = titleEl.querySelector("button.episodes-close");
   if (!closeBtn) {
     closeBtn = document.createElement("button");
@@ -1174,12 +1085,11 @@ function showEpisodesList(showLike) {
     titleEl.appendChild(closeBtn);
   }
 
-  // Build episode cards
-  const eps = Array.isArray(showLike.episodes) ? showLike.episodes : [];
-  if (eps.length === 0) {
+  // Build cards
+  if (!eps || eps.length === 0) {
     grid.innerHTML = '<p style="color:#aaa;font-size:24px;text-align:center;">No episodes found.</p>';
   } else {
-    const last = getLastWatchedEpisodeFor(showLike.title || showLike.name);
+    const last = getLastWatchedEpisodeFor(displayTitle);
     eps.forEach(ep => {
       const card = document.createElement("div");
       card.className = "movie-card";
@@ -1189,7 +1099,12 @@ function showEpisodesList(showLike) {
         <div class="movie-title">${ep.title}</div>
       `;
       card.addEventListener("click", () => {
-        openEpisodeInNewTab(ep.url, showLike.title || showLike.name, ep.title);
+        // Visually select in the list
+        grid.querySelectorAll(".movie-card").forEach(c => c.classList.remove("active-episode"));
+        card.classList.add("active-episode");
+
+        // Open in new tab + save progress
+        openEpisodeInNewTab(ep.url, displayTitle, ep.title);
       });
       grid.appendChild(card);
     });
@@ -1197,11 +1112,14 @@ function showEpisodesList(showLike) {
 
   // Smooth scroll with header offset
   setTimeout(() => {
-    const yOffset = -80; // adjust for sticky header
+    const yOffset = -80; // adjust for sticky header height
     const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
     window.scrollTo({ top: y, behavior: 'smooth' });
   }, 50);
 }
+
+// (Optional but harmless): ensure global
+window.showEpisodesList = showEpisodesList;
 
 function addEpisodesUnderPreview(showLike) {
   const preview = document.getElementById("tmdbDetailsPreview");
@@ -1762,9 +1680,9 @@ function renderRecentlyAdded(items) {
 
       // Then decide how to play
       if (item.episodes && item.episodes.length === 1) {
-        openVideo(item.episodes[0].url, item.title, item.episodes[0].title || "");
+      openEpisodeInNewTab(item.episodes[0].url, item.title, item.episodes[0].title || "");
       } else if (item.url) {
-        openVideo(item.url, item.title);
+      openEpisodeInNewTab(item.url, item.title);
       } else if (item.episodes && item.episodes.length > 1) {
         // Optionally play first episode automatically, or let user choose
         // openVideo(item.episodes[0].url, item.title, item.episodes[0].title || "");
@@ -1810,7 +1728,6 @@ function loadContinueWatching() {
   });
 }
 function renderContinueWatching(items) {
-  // keep the cache updated for highlighting
   setCWCache(items || []);
 
   const container = document.getElementById("continueWatchingGrid");
@@ -1833,11 +1750,6 @@ function renderContinueWatching(items) {
     );
     if (!driveItem) return;
 
-    const episodeTitle = item.episode || "";
-    const episode = driveItem.episodes?.find((ep) => normalize(ep.title) === normalize(episodeTitle));
-    const videoUrl = episode?.url || driveItem.episodes?.[0]?.url || driveItem.url;
-    if (!videoUrl) return;
-
     const card = document.createElement("div");
     card.className = "movie-card";
     card.style.position = "relative";
@@ -1848,30 +1760,22 @@ function renderContinueWatching(items) {
       <button class="cw-complete-btn" title="Remove from Continue Watching" aria-label="Remove ${driveItem.title} from Continue Watching">−</button>
     `;
 
-    // Play click (ignore clicks that originate on the Complete button)
+    // Click on card: ONLY show episodes list
     card.addEventListener("click", (e) => {
       const el = e.target;
       if (el && typeof el.closest === "function" && el.closest(".cw-complete-btn")) return;
-
-      // Show episodes as their own row
       showEpisodesList(driveItem);
-
-      // Play the selected video
-      openVideo(videoUrl, driveItem.title, item.episode || "");
     });
 
-    // Button click with confirm()
+    // Remove button
     const completeBtn = card.querySelector(".cw-complete-btn");
     if (completeBtn) {
       completeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-
         const confirmMsg = item.episode
           ? `Mark "${driveItem.title}" — "${item.episode}" as complete?`
           : `Mark "${driveItem.title}" as complete?`;
-
         if (!window.confirm(confirmMsg)) return;
-
         markComplete(currentProfile, driveItem.title, card, item.episode || "");
       });
     }
