@@ -57,21 +57,21 @@ header img {
   outline: 3px solid #00a7b0;
   outline-offset: 2px;
 }
-#tmdbEpisodesSection .movie-card {
+#episodesSection .movie-card {
   flex: 0 0 90px;
   max-width: 90px;
   margin: 3px;
 }
-#tmdbEpisodesSection .movie-poster {
+#episodesSection .movie-poster {
   width: 100%;
   height: auto;
 }
-#tmdbEpisodesSection .movie-title {
+#episodesSection .movie-title {
   font-size: 0.65rem;
   line-height: 1.1;
   padding: 4px;
 }
-#tmdbEpisodesSection .scroll-container {
+#episodesSection .scroll-container {
   gap: 8px;
 }
 
@@ -380,34 +380,6 @@ header img {
   border-radius: 12px;
 }
 
-#videoFrameContainer { flex: 1 1 100%; min-height: 300px; width: 100%; }
-#videoFrame { width: 100% !important; height: 100% !important; border: none; }
-
-.movie-info-scroll {
-  flex: 1 1 100%;
-  overflow-y: auto;
-  padding: 30px;
-  width: 100%;
-}
-.movie-info-scroll::-webkit-scrollbar { width: 12px; }
-.movie-info-scroll::-webkit-scrollbar-thumb {
-  background: #e50914;
-  border-radius: 6px;
-}
-
-/* Modal close button */
-#closeBtn {
-  position: fixed;
-  top: 30px;
-  right: 40px;
-  font-size: 80px;
-  cursor: pointer;
-  color: #fff;
-  z-index: 2000;
-  transition: transform 0.2s ease, color 0.2s ease;
-}
-#closeBtn:hover { color: #e50914; transform: scale(1.3); }
-
 /* =======================
    TEXT IN MODAL
    ======================= */
@@ -419,7 +391,6 @@ header img {
   color: #fff;
   text-transform: uppercase;
 }
-.movie-rating { font-size: 40px; color: #ccc; margin-bottom: 20px; }
 .movie-overview {
   font-size: 40px !important;
   line-height: 1.8;
@@ -442,7 +413,7 @@ header img {
   border-radius: 15px;
   box-shadow: 0 0 20px rgba(0,0,0,0.8);
   font-size: 28px;
-  z-index: 3000;
+  z-index: 2147483646 !important;
   max-width: 90vw;
   text-align: center;
   width: 500px;
@@ -456,9 +427,6 @@ header img {
   box-shadow: 0 2px 5px rgba(0,0,0,0.7);
   transition: box-shadow 0.3s ease;
 }
-.movie-grid { display: flex; flex-wrap: wrap; gap: 30px; }
-.details { margin-top: 40px; }
-.trailer { margin-top: 30px; }
 
 .movie-card.last-watched {
   position: relative; /* ensure overlay anchors correctly */
@@ -547,8 +515,6 @@ header img {
   #videoFrameContainer { flex: 1 1 100% !important; min-height: 300px !important; width: 100% !important; }
   .movie-info-scroll { flex: 1 1 100% !important; width: 100% !important; padding: 30px !important; }
 
-  #closeBtn { font-size: 80px !important; top: 30px !important; right: 40px !important; }
-
   .refresh-emoji { font-size: 50px; }
 
   .movie-title-text { font-size: 70px !important; margin-bottom: 30px !important; }
@@ -591,8 +557,6 @@ header img {
     font-size: 20px !important;
     line-height: 36px !important;
   }
-
-  #closeBtn { font-size: 80px !important; top: 10px !important; right: 10px !important; }
 
   .refresh-emoji { font-size: 25px; }
 
@@ -748,17 +712,8 @@ header img {
     <div class="scroll-container" id="searchResultsGrid"></div>
   </div>
 
-  <!-- Video Modal -->
-  <div id="videoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="movieDetails">
-    <span id="closeBtn">&times;</span>
-    <div class="modal-content">
-      <div id="videoFrameContainer"></div>
-      <div class="movie-info-scroll" id="movieDetails"></div>
-    </div>
-  </div>
-
   <!-- Custom Popup -->
-  <div id="customPopup" style="display:none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 30px 50px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.8); font-size: 28px; z-index: 3000; max-width: 90vw; text-align: center;">
+  <div id="customPopup" role="status" aria-live="polite" aria-atomic="true" style="display:none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 30px 50px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.8); font-size: 28px; z-index: 3000; max-width: 90vw; text-align: center;">
     <span id="popupMessage"></span>
     <button id="popupCloseBtn" style="display:block; margin: 20px auto 0 auto; padding: 10px 30px; font-size: 24px; border: none; border-radius: 8px; background: #e50914; color: white; cursor: pointer;">Close</button>
   </div>
@@ -796,23 +751,32 @@ header img {
 <script>
 let fullLibrary = [];
 let wishlistAvailableTitles = [];
-let currentVideo = {
-  profile: null,
-  title: null,
-  episode: null
-};
 
 const appContent = document.getElementById('appContent');
 
+let _lastFocus = null;
+
 function showPopup(messageHtml) {
+  _lastFocus = document.activeElement;
   const popup = document.getElementById('customPopup');
   const msgSpan = document.getElementById('popupMessage');
   msgSpan.innerHTML = messageHtml;
   popup.style.display = 'block';
+  document.getElementById('popupCloseBtn').focus();
 }
 
 document.getElementById('popupCloseBtn').addEventListener('click', () => {
   document.getElementById('customPopup').style.display = 'none';
+  if (_lastFocus && typeof _lastFocus.focus === 'function') {
+    _lastFocus.focus();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  const popup = document.getElementById('customPopup');
+  if (e.key === 'Escape' && popup.style.display === 'block') {
+    document.getElementById('popupCloseBtn').click();
+  }
 });
 
 // Remove an item from Continue Watching for this profile
@@ -980,38 +944,7 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
   return card;
 }
 
-function openVideo(url, title, episode = "") {
-  // Update context
-  currentVideo = { profile: currentProfile, title, episode };
-
-  // Highlight the chosen episode inside the visible episodes list (if present)
-  const grid = document.getElementById("episodesGrid");
-  if (grid && episode) {
-    const want = episode.trim().toLowerCase();
-    grid.querySelectorAll(".movie-card").forEach(c => {
-      const t = c.querySelector(".movie-title")?.textContent?.trim().toLowerCase();
-      c.classList.toggle("active-episode", t === want);
-    });
-  }
-
-  // Save progress
-  if (currentProfile && title) {
-    google.script.run
-      .withFailureHandler(err => console.warn("saveProfileProgress failed:", err))
-      .saveProfileProgress(currentProfile, title, episode);
-  }
-
-  // Open in a new tab (no TMDb preview iframe)
-  try {
-    window.open(url, "_blank", "noopener");
-  } catch {
-    location.href = url;
-  }
-}
-
 function openEpisodeInNewTab(url, showTitle, episodeTitle = "") {
-  // update context
-  currentVideo = { profile: currentProfile, title: showTitle, episode: episodeTitle };
 
   // save progress
   if (currentProfile && showTitle) {
@@ -1065,8 +998,8 @@ function showEpisodesList(showLike) {
     const wantTitle = showLike.title || showLike.name;
 
     // Temporarily show a loading state in the grid
-    const grid = document.getElementById("episodesGrid");
-    if (grid) grid.innerHTML = '<p style="color:#aaa;font-size:24px;text-align:center;">Loading episodes…</p>';
+    const gridEl = document.getElementById("episodesGrid");
+    if (gridEl) gridEl.innerHTML = '<p style="color:#aaa;font-size:24px;text-align:center;">Loading episodes…</p>';
 
     google.script.run
       .withSuccessHandler(payload => {
@@ -1074,7 +1007,6 @@ function showEpisodesList(showLike) {
         if (!fromServer.length && payload?.url) {
           fromServer.push({ title: "Play", url: payload.url, poster: payload.poster || showLike.poster });
         }
-        // re‑invoke with a fully hydrated object so the rest of the function renders normally
         showEpisodesList({
           title: payload.title || wantTitle,
           poster: payload.poster || showLike.poster,
@@ -1082,7 +1014,7 @@ function showEpisodesList(showLike) {
         });
       })
       .withFailureHandler(() => {
-        if (grid) grid.innerHTML = '<p style="color:#aaa;font-size:24px;text-align:center;">No episodes found.</p>';
+        if (gridEl) gridEl.innerHTML = '<p style="color:#aaa;font-size:24px;text-align:center;">No episodes found.</p>';
       })
       .getEpisodesByTitle(wantTitle);
     return; // stop here; the success handler will re-render
@@ -1151,57 +1083,6 @@ function showEpisodesList(showLike) {
 // (Optional but harmless): ensure global
 window.showEpisodesList = showEpisodesList;
 
-function addEpisodesUnderPreview(showLike) {
-  const preview = document.getElementById("tmdbDetailsPreview");
-  if (!preview) return;
-
-  // (Re)create container once
-  let section = document.getElementById("tmdbEpisodesSection");
-  if (!section) {
-    section = document.createElement("div");
-    section.id = "tmdbEpisodesSection";
-    section.style.marginTop = "16px";
-    section.style.paddingTop = "12px";
-    section.style.borderTop = "1px solid rgba(255,255,255,0.1)";
-    preview.appendChild(section);
-  }
-
-  // Rebuild section
-  section.innerHTML = "";
-
-  const h2 = document.createElement("h2");
-  h2.className = "subsection-title";
-  h2.textContent = "Continue the story"; // <-- was "Episodes"
-  section.appendChild(h2);
-
-  const row = document.createElement("div");
-  row.className = "scroll-container";
-  row.id = "episodesScrollRow";
-  section.appendChild(row);
-
-  const eps = Array.isArray(showLike.episodes) ? showLike.episodes : [];
-  const last = getLastWatchedEpisodeFor(showLike.title || showLike.name);
-
-  eps.forEach(ep => {
-    const card = document.createElement("div");
-    card.className = "movie-card";
-    if (_norm(ep.title) === _norm(last)) {
-      card.classList.add("last-watched");
-    }
-    card.innerHTML = `
-      <img src="${showLike.poster}" alt="${ep.title}" loading="lazy">
-      <div class="movie-title">${ep.title}</div>
-    `;
-    card.addEventListener("click", () => {
-      openEpisodeInNewTab(ep.url, showLike.title || showLike.name, ep.title);
-    });
-    row.appendChild(card);
-  });
-
-  // Ensure preview is visible
-  preview.style.display = "block";
-}
-
 function renderAvailableToWatch(movies, tvShows) {
   const container = document.getElementById("availableToWatchGrid");
   container.innerHTML = "";
@@ -1212,7 +1093,6 @@ function renderAvailableToWatch(movies, tvShows) {
   });
 }
 
-// Load Library via google.script.run and sync wishlist statuses automatically
 // Load Library via google.script.run and sync wishlist statuses automatically
 function loadLibrary(force = false) {
   // only skip if we've already loaded AND not forcing
@@ -1394,164 +1274,6 @@ document.getElementById("searchInput").addEventListener("input", function (e) {
   }
 });
 
-function showDetails(movieId) {
-  google.script.run.withSuccessHandler(showMovieDetails).getMovieDetails(movieId);
-}
-
-function showMovieDetails(data) {
-  const details = data.details;
-  const videos = data.videos;
-
-  const movieDetails = document.getElementById('movieDetails');
-  const videoFrameContainer = document.getElementById('videoFrameContainer');
-
-  movieDetails.textContent = '';
-  videoFrameContainer.textContent = '';
-
-  const title = document.createElement('h2');
-  title.className = 'movie-title-text';
-  title.textContent = details.title;
-
-  const release = document.createElement('p');
-  release.innerHTML = `<strong>Release Date:</strong> ${details.release_date}`;
-
-  const overview = document.createElement('p');
-  overview.className = 'movie-overview';
-  overview.textContent = details.overview;
-
-  movieDetails.appendChild(title);
-  movieDetails.appendChild(release);
-  movieDetails.appendChild(overview);
-
-  const trailer = videos.find(v => v.type === 'Trailer' && v.site === 'YouTube');
-
-  if (trailer) {
-    const iframe = document.createElement('iframe');
-    iframe.id = 'videoFrame';
-    iframe.src = `https://www.youtube.com/embed/${trailer.key}`;
-    iframe.setAttribute('allowfullscreen', '');
-    videoFrameContainer.appendChild(iframe);
-  } else {
-    const noTrailerMsg = document.createElement('p');
-    noTrailerMsg.innerHTML = '<em>No trailer available.</em>';
-    videoFrameContainer.appendChild(noTrailerMsg);
-  }
-
-  document.getElementById('videoModal').classList.add('active');
-}
-
-// TMDB
-async function renderTMDbMovies(movies, wishlistTitles = [], wishlistAvailable = []) {
-  const row = document.getElementById('tmdbMoviesRow');
-  row.innerHTML = '';
-
-  // Filter out adult movies
-  const filteredMovies = movies.filter(movie => !movie.adult);
-  const shuffled = shuffleArray(filteredMovies);
-
-  // Render movie cards
-  shuffled.forEach(movie => {
-    const card = createCard(movie, true, wishlistTitles);
-
-    // Show "AVAILABLE" banner if applicable
-    if (wishlistAvailable.some(w => 
-        w.title.toLowerCase() === (movie.title || movie.name).toLowerCase() &&
-        w.status === "Available"
-    )) {
-      const banner = document.createElement('div');
-      banner.textContent = 'AVAILABLE';
-      banner.style.cssText = `
-        position: absolute;
-        top: 10px;
-        left: 0;
-        width: 100%;
-        background-color: rgba(0, 128, 0, 0.75);
-        color: white;
-        font-weight: bold;
-        text-align: center;
-        padding: 6px 0;
-        border-radius: 12px 12px 0 0;
-        font-size: 24px;
-        z-index: 20;
-        pointer-events: none;
-      `;
-      card.style.position = 'relative';
-      card.appendChild(banner);
-    }
-
-    row.appendChild(card);
-  });
-
-  // Clear preview initially
-  const trailerContainer = document.getElementById('tmdbTrailerContainer');
-  const preview = document.getElementById('tmdbDetailsPreview');
-  preview.style.display = 'none';
-  trailerContainer.innerHTML = '';
-
-  // Load trailer preview only if a valid trailer exists
-  for (const movie of shuffled) {
-    const data = await fetchTMDbDetails(movie, false);
-    if (!data || !data.videos || !data.videos.results) continue;
-
-    const trailer = data.videos.results.find(
-      v => v.type === 'Trailer' && v.site === 'YouTube'
-    );
-    if (!trailer) continue;
-
-    trailerContainer.innerHTML = `
-      <iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" 
-        sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
-        allowfullscreen
-        style="width:100%;height:100%;border:none;border-radius:12px;">
-      </iframe>
-    `;
-
-    document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
-    document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
-    document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
-    preview.style.display = 'block';
-    break; // success — stop the loop
-  }
-}
-function renderTMDbTV(tvShows, wishlistTitles = [], wishlistAvailable = []) {
-  const row = document.getElementById('tmdbTVRow');
-  row.innerHTML = '';
-
-  // Filter out adult TV shows
-  const filteredTV = tvShows.filter(show => !show.adult);
-
-  shuffleArray(filteredTV).forEach(show => {
-    const card = createCard(show, true, wishlistTitles);
-
-    // Check if show is in wishlistAvailable (Available status) for AVAILABLE banner
-    if (wishlistAvailable.some(w => 
-        w.title.toLowerCase() === (show.title || show.name).toLowerCase() &&
-        w.status === "Available"
-    )) {
-      const banner = document.createElement('div');
-      banner.textContent = 'AVAILABLE';
-      banner.style.cssText = `
-        position: absolute;
-        top: 10px;
-        left: 0;
-        width: 100%;
-        background-color: rgba(0, 128, 0, 0.75);
-        color: white;
-        font-weight: bold;
-        text-align: center;
-        padding: 6px 0;
-        border-radius: 12px 12px 0 0;
-        font-size: 24px;
-        z-index: 20;
-        pointer-events: none;
-      `;
-      card.style.position = 'relative';
-      card.appendChild(banner);
-    }
-
-    row.appendChild(card);
-  });
-}
 function loadCombinedPopular() {
   return loadWishlistRequested()
     .then(() => {
@@ -1724,15 +1446,17 @@ function loadWishlist() {
 function renderRecentlyAdded(items) {
   const grid = document.getElementById('recentlyAddedGrid');
   grid.innerHTML = '';
-  if (items.length === 0) {
+  if (!items || items.length === 0) {
     grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No recent videos found.</p>';
     return;
   }
-  shuffleArray(items).forEach(item => {
+
+  // Items are already sorted newest → oldest by the server
+  items.forEach(item => {
     const card = document.createElement('div');
     card.classList.add('movie-card');
     card.innerHTML = `
-      <img src="${item.poster}" alt="${item.title}" loading="lazy">
+      <img src="${item.poster}" alt="${item.title}" loading="lazy" decoding="async">
       <div class="movie-title">${item.title}</div>
     `;
     card.addEventListener('click', () => {
@@ -1757,27 +1481,43 @@ function loadRecentlyAdded() {
       console.error("❌ Failed to load recently added:", err);
       showPopup("Error loading recently added.");
       resolve();
-    }).getRecentVideos();
+    }).getRecentVideos(14);
   });
 }
 
 // CONTINUE WATCHING
 function loadContinueWatching() {
-  return new Promise(resolve => {
-    if (!currentProfile) {
-      console.log("⚠️ No currentProfile, skipping continue watching");
-      return resolve();
-    }
+  if (!currentProfile) {
+    console.log("⚠️ No currentProfile, skipping continue watching");
+    return Promise.resolve();
+  }
 
-    google.script.run.withSuccessHandler(data => {
-      renderContinueWatching(data || []);
-      resolve();
-    }).getContinueWatching(currentProfile);
-  });
+  const ensureLibrary = window.library ? Promise.resolve() : loadLibrary();
+
+  return ensureLibrary.then(() =>
+    new Promise(resolve => {
+      google.script.run
+        .withSuccessHandler(data => {
+          renderContinueWatching(data || []);
+          resolve();
+        })
+        .withFailureHandler(err => {
+          console.error("❌ getContinueWatching failed:", err);
+          resolve();
+        })
+        .getContinueWatching(currentProfile);
+    })
+  );
 }
 function renderContinueWatching(items) {
-  setCWCache(items || []);
+  // newest → oldest by updatedAt; if missing, they fall to the bottom
+  items = (items || []).slice().sort((a, b) => {
+    const ta = Date.parse(a.updatedAt || '') || 0;
+    const tb = Date.parse(b.updatedAt || '') || 0;
+    return tb - ta;
+  });
 
+  setCWCache(items || []);
   const container = document.getElementById("continueWatchingGrid");
   if (!container) return;
   container.innerHTML = "";
@@ -1803,19 +1543,17 @@ function renderContinueWatching(items) {
     card.style.position = "relative";
 
     card.innerHTML = `
-      <img src="${driveItem.poster}" alt="${driveItem.title}" loading="lazy">
+      <img src="${driveItem.poster}" alt="${driveItem.title}" loading="lazy" decoding="async">
       <div class="movie-title">${driveItem.title}</div>
       <button class="cw-complete-btn" title="Remove from Continue Watching" aria-label="Remove ${driveItem.title} from Continue Watching">−</button>
     `;
 
-    // Click on card: ONLY show episodes list
     card.addEventListener("click", (e) => {
       const el = e.target;
       if (el && typeof el.closest === "function" && el.closest(".cw-complete-btn")) return;
       showEpisodesList(driveItem);
     });
 
-    // Remove button
     const completeBtn = card.querySelector(".cw-complete-btn");
     if (completeBtn) {
       completeBtn.addEventListener("click", (e) => {
@@ -1836,37 +1574,31 @@ function renderContinueWatching(items) {
 
 // DETAILS & TRAILERS
 async function fetchTMDbDetails(item, isTV = false) {
-  const apiKey = '48f719a14913f9d4ee92c684c2187625';
-  const baseUrl = 'https://api.themoviedb.org/3';
-  const type = isTV ? 'tv' : 'movie';
-  const url = `${baseUrl}/${type}/${item.id}?api_key=${apiKey}&language=en-US&append_to_response=videos,keywords`;
+  return new Promise(resolve => {
+    google.script.run
+      .withSuccessHandler(data => {
+        if (!data || data.error) {
+          const trailerContainer = document.getElementById('tmdbTrailerContainer');
+          const titleElem = document.getElementById('tmdbDetailsTitle');
+          const dateElem = document.getElementById('tmdbDetailsReleaseDate');
+          const overviewElem = document.getElementById('tmdbDetailsOverview');
+          const preview = document.getElementById('tmdbDetailsPreview');
 
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.warn(`⚠️ TMDb fetch failed for "${item.title || item.name || 'Unknown'}": ${error.message}`);
-
-    const trailerContainer = document.getElementById('tmdbTrailerContainer');
-    const titleElem = document.getElementById('tmdbDetailsTitle');
-    const dateElem = document.getElementById('tmdbDetailsReleaseDate');
-    const overviewElem = document.getElementById('tmdbDetailsOverview');
-    const preview = document.getElementById('tmdbDetailsPreview');
-
-    if (trailerContainer) trailerContainer.innerHTML = '<p><em>Details not available for this title.</em></p>';
-    if (titleElem) titleElem.textContent = item.title || item.name || 'Unknown';
-    if (dateElem) dateElem.innerHTML = '';
-    if (overviewElem) overviewElem.textContent = 'We could not load details from TMDb.';
-    if (preview) preview.style.display = 'block';
-
-    return null;
-  }
-}
-
-function isContinueWatchingLoaded() {
-  const container = document.getElementById("continueWatchingGrid");
-  return container && container.children.length > 0;
+          if (trailerContainer) trailerContainer.innerHTML = '<p><em>Details not available for this title.</em></p>';
+          if (titleElem) titleElem.textContent = item.title || item.name || 'Unknown';
+          if (dateElem) dateElem.innerHTML = '';
+          if (overviewElem) overviewElem.textContent = 'We could not load details from TMDb.';
+          if (preview) preview.style.display = 'block';
+          resolve(null);
+          return;
+        }
+        resolve(data);
+      })
+      .withFailureHandler(() => {
+        resolve(null);
+      })
+      .getTMDbDetails(item.id, isTV);
+  });
 }
 
 let wishlistRequestedTitles = [];
