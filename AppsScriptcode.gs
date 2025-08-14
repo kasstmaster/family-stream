@@ -66,36 +66,81 @@ function streamVideo(fileId, e) {
 // Build Movie/TV JSON by processing Drive folders
 function processCategory(categoryFolder) {
   const results = [];
-  const subfolders = categoryFolder.getFolders();
 
-  while (subfolders.hasNext()) {
-    const folder = subfolders.next();
-    const title = folder.getName();
+  const isPoster = n =>
+    n.endsWith('.png') || n.endsWith('.jpg') || n.endsWith('.jpeg') || n.endsWith('.webp');
+
+  const getPosterFromFolder = (folder) => {
     const files = folder.getFiles();
-    let poster = '';
-    const videos = [];
-
     while (files.hasNext()) {
-      const file = files.next();
-      const name = file.getName().toLowerCase();
+      const f = files.next();
+      if (isPoster(f.getName().toLowerCase())) {
+        return 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w300';
+      }
+    }
+    return '';
+  };
 
-      if ((name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) && !poster) {
-        poster = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w300';
-      } else if (/\.(mp4|mov|mkv)$/i.test(name)) {
-        videos.push({
-          title: file.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
-          url: `https://drive.google.com/file/d/${file.getId()}/preview`
+  const getVideosFromFolder = (folder) => {
+    const out = [];
+    const files = folder.getFiles();
+    while (files.hasNext()) {
+      const f = files.next();
+      const n = f.getName().toLowerCase();
+      if (/\.(mp4|mov|mkv)$/i.test(n)) {
+        out.push({
+          title: f.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
+          url: `https://drive.google.com/file/d/${f.getId()}/preview`
+        });
+      }
+    }
+    return out;
+  };
+
+  const subfolders = categoryFolder.getFolders();
+  while (subfolders.hasNext()) {
+    const titleFolder = subfolders.next();   // e.g. "The Lord of the Rings"
+    const title = titleFolder.getName();
+
+    // 1) Always scan CHILD FOLDERS first (episodes-as-folders)
+    const childEpisodes = [];
+    const children = titleFolder.getFolders();
+    while (children.hasNext()) {
+      const epFolder = children.next();      // e.g. "The Two Towers"
+      const vids = getVideosFromFolder(epFolder);
+      if (vids.length > 0) {
+        const epPoster = getPosterFromFolder(epFolder);
+        childEpisodes.push({
+          title: epFolder.getName(),
+          url: vids[0].url, // first playable
+          poster: epPoster || ''  // leave empty; frontend will fall back to parent
         });
       }
     }
 
+    const parentPoster = getPosterFromFolder(titleFolder);
+
+    if (childEpisodes.length > 0) {
+      // Prefer series/collection if any child folder has a video — regardless of parent poster/files
+      results.push({
+        title,
+        poster: parentPoster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(title),
+        type: 'movie-series',
+        episodes: childEpisodes
+      });
+      continue;
+    }
+
+    // 2) Otherwise, fall back to videos directly in the title folder
+    const directVideos = getVideosFromFolder(titleFolder);
     results.push({
-      title: title,
-      poster: poster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(title),
-      type: videos.length > 1 ? 'tv' : 'movie',
-      episodes: videos
+      title,
+      poster: parentPoster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(title),
+      type: directVideos.length > 1 ? 'tv' : 'movie',
+      episodes: directVideos
     });
   }
+
   return results;
 }
 
