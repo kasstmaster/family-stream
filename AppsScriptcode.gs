@@ -63,9 +63,21 @@ function streamVideo(fileId, e) {
   }
 }
 
+function debugOneCategory() {
+  const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1'; // your root
+  const root = DriveApp.getFolderById(rootFolderId);
+
+  const movies = root.getFoldersByName('Movies');
+  if (!movies.hasNext()) { Logger.log('No Movies folder found'); return; }
+  const mv = movies.next();
+
+  const out = processCategory(mv);
+  Logger.log('processCategory output count: ' + out.length);
+}
 // Build Movie/TV JSON by processing Drive folders
 function processCategory(categoryFolder) {
   const results = [];
+  const DEBUG = true; // set false after testing
 
   const isPoster = n =>
     n.endsWith('.png') || n.endsWith('.jpg') || n.endsWith('.jpeg') || n.endsWith('.webp');
@@ -74,7 +86,8 @@ function processCategory(categoryFolder) {
     const files = folder.getFiles();
     while (files.hasNext()) {
       const f = files.next();
-      if (isPoster(f.getName().toLowerCase())) {
+      const n = String(f.getName() || '').toLowerCase();
+      if (isPoster(n)) {
         return 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w300';
       }
     }
@@ -86,7 +99,7 @@ function processCategory(categoryFolder) {
     const files = folder.getFiles();
     while (files.hasNext()) {
       const f = files.next();
-      const n = f.getName().toLowerCase();
+      const n = String(f.getName() || '').toLowerCase();
       if (/\.(mp4|mov|mkv)$/i.test(n)) {
         out.push({
           title: f.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
@@ -97,41 +110,62 @@ function processCategory(categoryFolder) {
     return out;
   };
 
-  const subfolders = categoryFolder.getFolders();
-  while (subfolders.hasNext()) {
-    const titleFolder = subfolders.next();   // e.g. "The Lord of the Rings"
+  // ---- SNAPSHOT title folders as IDs, then re-fetch handles
+  const titleFolderInfos = [];
+  {
+    const it = categoryFolder.getFolders();
+    while (it.hasNext()) {
+      const tf = it.next();
+      titleFolderInfos.push({ id: tf.getId(), name: tf.getName() });
+    }
+  }
+  if (DEBUG) Logger.log(`processCategory: found ${titleFolderInfos.length} title folders under "${categoryFolder.getName()}"`);
+
+  for (const info of titleFolderInfos) {
+    const titleFolder = DriveApp.getFolderById(info.id); // fresh handle
     const title = titleFolder.getName();
 
-    // 1) Always scan CHILD FOLDERS first (episodes-as-folders)
+    // Snapshot child folders by ID (fresh handles later)
+    const childInfos = [];
+    {
+      const it = titleFolder.getFolders();
+      while (it.hasNext()) {
+        const cf = it.next();
+        childInfos.push({ id: cf.getId(), name: cf.getName() });
+      }
+    }
+    if (DEBUG) Logger.log(`  • "${title}" -> ${childInfos.length} child folders: ${JSON.stringify(childInfos.map(x => x.name))}`);
+
+    // Build episodes from child folders (re-fetch)
     const childEpisodes = [];
-    const children = titleFolder.getFolders();
-    while (children.hasNext()) {
-      const epFolder = children.next();      // e.g. "The Two Towers"
+    for (const ci of childInfos) {
+      const epFolder = DriveApp.getFolderById(ci.id);
       const vids = getVideosFromFolder(epFolder);
       if (vids.length > 0) {
         const epPoster = getPosterFromFolder(epFolder);
         childEpisodes.push({
           title: epFolder.getName(),
-          url: vids[0].url, // first playable
-          poster: epPoster || ''  // leave empty; frontend will fall back to parent
+          url: vids[0].url,
+          poster: epPoster || ''
         });
       }
     }
 
+    // Only now touch files on the parent
     const parentPoster = getPosterFromFolder(titleFolder);
 
     if (childEpisodes.length > 0) {
-      // Prefer series/collection if any child folder has a video — regardless of parent poster/files
       results.push({
         title,
         poster: parentPoster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(title),
         type: 'movie-series',
         episodes: childEpisodes
       });
+      if (DEBUG) Logger.log(`    -> SERIES with ${childEpisodes.length} episodes`);
       continue;
     }
 
-    // 2) Otherwise, fall back to videos directly in the title folder
+    // Fallback: direct videos on the title folder
     const directVideos = getVideosFromFolder(titleFolder);
     results.push({
       title,
@@ -139,9 +173,83 @@ function processCategory(categoryFolder) {
       type: directVideos.length > 1 ? 'tv' : 'movie',
       episodes: directVideos
     });
+    if (DEBUG) Logger.log(`    -> DIRECT videos: ${directVideos.length}`);
   }
 
   return results;
+}
+
+function getEpisodesByTitle(title) {
+  const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1'; // your root
+  const root = DriveApp.getFolderById(rootFolderId);
+  const categories = ['Movies', 'TV Shows'];
+
+  const isPoster = n => /\.(png|jpe?g|webp)$/i.test(n);
+  const getPosterFromFolder = (folder) => {
+    const files = folder.getFiles();
+    while (files.hasNext()) {
+      const f = files.next();
+      if (isPoster(String(f.getName()).toLowerCase())) {
+        return 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w300';
+      }
+    }
+    return '';
+  };
+  const getVideosFromFolder = (folder) => {
+    const out = [];
+    const files = folder.getFiles();
+    while (files.hasNext()) {
+      const f = files.next();
+      const n = String(f.getName() || '').toLowerCase();
+      if (/\.(mp4|mov|mkv)$/i.test(n)) {
+        out.push({
+          title: f.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
+          url: `https://drive.google.com/file/d/${f.getId()}/preview`
+        });
+      }
+    }
+    return out;
+  };
+
+  const norm = s => String(s || '').replace(/\u00A0/g,' ').trim().toLowerCase();
+
+  for (const cat of categories) {
+    const it = root.getFoldersByName(cat);
+    if (!it.hasNext()) continue;
+    const catFolder = it.next();
+
+    // find the title folder
+    const tfIt = catFolder.getFolders();
+    while (tfIt.hasNext()) {
+      const titleFolder = tfIt.next();
+      if (norm(titleFolder.getName()) !== norm(title)) continue;
+
+      // children as episodes
+      const childEpisodes = [];
+      const childIt = titleFolder.getFolders();
+      while (childIt.hasNext()) {
+        const epFolder = childIt.next();
+        const vids = getVideosFromFolder(epFolder);
+        if (vids.length) {
+          childEpisodes.push({
+            title: epFolder.getName(),
+            url: vids[0].url,
+            poster: getPosterFromFolder(epFolder) || ''
+          });
+        }
+      }
+
+      const parentPoster = getPosterFromFolder(titleFolder);
+      if (childEpisodes.length) {
+        return { title: titleFolder.getName(), poster: parentPoster, episodes: childEpisodes };
+      }
+
+      // fallback: direct videos
+      const direct = getVideosFromFolder(titleFolder);
+      return { title: titleFolder.getName(), poster: parentPoster, episodes: direct };
+    }
+  }
+  return { title, poster: '', episodes: [] };
 }
 
 // New function: Build and return your entire library JSON
