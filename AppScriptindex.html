@@ -1158,9 +1158,6 @@ window.addEventListener("load", () => {
   });
 });
 
-// Uses the existing `_norm` helper you already have:
-// const _norm = s => String(s || "").replace(/\u00A0/g, " ").trim().toLowerCase();
-
 document.getElementById("searchInput").addEventListener("input", function (e) {
   const query = (e.target.value || "").toLowerCase().trim();
   const searchResults = document.getElementById("searchResultsSection");
