@@ -1,1915 +1,587 @@
-<!DOCTYPE html>
+// !DOCTYPE Code.gs
 
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ILYMMD+</title>
-
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" as="style">
-  <link rel="preload" href="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" as="image">
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" media="all" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"></noscript>
-  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
-
-<style>
-/* =======================
-   GLOBAL BASE STYLES
-   ======================= */
-:root {
-  /* spacing & sizes you might tweak later */
-}
-
-body {
-  font-family: Arial, sans-serif;
-  background: #141414;
-  color: #fff;
-  margin: 0;
-  font-size: 60px; /* mobile default */
-}
-
-#appContent {
-  padding-top: 0;         /* header is static */
-  padding-bottom: 120px;  /* make room for bottom bar */
-}
-
-/* =======================
-   HEADER
-   ======================= */
-header {
-  background: #000;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.7);
-  text-align: center;
-  position: relative;
-  z-index: 1;
-}
-header img {
-  max-width: 350px;
-  height: auto;
-}
-
-/* =======================
-   EPISODES (compact cards)
-   ======================= */
-.active-episode {
-  outline: 3px solid #00a7b0;
-  outline-offset: 2px;
-}
-#tmdbEpisodesSection .movie-card {
-  flex: 0 0 90px;
-  max-width: 90px;
-  margin: 3px;
-}
-#tmdbEpisodesSection .movie-poster {
-  width: 100%;
-  height: auto;
-}
-#tmdbEpisodesSection .movie-title {
-  font-size: 0.65rem;
-  line-height: 1.1;
-  padding: 4px;
-}
-#tmdbEpisodesSection .scroll-container {
-  gap: 8px;
-}
-
-/* Ensure the trailer area is on top and interactive */
-#tmdbTrailerContainer { position: relative; z-index: 1; }
-
-/* Just in case: never disable pointer events on the preview or the container */
-#tmdbDetailsPreview, #tmdbTrailerContainer, #tmdbTrailerFrame {
-  pointer-events: auto !important;
-}
-
-/* =======================
-   PROFILES
-   ======================= */
-.profile-btn {
-  background: #1f1f1f;
-  color: #fff;
-  font-size: 40px;
-  border: none;
-  padding: 30px 50px;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-.profile-btn:hover { background: #00a7b0; }
-
-/* =======================
-   SEARCH BAR
-   ======================= */
-.search-bar {
-  position: sticky;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 55px;
-  background: #141414;
-  padding: 10px 0;
-  text-align: center;
-  z-index: 10000;
-}
-.search-bar input {
-  padding: 40px;
-  width: 95%;
-  max-width: 750px;
-  font-size: 60px;
-  border-radius: 12px;
-  border: none;
-}
-
-/* =======================
-   SECTION / TITLE HEADERS
-   ======================= */
-.section-title,
-.tmdb-title {
-  font-family: 'Roboto', sans-serif;
-  font-weight: 700;
-  font-size: 90px;
-  text-align: center;
-  color: #fff;
-  position: sticky;
-  top: 55px; /* height of search bar */
-  background: #141414;
-  z-index: 9999;
-  padding-top: 30px;
-  letter-spacing: 0.05em;
-}
-.section-title { margin: 80px auto 5px; }
-.tmdb-title     { margin: 80px auto 40px; }
-
-.section-title::before,
-.tmdb-title::before {
-  content: "";
-  display: block;
-  width: 100px;
-  height: 6px;
-  background-color: #00a7b0;
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  border-radius: 3px;
-}
-
-.subsection-title {
-  font-family: 'Roboto', sans-serif;
-  font-size: 80px;
-  margin: 40px auto 20px;
-  padding: 50px 20px 10px;
-}
-
-/* =======================
-   SCROLL CONTAINERS
-   ======================= */
-.scroll-container {
-  display: flex;
-  gap: 30px;
-  overflow-x: auto;
-  padding: 0 20px 10px;
-}
-.scroll-container::-webkit-scrollbar { display: none; }
-
-/* =======================
-   CARDS & ITEMS
-   ======================= */
-.movie-card,
-.movie-item { border-radius: 12px; cursor: pointer; }
-
-.movie-card {
-  background: #1f1f1f;
-  overflow: hidden;
-  width: 350px;
-  flex: 0 0 auto;
-  position: relative;
-  transition: none !important;
-}
-.movie-card:hover { transition: none !important; }
-
-.movie-card img,
-.movie-item img {
-  width: 100%;
-  display: block;
-  border-radius: 12px;
-}
-
-.movie-title {
-  padding: 24px;
-  text-align: center;
-  font-size: 60px;
-}
-
-/* Add / Request button on TMDb cards */
-.add-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: #e50914;
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 100px;
-  height: 100px;
-  font-size: 80px;
-  line-height: 96px;
-  cursor: pointer;
-  z-index: 10;
-  transition: background 0.3s ease;
-}
-.add-btn:hover { background: #ff4c4c; }
-
-/* =======================
-   SKELETON LOADER
-   ======================= */
-.skeleton-card {
-  width: 350px;
-  height: 450px;
-  background: #2c2c2c;
-  border-radius: 12px;
-  animation: pulse 1.2s infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
-
-/* =======================
-   LOADING OVERLAY
-   ======================= */
-#loadingScreen {
-  position: fixed;
-  inset: 0;
-  background: #141414;
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 60px;
-  z-index: 2147483647;
-}
-
-.loader {
-  border: 12px solid #333;
-  border-top: 12px solid #e50914;
-  border-radius: 50%;
-  width: 80px;
-  height: 80px;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
-
-/* Inline loading label used next to buttons */
-.loading-text {
-  display: none;             /* hidden by default */
-  font-weight: bold;
-  color: #e50914;
-  vertical-align: middle;
-  margin-left: 8px;
-  font-size: 24px;           /* base size, overridden in media queries */
-}
-.add-refresh-btn.loading + .loading-text { display: inline; }
-
-/* Base style for the remove (–) button */
-.cw-complete-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  font-size: 18px;
-  line-height: 1;
-  border: none;
-  border-radius: 50%;
-  background-color: rgba(0,0,0,0.7);
-  color: white;
-  cursor: pointer;
-  z-index: 3;
-}
-
-.cw-complete-btn:hover {
-  transform: scale(1.06);
-  background: #ff4c4c; /* brighter red on hover */
-}
-
-.cw-complete-btn:disabled {
-  opacity: .6;
-  cursor: default;
-}
-
-/* =======================
-   NAV / BOTTOM BAR
-   ======================= */
-.bottom-bar {
-  position: fixed;
-  bottom: 0; left: 0;
-  width: 100%;
-  background: #000;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0;
-  border-top: 1px solid #222;
-  z-index: 9999;
-}
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #fff;
-  font-size: 40px;
-  cursor: pointer;
-}
-.nav-item i { font-size: 56px; margin-bottom: 8px; }
-.nav-item:hover { color: #aaa; }
-
-/* Refresh emoji (used in a few places) */
-.refresh-emoji {
-  cursor: pointer;
-  user-select: none;
-  font-size: 30px;           /* overridden in media queries */
-  margin-left: 10px;
-  vertical-align: middle;
-  display: inline-block;
-  transition: color 0.3s ease;
-}
-.refresh-emoji:hover,
-.refresh-emoji:focus { color: #ff4c4c; outline: none; }
-.refresh-emoji[aria-disabled="true"] {
-  color: gray;
-  cursor: default;
-  pointer-events: none;
-}
-
-/* Episodes row controls */
-.episodes-close {
-  font-size: 0.9em;
-  margin-left: 12px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 8px;
-  background: #333;
-  color: #fff;
-  cursor: pointer;
-}
-.episodes-close:hover { background: #444; }
-
-/* =======================
-   MODALS
-   ======================= */
-.modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.95);
-  justify-content: center;
-  align-items: center;
-  z-index: 2147483646;
-  padding: 0;
-}
-.modal.active { display: flex !important; }
-
-.modal-content {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 95vw;
-  max-height: 80vh;
-  background: #1f1f1f;
-  overflow: hidden;
-  border-radius: 12px;
-}
-
-#videoFrameContainer { flex: 1 1 100%; min-height: 300px; width: 100%; }
-#videoFrame { width: 100% !important; height: 100% !important; border: none; }
-
-.movie-info-scroll {
-  flex: 1 1 100%;
-  overflow-y: auto;
-  padding: 30px;
-  width: 100%;
-}
-.movie-info-scroll::-webkit-scrollbar { width: 12px; }
-.movie-info-scroll::-webkit-scrollbar-thumb {
-  background: #e50914;
-  border-radius: 6px;
-}
-
-/* Modal close button */
-#closeBtn {
-  position: fixed;
-  top: 30px;
-  right: 40px;
-  font-size: 80px;
-  cursor: pointer;
-  color: #fff;
-  z-index: 2000;
-  transition: transform 0.2s ease, color 0.2s ease;
-}
-#closeBtn:hover { color: #e50914; transform: scale(1.3); }
-
-/* =======================
-   TEXT IN MODAL
-   ======================= */
-.movie-title-text {
-  font-family: 'Roboto', sans-serif;
-  font-weight: 700;
-  font-size: 70px;
-  margin-bottom: 30px;
-  color: #fff;
-  text-transform: uppercase;
-}
-.movie-rating { font-size: 40px; color: #ccc; margin-bottom: 20px; }
-.movie-overview {
-  font-size: 40px !important;
-  line-height: 1.8;
-  color: #aaa;
-  margin-bottom: 40px;
-}
-
-/* =======================
-   POPUP
-   ======================= */
-#customPopup {
-  display: none;
-  position: fixed;
-  top: 20%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #222;
-  color: #fff;
-  padding: 30px 50px;
-  border-radius: 15px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.8);
-  font-size: 28px;
-  z-index: 3000;
-  max-width: 90vw;
-  text-align: center;
-  width: 500px;
-  box-sizing: border-box;
-}
-
-/* =======================
-   MISC
-   ======================= */
-.sticky-shadow {
-  box-shadow: 0 2px 5px rgba(0,0,0,0.7);
-  transition: box-shadow 0.3s ease;
-}
-.movie-grid { display: flex; flex-wrap: wrap; gap: 30px; }
-.details { margin-top: 40px; }
-.trailer { margin-top: 30px; }
-
-.movie-card.last-watched {
-  position: relative; /* ensure overlay anchors correctly */
-}
-
-.movie-card.last-watched::after {
-  content: "Last watched";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  text-align: center;
-  background: rgba(0, 167, 176, 0.92);
-  color: #fff;
-  font-weight: normal;
-  padding: 14px 16px;
-  border-radius: 12px 12px 0 0;
-  z-index: 2;
-  pointer-events: none;
-  font-size: 15px;
-}
-
-/* =======================
-   RESPONSIVE: MOBILE
-   ======================= */
-@media (max-width: 999px) {
-  body { font-size: 30px !important; }
-
-  #mobileRefreshButtonsContainer {
-    display: flex !important;
-    gap: 20px;
-    justify-content: center;
-    align-items: center;
+function doGet(e) {
+  // Optional: Serve JSON data via API if action=api
+  if (e && e.parameter && e.parameter.action === 'api') {
+    const data = getLibraryData();
+    return ContentService.createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader('Access-Control-Allow-Origin', '*'); // Allow external API calls if needed
   }
 
-  .movie-card.last-watched::after {
-    font-size: 40px;        /* larger text for mobile */
-    padding: 14px 16px;     /* taller banner for readability */
-  }
-
-  .cw-complete-btn {
-    width: 100px !important;
-    height: 100px !important;
-    font-size: 80px !important;
-    line-height: 96px !important;
-  }
-
-  #loadingScreen { font-size: 60px !important; }
-  header img { max-width: 350px !important; }
-  .search-bar input { font-size: 40px !important; }
-
-  .section-title,
-  .tmdb-title { box-shadow: none; transition: box-shadow 0.3s ease; }
-
-  .sticky-shadow { box-shadow: 0 2px 5px rgba(0,0,0,0.7); }
-
-  .section-title,
-  .tmdb-title {
-    font-size: 55px !important;
-    margin: 60px auto 40px auto !important;
-    padding-top: 24px !important;
-    position: sticky !important;
-    top: 55px !important;
-    background: #141414 !important;
-    z-index: 9999 !important;
-  }
-  .section-title { margin-bottom: 5px !important; }
-
-  .section-title::before,
-  .tmdb-title::before { width: 80px !important; height: 5px !important; }
-
-  .subsection-title {
-    font-size: 40px !important;
-    padding: 30px 20px 10px;
-  }
-
-  .movie-card { width: 350px !important; }
-  .movie-title { font-size: 40px !important; padding: 24px !important; }
-  .skeleton-card { width: 350px !important; height: 450px !important; }
-
-  .modal-content {
-    flex-direction: column !important;
-    max-width: 95vw !important;
-    max-height: 80vh !important;
-  }
-  #videoFrameContainer { flex: 1 1 100% !important; min-height: 300px !important; width: 100% !important; }
-  .movie-info-scroll { flex: 1 1 100% !important; width: 100% !important; padding: 30px !important; }
-
-  #closeBtn { font-size: 80px !important; top: 30px !important; right: 40px !important; }
-
-  .refresh-emoji { font-size: 50px; }
-
-  .movie-title-text { font-size: 70px !important; margin-bottom: 30px !important; }
-  .movie-rating { font-size: 20px !important; margin-bottom: 20px !important; }
-  .movie-overview { font-size: 30px !important; margin-bottom: 40px !important; }
-
-  .loading-text { font-size: 40px !important; }
-
-  .add-btn {
-    width: 100px !important;
-    height: 100px !important;
-    font-size: 80px !important;
-    line-height: 96px !important;
-  }
-
-  #customPopup {
-    width: 90vw;
-    padding: 40px 30px;
-    font-size: 50px !important;
-    top: 15%;
-  }
-  #popupCloseBtn { font-size: 50px !important; padding: 14px 40px; }
+  // Default: Serve the frontend HTML (index.html)
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('My Movie Browser')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL) // Embed in iframe if needed
+    .setSandboxMode(HtmlService.SandboxMode.IFRAME); // Recommended for google.script.run to work
 }
 
-/* =======================
-   RESPONSIVE: DESKTOP
-   ======================= */
-@media (min-width: 1000px) {
-  body { font-size: 15px !important; }
-  #loadingScreen { font-size: 20px !important; }
-  header img { max-width: 150px !important; }
-  .search-bar input { padding: 10px !important; font-size: 20px !important; }
-
-  .nav-item { font-size: 15px !important; }
-  .nav-item i { font-size: 20px !important; }
-
-  .add-btn {
-    width: 40px !important;
-    height: 40px !important;
-    font-size: 20px !important;
-    line-height: 36px !important;
-  }
-
-  #closeBtn { font-size: 80px !important; top: 10px !important; right: 10px !important; }
-
-  .refresh-emoji { font-size: 25px; }
-
-  .loading-text { font-size: 15px !important; }
-
-  #mobileRefreshButtonsContainer {
-    display: flex !important;
-    width: 100%;
-    justify-content: space-around;
-    align-items: center;
-  }
-
-  .section-title,
-  .tmdb-title {
-    font-size: 35px !important;
-    margin: 40px auto 20px auto !important;
-    padding-top: 12px !important;
-    position: sticky !important;
-    top: 55px !important;
-    background: #141414 !important;
-    z-index: 9999 !important;
-  }
-  .section-title { margin-bottom: 5px !important; }
-
-  .section-title::before,
-  .tmdb-title::before { width: 60px !important; height: 4px !important; }
-
-  .subsection-title {
-    margin: 0 !important;
-    font-size: 20px !important;
-    padding: 30px 20px 10px;
-  }
-
-  .movie-title { font-size: 15px !important; padding: 4px !important; }
-  .movie-card { width: 150px !important; }
-  .movie-card:hover { transform: none !important; }
-  .skeleton-card { width: 150px !important; height: 200px !important; }
-
-  .movie-info-scroll { padding: 10px !important; }
-  .movie-title-text { font-size: 20px !important; margin-bottom: 10px !important; }
-  .movie-rating { font-size: 15px !important; margin-bottom: 5px !important; }
-  .movie-overview { font-size: 15px !important; margin-bottom: 10px !important; }
-
-  .modal-content { max-width: 90vw !important; max-height: 70vh !important; }
-  #videoFrameContainer { min-height: 150px !important; }
-
-  /* visible scrollbars for desktop */
-  .scroll-container { scrollbar-width: thin; scrollbar-color: #888 #1f1f1f; }
-  .scroll-container::-webkit-scrollbar { height: 12px; }
-  .scroll-container::-webkit-scrollbar-track { background: #1f1f1f; border-radius: 6px; }
-  .scroll-container::-webkit-scrollbar-thumb { background: #888; border-radius: 6px; }
-  .scroll-container::-webkit-scrollbar-thumb:hover { background: #aaa; }
+function pingWishlistVersion() {
+  // Bump this string anytime you redeploy to confirm it’s the version you expect.
+  return 'wishlist-ping v1 ' + new Date().toISOString();
 }
+function debugWishlistSnapshot() {
+  const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
+  const SHEET_NAME = 'Titles';
 
-/* Disable hover scaling on touch devices */
-@media (hover: none) and (pointer: coarse) {
-  .movie-card:hover {
-    transform: none !important;
+  const out = { sheetFound: false, lastRow: 0, lastCol: 0, headers: [], preview: [] };
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sh = ss.getSheetByName(SHEET_NAME);
+    if (!sh) return out;
+
+    out.sheetFound = true;
+    out.lastRow = sh.getLastRow();
+    out.lastCol = sh.getLastColumn();
+
+    if (out.lastRow >= 1 && out.lastCol >= 1) {
+      out.headers = sh.getRange(1, 1, 1, out.lastCol).getValues()[0].map(String);
+    }
+    if (out.lastRow > 1) {
+      const rowsToShow = Math.min(out.lastRow - 1, 5);
+      out.preview = sh.getRange(2, 1, rowsToShow, out.lastCol).getValues();
+    }
+  } catch (e) {
+    out.error = String(e);
+  }
+  return out;
+}
+// Stream Video with Range Support
+function streamVideo(fileId, e) {
+  try {
+    const file = DriveApp.getFileById(fileId);
+    if (!file.getSharingAccess || file.getSharingAccess() === DriveApp.Access.NONE) {
+      return HtmlService.createHtmlOutput("Access denied");
+    }
+    const blob = file.getBlob();
+
+    return HtmlService.createHtmlOutput(blob)
+      .setMimeType(blob.getContentType())
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  } catch (err) {
+    return HtmlService.createHtmlOutput("Error: " + err.message);
   }
 }
 
-/* Keep the nice hover scale on real-hover devices (mice/trackpads) */
-@media (hover: hover) and (pointer: fine) {
-  .movie-card:hover {
-    transform: none !important;
-  }
-}
-</style>
-</head>
-<body>
+// Build Movie/TV JSON by processing Drive folders
+function processCategory(categoryFolder) {
+  const results = [];
 
-<div id="profileModal" class="modal active" role="dialog" aria-modal="true">
-  <div class="modal-content" style="align-items:center; justify-content:center; text-align:center; padding: 50px;">
-    <h2 style="font-size: 60px; margin-bottom: 40px;">Who's watching?</h2>
-    <div id="profileList" style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;">
-      <button class="profile-btn" data-profile="Dave">Dave</button>
-      <button class="profile-btn" data-profile="Melissa">Melissa</button>
-      <button class="profile-btn" data-profile="Ben">Ben</button>
-      <button class="profile-btn" data-profile="Kassandra">Kassandra</button>
-      <button class="profile-btn" data-profile="Aiden">Aiden</button>
-      <button class="profile-btn" data-profile="Liadan">Liadan</button>
-    </div>
-  </div>
-</div>
+  const isPoster = n =>
+    n.endsWith('.png') || n.endsWith('.jpg') || n.endsWith('.jpeg') || n.endsWith('.webp');
 
-<div id="appContent" style="display: none;">
-
-  <!-- App Content -->
-  <header><br><br><img src="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" alt="ILYMMD+ Logo"><br><br></header>
-  <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
-
-  <!-- Watch Header -->
-  <h2 class="section-title">Available to Watch</h2>
-
-  <!-- Episodes -->
-  <div id="episodesSection" style="display:none;">
-    <h2 class="subsection-title" id="episodesTitle"></h2>
-    <div class="scroll-container" id="episodesGrid"></div>
-  </div>
-
-  <!-- Continue Watching Section -->
-  <div id="continueWatchingSection">
-    <h2 class="subsection-title">Continue Watching</h2>
-    <div class="scroll-container" id="continueWatchingGrid"></div>
-  </div>
-
-  <!-- Recently Added Section -->
-  <div id="recentlyAddedSection">
-    <h2 class="subsection-title">Recently Added</h2>
-    <div class="scroll-container" id="recentlyAddedGrid"></div>
-  </div>
-
-  <!-- Combined Available to Watch Section -->
-  <div id="availableToWatchSection">
-    <h2 class="subsection-title">Available to Watch</h2>
-
-    <!-- Combined Scroll Container -->
-    <div class="scroll-container" id="availableToWatchGrid">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-    </div>
-  </div>
-
-  <!-- TMDb Header -->
-  <h2 class="tmdb-title">Explore</h2>
-
-  <!-- TMDb Details Preview -->
-  <div id="tmdbDetailsPreview" 
-      style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white; display:none;">
-    <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
-    <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
-    <p id="tmdbDetailsReleaseDate"></p>
-    <p class="movie-overview" id="tmdbDetailsOverview"></p>
-  </div>
-
-  <!-- Combined TMDb Section -->
-  <div id="tmdbExploreSection">
-    <h2 class="subsection-title">Explore Movies & TV Shows</h2>
-    <div class="scroll-container" id="tmdbExploreRow"></div>
-  </div>
-
-  <!-- Wishlist Requested Section -->
-  <div id="wishlistSection">
-    <h2 class="subsection-title">Wishlist</h2>
-    <div class="scroll-container" id="wishlistGrid"></div>
-  </div>
-
-  <!-- Search Results -->
-  <div id="searchResultsSection" style="display:none;">
-    <h2 class="subsection-title">Search Results</h2>
-    <div class="scroll-container" id="searchResultsGrid"></div>
-  </div>
-
-  <!-- Video Modal -->
-  <div id="videoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="movieDetails">
-    <span id="closeBtn">&times;</span>
-    <div class="modal-content">
-      <div id="videoFrameContainer"></div>
-      <div class="movie-info-scroll" id="movieDetails"></div>
-    </div>
-  </div>
-
-  <!-- Custom Popup -->
-  <div id="customPopup" style="display:none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 30px 50px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.8); font-size: 28px; z-index: 3000; max-width: 90vw; text-align: center;">
-    <span id="popupMessage"></span>
-    <button id="popupCloseBtn" style="display:block; margin: 20px auto 0 auto; padding: 10px 30px; font-size: 24px; border: none; border-radius: 8px; background: #e50914; color: white; cursor: pointer;">Close</button>
-  </div>
-
-  <div class="bottom-bar">
-    <div id="mobileRefreshButtonsContainer" style="display:none; width: 100%; justify-content: space-around;">
-      <div class="nav-item" id="mobileAvailableRefresh" role="button" tabindex="0" aria-label="Refresh Available to Watch">
-        <i class="fa-solid fa-rotate"></i><span>Available</span>
-      </div>
-      <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
-        <i class="fa-solid fa-rotate"></i><span>Explore</span>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<div id="loadingScreen" style="
-  font-family: 'Roboto', sans-serif;
-  display: none;
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  color: white;
-  font-size: 48px;
-  align-items: center;
-  justify-content: center;
-  z-index: 2147483647;
-  pointer-events: auto; /* blocks clicks while visible */
-  cursor: wait;
-">
-  Loading...
-</div>
-
-<script>
-let fullLibrary = [];
-let wishlistAvailableTitles = [];
-let currentVideo = {
-  profile: null,
-  title: null,
-  episode: null
-};
-
-const appContent = document.getElementById('appContent');
-
-function showPopup(messageHtml) {
-  const popup = document.getElementById('customPopup');
-  const msgSpan = document.getElementById('popupMessage');
-  msgSpan.innerHTML = messageHtml;
-  popup.style.display = 'block';
-}
-
-document.getElementById('popupCloseBtn').addEventListener('click', () => {
-  document.getElementById('customPopup').style.display = 'none';
-});
-
-// Remove an item from Continue Watching for this profile
-function markComplete(profile, title, cardEl, episode = "") {
-  if (!profile || !title) return;
-
-  // Optimistic UI: disable button + fade card a bit
-  const btn = cardEl.querySelector('.cw-complete-btn');
-  if (btn) btn.disabled = true;
-  cardEl.style.opacity = '0.6';
-
-  google.script.run
-    .withSuccessHandler(res => {
-      // Remove the card from the UI
-      cardEl.remove();
-
-      // If the row goes empty, show the empty state
-      const container = document.getElementById("continueWatchingGrid");
-      if (container && container.children.length === 0) {
-        container.innerHTML = "<p>No titles to continue watching yet.</p>";
+  const getPosterFromFolder = (folder) => {
+    const files = folder.getFiles();
+    while (files.hasNext()) {
+      const f = files.next();
+      if (isPoster(f.getName().toLowerCase())) {
+        return 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w300';
       }
-
-      // (Optional) toast
-      showPopup(`<b>${title}</b><br><span style="color:limegreen;">Removed from Continue Watching.</span>`);
-    })
-    .withFailureHandler(err => {
-      // Roll back UI on error
-      if (btn) btn.disabled = false;
-      cardEl.style.opacity = '1';
-      showPopup(`❌ Couldn't remove <b>${title}</b>.<br>${err?.message || 'Please try again.'}`);
-    })
-    .clearProfileProgress(profile, title);
-}
-
-function waitForImagesToLoad(container, { timeoutMs = 2500 } = {}) {
-  // Fast‑path: if container missing, resolve immediately
-  if (!container) return Promise.resolve();
-
-  const images = Array.from(container.querySelectorAll("img"));
-
-  // Fast‑path: nothing to wait on
-  if (images.length === 0) return Promise.resolve();
-
-  const inViewport = el => {
-    const r = el.getBoundingClientRect();
-    return r.top < window.innerHeight && r.bottom > 0 && r.left < window.innerWidth && r.right > 0;
+    }
+    return '';
   };
 
-  const promises = images.map(img => {
-    // Already loaded (covers cached images and ones with naturalWidth > 0)
-    if (img.complete || img.naturalWidth > 0) return Promise.resolve();
-
-    // If it's lazy and off‑screen, don't block the loader on it
-    const isLazy = img.loading === 'lazy' || img.getAttribute('loading') === 'lazy';
-    if (isLazy && !inViewport(img)) return Promise.resolve();
-
-    // Otherwise, wait for load/error
-    return new Promise(resolve => {
-      const done = () => { img.onload = img.onerror = null; resolve(); };
-      img.onload = done;
-      img.onerror = done;
-    });
-  });
-
-  const timeout = new Promise(res => setTimeout(res, timeoutMs));
-  return Promise.race([Promise.all(promises), timeout]);
-}
-
-// Create card
-function createCard(item, isTMDb = false, wishlistTitles = []) {
-  const displayTitle = item.title || item.name || "No Title";
-  const card = document.createElement("div");
-  card.classList.add("movie-card");
-  card.innerHTML = "";
-
-  // Poster
-  const img = document.createElement("img");
-  img.src = item.poster;
-  img.alt = displayTitle;
-  img.loading = "lazy";
-  card.appendChild(img);
-
-  // Title
-  const titleDiv = document.createElement("div");
-  titleDiv.classList.add("movie-title");
-  titleDiv.textContent = displayTitle;
-  card.appendChild(titleDiv);
-
-  // Wishlist button for TMDb items
-  if (isTMDb) {
-    const btn = document.createElement("button");
-    btn.classList.add("add-btn");
-
-    const alreadyRequested = (wishlistTitles || []).some(w =>
-      String(w.title || "").toLowerCase().trim() === displayTitle.toLowerCase().trim() &&
-      w.status === "Wishlist"
-    );
-
-    if (alreadyRequested) {
-      btn.textContent = "✔";
-      btn.title = "Requested";
-      btn.disabled = true;
-      btn.style.backgroundColor = "green";
-    } else {
-      btn.textContent = "+";
-      btn.title = "Add to Wishlist";
-      btn.style.backgroundColor = "#e50914";
-      btn.addEventListener("click", e => {
-        e.stopPropagation();
-        addToWishlist(displayTitle, item.poster, btn);
-      });
-    }
-    card.appendChild(btn);
-  }
-
-  card.addEventListener("click", async () => {
-    if (isTMDb) {
-      // TMDb items: populate the TMDb Details Preview
-      const preview = document.getElementById("tmdbDetailsPreview");
-      const trailerContainer = document.getElementById("tmdbTrailerContainer");
-      const titleEl = document.getElementById("tmdbDetailsTitle");
-      const dateEl = document.getElementById("tmdbDetailsReleaseDate");
-      const ovEl = document.getElementById("tmdbDetailsOverview");
-
-      const data = await fetchTMDbDetails(item, item.media_type === "tv");
-      if (!data) return;
-
-      const trailer = data.videos?.results.find(v => v.type === "Trailer" && v.site === "YouTube");
-      if (trailerContainer) {
-        trailerContainer.innerHTML = trailer
-          ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}"
-               sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
-               allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
-          : `<p><em>No trailer available.</em></p>`;
-      }
-
-      const titleText = data.name || data.title || displayTitle;
-      if (titleEl) titleEl.textContent = titleText;
-      if (dateEl) dateEl.innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || "N/A"}`;
-      if (ovEl) ovEl.textContent = data.overview || "No overview available.";
-
-      if (preview) {
-        preview.style.display = "block";
-        setTimeout(() => preview.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-      }
-
-      // If there’s a matching local item with episodes, also show the episodes list beneath sections
-      const local = findLocalByTitle(titleText);
-      if (local?.episodes?.length) {
-        showEpisodesList(local);
-      } else {
-        const epSec = document.getElementById("episodesSection");
-        const epGrid = document.getElementById("episodesGrid");
-        if (epSec) epSec.style.display = "none";
-        if (epGrid) epGrid.innerHTML = "";
-      }
-
-    } else {
-      // Local items: do NOT touch the TMDb Details Preview at all
-      // Just open the episodes list
-      showEpisodesList(item);
-    }
-  });
-
-  return card;
-}
-
-function openVideo(url, title, episode = "") {
-  // Update context
-  currentVideo = { profile: currentProfile, title, episode };
-
-  // Highlight the chosen episode inside the visible episodes list (if present)
-  const grid = document.getElementById("episodesGrid");
-  if (grid && episode) {
-    const want = episode.trim().toLowerCase();
-    grid.querySelectorAll(".movie-card").forEach(c => {
-      const t = c.querySelector(".movie-title")?.textContent?.trim().toLowerCase();
-      c.classList.toggle("active-episode", t === want);
-    });
-  }
-
-  // Save progress
-  if (currentProfile && title) {
-    google.script.run
-      .withFailureHandler(err => console.warn("saveProfileProgress failed:", err))
-      .saveProfileProgress(currentProfile, title, episode);
-  }
-
-  // Open in a new tab (no TMDb preview iframe)
-  try {
-    window.open(url, "_blank", "noopener");
-  } catch {
-    location.href = url;
-  }
-}
-
-function openEpisodeInNewTab(url, showTitle, episodeTitle = "") {
-  // update context
-  currentVideo = { profile: currentProfile, title: showTitle, episode: episodeTitle };
-
-  // save progress
-  if (currentProfile && showTitle) {
-    google.script.run
-      .withFailureHandler(err => console.warn("saveProfileProgress failed:", err))
-      .saveProfileProgress(currentProfile, showTitle, episodeTitle);
-  }
-
-  // open in a new tab (popup‑blocker safe since it's in a click handler)
-  try {
-    window.open(url, "_blank", "noopener");
-  } catch (e) {
-    // fallback
-    location.href = url;
-  }
-}
-
-function showEpisodesList(showLike) {
-  // Ensure episodesSection exists
-  let section = document.getElementById("episodesSection");
-  if (!section) {
-    section = document.createElement("div");
-    section.id = "episodesSection";
-    section.style.display = "none";
-    section.innerHTML = `
-      <h2 class="subsection-title" id="episodesTitle"></h2>
-      <div class="scroll-container" id="episodesGrid"></div>
-    `;
-    const cwSection = document.getElementById("continueWatchingSection");
-    if (cwSection) cwSection.insertAdjacentElement("beforebegin", section);
-    else document.body.appendChild(section);
-  }
-
-  const titleEl = document.getElementById("episodesTitle");
-  const grid = document.getElementById("episodesGrid");
-  if (!grid) return;
-
-  // Hide TMDb preview for local items
-  const preview = document.getElementById("tmdbDetailsPreview");
-  if (preview) preview.style.display = "none";
-
-  // Clear + show section
-  grid.innerHTML = "";
-  section.style.display = "block";
-
-  const displayTitle = showLike.title || showLike.name || "Episodes";
-  let eps = Array.isArray(showLike.episodes) ? [...showLike.episodes] : [];
-
-  // If no episodes but we have a direct URL, create a single "Play" card
-  if ((!eps || eps.length === 0) && showLike.url) {
-    eps = [{ title: "Play", url: showLike.url }];
-  }
-
-  // ✅ Sort episodes alphabetically by title (case-insensitive)
-  eps.sort((a, b) => {
-    return (a.title || "").toLowerCase().localeCompare((b.title || "").toLowerCase());
-  });
-
-  const label = (eps.length > 1) ? "Episodes" : "Collection";
-  titleEl.innerHTML = `${displayTitle} — <span style="opacity:.8">${label}</span>`;
-
-  // Close button
-  let closeBtn = titleEl.querySelector("button.episodes-close");
-  if (!closeBtn) {
-    closeBtn = document.createElement("button");
-    closeBtn.className = "episodes-close";
-    closeBtn.type = "button";
-    closeBtn.textContent = "Close";
-    closeBtn.addEventListener("click", () => {
-      section.style.display = "none";
-      grid.innerHTML = "";
-    });
-    titleEl.appendChild(closeBtn);
-  }
-
-  // Build cards
-  if (!eps || eps.length === 0) {
-    grid.innerHTML = '<p style="color:#aaa;font-size:24px;text-align:center;">No episodes found.</p>';
-  } else {
-    const last = getLastWatchedEpisodeFor(displayTitle);
-    eps.forEach(ep => {
-      const card = document.createElement("div");
-      card.className = "movie-card";
-      if (_norm(ep.title) === _norm(last)) card.classList.add("last-watched");
-      card.innerHTML = `
-        <img src="${showLike.poster}" alt="${ep.title}" loading="lazy">
-        <div class="movie-title">${ep.title}</div>
-      `;
-      card.addEventListener("click", () => {
-        // Visually select in the list
-        grid.querySelectorAll(".movie-card").forEach(c => c.classList.remove("active-episode"));
-        card.classList.add("active-episode");
-
-        // Open in new tab + save progress
-        openEpisodeInNewTab(ep.url, displayTitle, ep.title);
-      });
-      grid.appendChild(card);
-    });
-  }
-
-  // Smooth scroll with header offset
-  setTimeout(() => {
-    const yOffset = -80; // adjust for sticky header height
-    const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
-    window.scrollTo({ top: y, behavior: 'smooth' });
-  }, 50);
-}
-
-// (Optional but harmless): ensure global
-window.showEpisodesList = showEpisodesList;
-
-function addEpisodesUnderPreview(showLike) {
-  const preview = document.getElementById("tmdbDetailsPreview");
-  if (!preview) return;
-
-  // (Re)create container once
-  let section = document.getElementById("tmdbEpisodesSection");
-  if (!section) {
-    section = document.createElement("div");
-    section.id = "tmdbEpisodesSection";
-    section.style.marginTop = "16px";
-    section.style.paddingTop = "12px";
-    section.style.borderTop = "1px solid rgba(255,255,255,0.1)";
-    preview.appendChild(section);
-  }
-
-  // Rebuild section
-  section.innerHTML = "";
-
-  const h2 = document.createElement("h2");
-  h2.className = "subsection-title";
-  h2.textContent = "Continue the story"; // <-- was "Episodes"
-  section.appendChild(h2);
-
-  const row = document.createElement("div");
-  row.className = "scroll-container";
-  row.id = "episodesScrollRow";
-  section.appendChild(row);
-
-  const eps = Array.isArray(showLike.episodes) ? showLike.episodes : [];
-  const last = getLastWatchedEpisodeFor(showLike.title || showLike.name);
-
-  eps.forEach(ep => {
-    const card = document.createElement("div");
-    card.className = "movie-card";
-    if (_norm(ep.title) === _norm(last)) {
-      card.classList.add("last-watched");
-    }
-    card.innerHTML = `
-      <img src="${showLike.poster}" alt="${ep.title}" loading="lazy">
-      <div class="movie-title">${ep.title}</div>
-    `;
-    card.addEventListener("click", () => {
-      openEpisodeInNewTab(ep.url, showLike.title || showLike.name, ep.title);
-    });
-    row.appendChild(card);
-  });
-
-  // Ensure preview is visible
-  preview.style.display = "block";
-}
-
-function renderAvailableToWatch(movies, tvShows) {
-  const container = document.getElementById("availableToWatchGrid");
-  container.innerHTML = "";
-
-  const combined = shuffleArray([...movies, ...tvShows]);
-  combined.forEach(item => {
-    container.appendChild(createCard(item));
-  });
-}
-
-// Load Library via google.script.run and sync wishlist statuses automatically
-// Load Library via google.script.run and sync wishlist statuses automatically
-function loadLibrary(force = false) {
-  // only skip if we've already loaded AND not forcing
-  if (libraryLoaded && !force) return Promise.resolve();
-
-  if (!libraryLoaded || force) {
-    const container = document.getElementById("availableToWatchGrid");
-    container.innerHTML = `
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-    `;
-  }
-
-  return new Promise(resolve => {
-    google.script.run.withSuccessHandler(data => {
-      fullLibrary = (data.movies || []).concat(data.tv || []);
-      window.library = data;          // keep a copy for quick reshuffles
-      libraryLoaded = true;
-
-      try {
-        renderAvailableToWatch(data.movies || [], data.tv || []);
-      } catch (err) {
-        console.error("❌ Error in renderAvailableToWatch:", err);
-        showPopup("Error rendering library.");
-      }
-      resolve();
-    }).withFailureHandler(err => {
-      console.error("❌ Failed to load library:", err);
-      showPopup("Error loading library.");
-      resolve();
-    }).getLibraryAndSyncWishlist();
-  });
-}
-
-function refreshAvailableToWatch({ force = false } = {}) {
-  // If we want to fully reload from Drive, call loadLibrary(true)
-  if (force) return loadLibrary(true);
-
-  // If we already have the library, just reshuffle and re-render
-  if (window.library && Array.isArray(window.library.movies) && Array.isArray(window.library.tv)) {
-    const { movies, tv } = window.library;
-    renderAvailableToWatch(movies, tv);  // renderAvailableToWatch already shuffles
-    return Promise.resolve();
-  }
-
-  // If no library yet, load normally
-  return loadLibrary();
-}
-
-let currentProfile = null;
-
-const loadingScreen = document.getElementById("loadingScreen");
-let _hideLoaderTimer = null;
-function hideLoadingScreen(delay = 300) {
-  if (_hideLoaderTimer) {
-    clearTimeout(_hideLoaderTimer);
-    _hideLoaderTimer = null;
-  }
-  _hideLoaderTimer = setTimeout(() => {
-    loadingScreen.style.display = "none";
-    _hideLoaderTimer = null;
-  }, delay);
-}
-
-window.addEventListener("load", () => {
-  const app = document.getElementById("appContent");
-  const profileModal = document.getElementById("profileModal");
-
-  app.style.display = "block";
-  profileModal.classList.add("active");
-  loadingScreen.style.display = "flex"; // Show loading screen
-
-  // Preload shared content
-  Promise.all([ loadLibrary(), loadRecentlyAdded() ])
-    .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
-    .then(() => hideLoadingScreen())
-    .catch(err => {
-      console.error("❌ Error during preload:", err);
-      showPopup("Something went wrong while preloading content.");
-      hideLoadingScreen();
-    });
-
-  // Handle profile selection via buttons
-  document.querySelectorAll('.profile-btn').forEach(btn => {
-    btn.addEventListener("click", () => {
-      currentProfile = btn.dataset.profile;
-
-      profileModal.classList.remove("active");
-      app.style.display = "block";
-      loadingScreen.style.display = "flex"; // show while CW loads
-
-      // 1) Load Continue Watching first; hide loader as soon as it's ready
-      loadContinueWatching()
-        .then(() => {
-          const cw = document.getElementById("continueWatchingSection");
-          if (cw) cw.style.display = "block";
-          hideLoadingScreen(0); // <- stop the loading screen right after CW loads
-        })
-        .catch(err => {
-          console.error("❌ Error loading Continue Watching:", err);
-          hideLoadingScreen(0); // fail-safe: don't keep the loader up
+  const getVideosFromFolder = (folder) => {
+    const out = [];
+    const files = folder.getFiles();
+    while (files.hasNext()) {
+      const f = files.next();
+      const n = f.getName().toLowerCase();
+      if (/\.(mp4|mov|mkv)$/i.test(n)) {
+        out.push({
+          title: f.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
+          url: `https://drive.google.com/file/d/${f.getId()}/preview`
         });
-
-      // 2) Kick off the rest in parallel (no loader blocking)
-      Promise.all([ loadWishlist(), loadCombinedPopular() ])
-        .then(() => {
-          const wl = document.getElementById("wishlistSection");
-          const ra = document.getElementById("recentlyAddedSection");
-          if (wl) wl.style.display = "block";
-          if (ra) ra.style.display = "block";
-          return waitForImagesToLoad(app, { timeoutMs: 2500 });
-        })
-        .catch(err => {
-          console.error("❌ Error during background loads:", err);
-          showPopup("Some items are still loading. Try again if they don't appear.");
-        });
-    });
-  });
-});
-
-document.getElementById("searchInput").addEventListener("input", function (e) {
-  const query = (e.target.value || "").toLowerCase().trim();
-  const searchResults = document.getElementById("searchResultsSection");
-  const searchGrid = document.getElementById("searchResultsGrid");
-
-  // Everything we hide/show during search
-  const sectionsToToggle = [
-    "continueWatchingSection",
-    "recentlyAddedSection",
-    "availableToWatchSection",
-    "wishlistSection",
-    "tmdbExploreSection",      // <-- the Explore list container
-    "tmdbDetailsPreview",
-    "episodesSection"
-  ];
-
-  // If the library isn't ready, bail
-  if (!Array.isArray(fullLibrary) || fullLibrary.length === 0) return;
-
-  if (query === "") {
-    // Show everything again
-    sectionsToToggle.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = "block";
-    });
-    // Show the Explore header (h2.tmdb-title)
-    const tmdbHeader = document.querySelector(".tmdb-title");
-    if (tmdbHeader) tmdbHeader.style.display = "block";
-
-    // Hide search results
-    if (searchResults) searchResults.style.display = "none";
-    if (searchGrid) searchGrid.innerHTML = "";
-    return;
-  }
-
-  // Hide all non-search sections
-  sectionsToToggle.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = "none";
-  });
-  // Hide the Explore header (h2.tmdb-title)
-  const tmdbHeader = document.querySelector(".tmdb-title");
-  if (tmdbHeader) tmdbHeader.style.display = "none";
-
-  // Show and populate search results
-  if (searchResults) searchResults.style.display = "block";
-  if (searchGrid) {
-    searchGrid.innerHTML = "";
-    const filtered = fullLibrary.filter(item =>
-      (item.title || "").toLowerCase().includes(query)
-    );
-    if (filtered.length) {
-      filtered.forEach(item => searchGrid.appendChild(createCard(item)));
-    } else {
-      searchGrid.innerHTML = '<p style="text-align:center;color:#aaa;font-size:24px;">No results found.</p>';
+      }
     }
-  }
-});
+    return out;
+  };
 
-function showDetails(movieId) {
-  google.script.run.withSuccessHandler(showMovieDetails).getMovieDetails(movieId);
+  const subfolders = categoryFolder.getFolders();
+  while (subfolders.hasNext()) {
+    const titleFolder = subfolders.next();   // e.g. "The Lord of the Rings"
+    const title = titleFolder.getName();
+
+    // 1) Always scan CHILD FOLDERS first (episodes-as-folders)
+    const childEpisodes = [];
+    const children = titleFolder.getFolders();
+    while (children.hasNext()) {
+      const epFolder = children.next();      // e.g. "The Two Towers"
+      const vids = getVideosFromFolder(epFolder);
+      if (vids.length > 0) {
+        const epPoster = getPosterFromFolder(epFolder);
+        childEpisodes.push({
+          title: epFolder.getName(),
+          url: vids[0].url, // first playable
+          poster: epPoster || ''  // leave empty; frontend will fall back to parent
+        });
+      }
+    }
+
+    const parentPoster = getPosterFromFolder(titleFolder);
+
+    if (childEpisodes.length > 0) {
+      // Prefer series/collection if any child folder has a video — regardless of parent poster/files
+      results.push({
+        title,
+        poster: parentPoster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(title),
+        type: 'movie-series',
+        episodes: childEpisodes
+      });
+      continue;
+    }
+
+    // 2) Otherwise, fall back to videos directly in the title folder
+    const directVideos = getVideosFromFolder(titleFolder);
+    results.push({
+      title,
+      poster: parentPoster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(title),
+      type: directVideos.length > 1 ? 'tv' : 'movie',
+      episodes: directVideos
+    });
+  }
+
+  return results;
 }
 
-function showMovieDetails(data) {
-  const details = data.details;
-  const videos = data.videos;
+// New function: Build and return your entire library JSON
+function getLibraryData() {
+  const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1'; // Replace with your Drive root folder ID
+  const rootFolder = DriveApp.getFolderById(rootFolderId);
 
-  const movieDetails = document.getElementById('movieDetails');
-  const videoFrameContainer = document.getElementById('videoFrameContainer');
+  // Assuming folders named 'Movies' and 'TV' inside root folder
+  const moviesFolder = rootFolder.getFoldersByName('Movies').hasNext()
+    ? rootFolder.getFoldersByName('Movies').next()
+    : null;
+  const tvFolder = rootFolder.getFoldersByName('TV Shows').hasNext()
+    ? rootFolder.getFoldersByName('TV Shows').next()
+    : null;
 
-  movieDetails.textContent = '';
-  videoFrameContainer.textContent = '';
+  const movies = moviesFolder ? processCategory(moviesFolder) : [];
+  const tv = tvFolder ? processCategory(tvFolder) : [];
 
-  const title = document.createElement('h2');
-  title.className = 'movie-title-text';
-  title.textContent = details.title;
+  return { movies, tv };
+}
 
-  const release = document.createElement('p');
-  release.innerHTML = `<strong>Release Date:</strong> ${details.release_date}`;
-
-  const overview = document.createElement('p');
-  overview.className = 'movie-overview';
-  overview.textContent = details.overview;
-
-  movieDetails.appendChild(title);
-  movieDetails.appendChild(release);
-  movieDetails.appendChild(overview);
-
-  const trailer = videos.find(v => v.type === 'Trailer' && v.site === 'YouTube');
-
-  if (trailer) {
-    const iframe = document.createElement('iframe');
-    iframe.id = 'videoFrame';
-    iframe.src = `https://www.youtube.com/embed/${trailer.key}`;
-    iframe.setAttribute('allowfullscreen', '');
-    videoFrameContainer.appendChild(iframe);
-  } else {
-    const noTrailerMsg = document.createElement('p');
-    noTrailerMsg.innerHTML = '<em>No trailer available.</em>';
-    videoFrameContainer.appendChild(noTrailerMsg);
-  }
-
-  document.getElementById('videoModal').classList.add('active');
+function getLibrary() {
+  return getLibraryData();
 }
 
 // TMDB
-async function renderTMDbMovies(movies, wishlistTitles = [], wishlistAvailable = []) {
-  const row = document.getElementById('tmdbMoviesRow');
-  row.innerHTML = '';
-
-  // Filter out adult movies
-  const filteredMovies = movies.filter(movie => !movie.adult);
-  const shuffled = shuffleArray(filteredMovies);
-
-  // Render movie cards
-  shuffled.forEach(movie => {
-    const card = createCard(movie, true, wishlistTitles);
-
-    // Show "AVAILABLE" banner if applicable
-    if (wishlistAvailable.some(w => 
-        w.title.toLowerCase() === (movie.title || movie.name).toLowerCase() &&
-        w.status === "Available"
-    )) {
-      const banner = document.createElement('div');
-      banner.textContent = 'AVAILABLE';
-      banner.style.cssText = `
-        position: absolute;
-        top: 10px;
-        left: 0;
-        width: 100%;
-        background-color: rgba(0, 128, 0, 0.75);
-        color: white;
-        font-weight: bold;
-        text-align: center;
-        padding: 6px 0;
-        border-radius: 12px 12px 0 0;
-        font-size: 24px;
-        z-index: 20;
-        pointer-events: none;
-      `;
-      card.style.position = 'relative';
-      card.appendChild(banner);
-    }
-
-    row.appendChild(card);
-  });
-
-  // Clear preview initially
-  const trailerContainer = document.getElementById('tmdbTrailerContainer');
-  const preview = document.getElementById('tmdbDetailsPreview');
-  preview.style.display = 'none';
-  trailerContainer.innerHTML = '';
-
-  // Load trailer preview only if a valid trailer exists
-  for (const movie of shuffled) {
-    const data = await fetchTMDbDetails(movie, false);
-    if (!data || !data.videos || !data.videos.results) continue;
-
-    const trailer = data.videos.results.find(
-      v => v.type === 'Trailer' && v.site === 'YouTube'
-    );
-    if (!trailer) continue;
-
-    trailerContainer.innerHTML = `
-      <iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}" 
-        sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
-        allowfullscreen
-        style="width:100%;height:100%;border:none;border-radius:12px;">
-      </iframe>
-    `;
-
-    document.getElementById('tmdbDetailsTitle').textContent = data.name || data.title;
-    document.getElementById('tmdbDetailsReleaseDate').innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || 'N/A'}`;
-    document.getElementById('tmdbDetailsOverview').textContent = data.overview || 'No overview available.';
-    preview.style.display = 'block';
-    break; // success — stop the loop
-  }
-}
-function renderTMDbTV(tvShows, wishlistTitles = [], wishlistAvailable = []) {
-  const row = document.getElementById('tmdbTVRow');
-  row.innerHTML = '';
-
-  // Filter out adult TV shows
-  const filteredTV = tvShows.filter(show => !show.adult);
-
-  shuffleArray(filteredTV).forEach(show => {
-    const card = createCard(show, true, wishlistTitles);
-
-    // Check if show is in wishlistAvailable (Available status) for AVAILABLE banner
-    if (wishlistAvailable.some(w => 
-        w.title.toLowerCase() === (show.title || show.name).toLowerCase() &&
-        w.status === "Available"
-    )) {
-      const banner = document.createElement('div');
-      banner.textContent = 'AVAILABLE';
-      banner.style.cssText = `
-        position: absolute;
-        top: 10px;
-        left: 0;
-        width: 100%;
-        background-color: rgba(0, 128, 0, 0.75);
-        color: white;
-        font-weight: bold;
-        text-align: center;
-        padding: 6px 0;
-        border-radius: 12px 12px 0 0;
-        font-size: 24px;
-        z-index: 20;
-        pointer-events: none;
-      `;
-      card.style.position = 'relative';
-      card.appendChild(banner);
-    }
-
-    row.appendChild(card);
+function addPosterBasePath(items) {
+  return items.map(item => {
+    item.poster = item.poster_path
+      ? 'https://image.tmdb.org/t/p/w300' + item.poster_path
+      : 'https://via.placeholder.com/300x450?text=No+Image';
+    return item;
   });
 }
-function loadCombinedPopular() {
-  return loadWishlistRequested()
-    .then(() => {
-      return new Promise((resolve, reject) => {
-        const randomPage = Math.floor(Math.random() * 500) + 1;
-        google.script.run
-          .withSuccessHandler(data => {
-            if (!data || !Array.isArray(data.movies) || !Array.isArray(data.tv)) {
-              reject(new Error('Invalid data structure from getCombinedPopular'));
-              return;
-            }
-
-            const row = document.getElementById('tmdbExploreRow');
-            row.innerHTML = ''; // Clear previous results
-
-            const limitedMovies = shuffleArray(data.movies).slice(0, 7);
-            const limitedTV = shuffleArray(data.tv).slice(0, 7);
-            const allItems = shuffleArray([...limitedMovies, ...limitedTV]);
-
-            allItems.forEach(item => {
-              const card = createCard(item, true, wishlistRequestedTitles);
-
-              // Add AVAILABLE banner if already in wishlistAvailable
-              const itemTitle = (item.title || item.name || '').toLowerCase();
-              if (wishlistAvailableTitles.some(w => w.title.toLowerCase() === itemTitle && w.status === "Available")) {
-                const banner = document.createElement('div');
-                banner.textContent = 'AVAILABLE';
-                banner.style.cssText = `
-                  position: absolute;
-                  top: 10px;
-                  left: 0;
-                  width: 100%;
-                  background-color: rgba(0, 128, 0, 0.75);
-                  color: white;
-                  font-weight: bold;
-                  text-align: center;
-                  padding: 6px 0;
-                  border-radius: 12px 12px 0 0;
-                  font-size: 24px;
-                  z-index: 20;
-                  pointer-events: none;
-                `;
-                card.style.position = 'relative';
-                card.appendChild(banner);
-              }
-
-              row.appendChild(card);
-            });
-
-            // Keep preview hidden/blank until the user selects an item
-            const trailerContainer = document.getElementById('tmdbTrailerContainer');
-            const preview = document.getElementById('tmdbDetailsPreview');
-            if (trailerContainer) trailerContainer.innerHTML = '';
-            if (preview) preview.style.display = 'none';
-
-            resolve();
-          })
-          .withFailureHandler(error => reject(error))
-          .getCombinedPopular(randomPage);
-      });
-    });
-}
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-const _norm = s => String(s || "").replace(/\u00A0/g, " ").trim().toLowerCase();
-function findLocalByTitle(title) {
-  if (!title || !window.library) return null;
-  const { movies = [], tv = [] } = window.library;
-  return [...movies, ...tv].find(x => _norm(x.title) === _norm(title)) || null;
-}
-
-// Cache of "last watched" by normalized title for current profile
-let cwProgressByTitle = new Map();
-
-function setCWCache(items = []) {
-  cwProgressByTitle.clear();
-  items.forEach(it => {
-    if (it && it.title) {
-      cwProgressByTitle.set(_norm(it.title), String(it.episode || ""));
-    }
-  });
-}
-
-function getLastWatchedEpisodeFor(title) {
-  return cwProgressByTitle.get(_norm(title)) || "";
-}
-
-// WISHLIST
-function addToWishlist(title, poster, btn) {
-  // Immediately update UI
-  if (btn) {
-    btn.textContent = "✔";
-    btn.style.backgroundColor = "green";
-    btn.disabled = true;
-  }
-
-  google.script.run.withSuccessHandler(response => {
-    if (!response) return;
-    showPopup(`<b>${response.title}</b><br><span style="color:green;">Added to your wishlist!</span>`);
-  }).withFailureHandler(err => {
-    showPopup(`❌ Failed to add <b>${title}</b>. Error: ${err.message}`);
-    // On failure, revert button UI back
-    if (btn) {
-      btn.textContent = "+";
-      btn.style.backgroundColor = "#e50914";
-      btn.disabled = false;
-    }
-  }).addToWishlistSheet(title, poster);
-}
-function renderWishlist(items) {
-  const grid = document.getElementById('wishlistGrid');
-  grid.innerHTML = '';
-
-  // Normalize shapes/keys coming from server: {title, poster} OR {Title, Poster} etc.
-  const normalized = (Array.isArray(items) ? items : []).map(it => {
-    const title = (it && (it.title || it.Title || it.name || it.Name)) || 'Untitled';
-    const poster = (it && (it.poster || it.Poster || it.image || it.Image)) || '';
-    return { title: String(title).trim(), poster: String(poster).trim() };
-  }).filter(it => it.title); // keep only valid titles
-
-  if (normalized.length === 0) {
-    grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No requested items found.</p>';
-    return;
-  }
-
-  shuffleArray(normalized).forEach(item => {
-    const card = document.createElement('div');
-    card.classList.add('movie-card');
-    card.innerHTML = `
-      <img src="${item.poster}" alt="${item.title}" loading="lazy" onerror="this.style.display='none'">
-      <div class="movie-title">${item.title}</div>
-    `;
-    grid.appendChild(card);
-  });
-
-  // Make sure the section is visible (harmless if already visible)
-  const section = document.getElementById('wishlistSection');
-  if (section) section.style.display = 'block';
-}
-function loadWishlist() {
-  return new Promise(resolve => {
-    // Ping (optional but useful to confirm we’re on the right deployment)
-    google.script.run
-      .withSuccessHandler(v => console.log('PING (server version):', v))
-      .withFailureHandler(err => console.warn('PING failed:', err))
-      .pingWishlistVersion();
-
-    // Fetch wishlist from the server
-    google.script.run
-      .withSuccessHandler(items => {
-        renderWishlist(items || []);
-        resolve();
-      })
-      .withFailureHandler(err => {
-        console.error('getRequestedWishlist failed:', err);
-        renderWishlist([]);
-        resolve();
-      })
-      .getRequestedWishlist();
-  });
-}
-
-// RECENTLY ADDED
-function renderRecentlyAdded(items) {
-  const grid = document.getElementById('recentlyAddedGrid');
-  grid.innerHTML = '';
-  if (items.length === 0) {
-    grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No recent videos found.</p>';
-    return;
-  }
-  shuffleArray(items).forEach(item => {
-    const card = document.createElement('div');
-    card.classList.add('movie-card');
-    card.innerHTML = `
-      <img src="${item.poster}" alt="${item.title}" loading="lazy">
-      <div class="movie-title">${item.title}</div>
-    `;
-    card.addEventListener('click', () => {
-      showEpisodesList(item);
-    });
-    grid.appendChild(card);
-  });
-}
-function loadRecentlyAdded() {
-  const grid = document.getElementById('recentlyAddedGrid');
-  grid.innerHTML = `
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-  `;
-
-  return new Promise(resolve => {
-    google.script.run.withSuccessHandler(items => {
-      renderRecentlyAdded(items);
-      resolve();
-    }).withFailureHandler(err => {
-      console.error("❌ Failed to load recently added:", err);
-      showPopup("Error loading recently added.");
-      resolve();
-    }).getRecentVideos();
-  });
-}
-
-// CONTINUE WATCHING
-function loadContinueWatching() {
-  return new Promise(resolve => {
-    if (!currentProfile) {
-      console.log("⚠️ No currentProfile, skipping continue watching");
-      return resolve();
-    }
-
-    google.script.run.withSuccessHandler(data => {
-      renderContinueWatching(data || []);
-      resolve();
-    }).getContinueWatching(currentProfile);
-  });
-}
-function renderContinueWatching(items) {
-  setCWCache(items || []);
-
-  const container = document.getElementById("continueWatchingGrid");
-  if (!container) return;
-  container.innerHTML = "";
-
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    container.innerHTML = "<p>No titles to continue watching yet.</p>";
-    return;
-  }
-
-  const library = window.library;
-  if (!library) return;
-
-  const normalize = (str) => (str || "").replace(/\u00A0/g, " ").trim().toLowerCase();
-
-  items.forEach((item) => {
-    const driveItem = [...library.movies, ...library.tv].find(
-      (lib) => normalize(lib.title) === normalize(item.title)
-    );
-    if (!driveItem) return;
-
-    const card = document.createElement("div");
-    card.className = "movie-card";
-    card.style.position = "relative";
-
-    card.innerHTML = `
-      <img src="${driveItem.poster}" alt="${driveItem.title}" loading="lazy">
-      <div class="movie-title">${driveItem.title}</div>
-      <button class="cw-complete-btn" title="Remove from Continue Watching" aria-label="Remove ${driveItem.title} from Continue Watching">−</button>
-    `;
-
-    // Click on card: ONLY show episodes list
-    card.addEventListener("click", (e) => {
-      const el = e.target;
-      if (el && typeof el.closest === "function" && el.closest(".cw-complete-btn")) return;
-      showEpisodesList(driveItem);
-    });
-
-    // Remove button
-    const completeBtn = card.querySelector(".cw-complete-btn");
-    if (completeBtn) {
-      completeBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const confirmMsg = item.episode
-          ? `Mark "${driveItem.title}" — "${item.episode}" as complete?`
-          : `Mark "${driveItem.title}" as complete?`;
-        if (!window.confirm(confirmMsg)) return;
-        markComplete(currentProfile, driveItem.title, card, item.episode || "");
-      });
-    }
-
-    container.appendChild(card);
-  });
-
-  document.getElementById("continueWatchingSection").style.display = "block";
-}
-
-// DETAILS & TRAILERS
-async function fetchTMDbDetails(item, isTV = false) {
+function getPopularMovies(page = 1) {
   const apiKey = '48f719a14913f9d4ee92c684c2187625';
-  const baseUrl = 'https://api.themoviedb.org/3';
-  const type = isTV ? 'tv' : 'movie';
-  const url = `${baseUrl}/${type}/${item.id}?api_key=${apiKey}&language=en-US&append_to_response=videos,keywords`;
-
+  const url = `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=en-US&page=${page}`;
+  const response = UrlFetchApp.fetch(url);
+  const data = JSON.parse(response.getContentText());
+  return addPosterBasePath(data.results);
+}
+function getPopularTVShows(page = 1) {
+  const apiKey = '48f719a14913f9d4ee92c684c2187625';
+  const url = `https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=en-US&page=${page}`;
+  const response = UrlFetchApp.fetch(url);
+  const data = JSON.parse(response.getContentText());
+  return addPosterBasePath(data.results);
+}
+function getCombinedPopular(page = 1) {
+  return {
+    movies: getPopularMovies(page),
+    tv: getPopularTVShows(page)
+  };
+}
+function addToWishlistSheet(title, poster) {
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
+    const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+    const sheet = ss.getSheetByName('Titles');
+    if (!sheet) throw new Error("Wishlist sheet not found");
+
+    const lastRow = sheet.getLastRow();
+    let data = [];
+    if (lastRow > 1) {
+      // Title (col A), Status (col B), Poster (col C)
+      data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+    }
+
+    for (let i = 0; i < data.length; i++) {
+      if (String(data[i][0]).toLowerCase() === title.toLowerCase()) {
+        // ✅ status is in column B (index 1), not column C (index 2)
+        const status = String(data[i][1]);
+        if (status === "Wishlist") {
+          return { status: "requested", title };
+        } else if (status === "Available") {
+          return { status: "added", title };
+        }
+        return { status: "requested", title };
+      }
+    }
+
+    // ✅ write "Wishlist" so the reader can find it
+    sheet.appendRow([title, "Wishlist", poster]);
+
+    return { status: "added", title };
   } catch (error) {
-    console.warn(`⚠️ TMDb fetch failed for "${item.title || item.name || 'Unknown'}": ${error.message}`);
-
-    const trailerContainer = document.getElementById('tmdbTrailerContainer');
-    const titleElem = document.getElementById('tmdbDetailsTitle');
-    const dateElem = document.getElementById('tmdbDetailsReleaseDate');
-    const overviewElem = document.getElementById('tmdbDetailsOverview');
-    const preview = document.getElementById('tmdbDetailsPreview');
-
-    if (trailerContainer) trailerContainer.innerHTML = '<p><em>Details not available for this title.</em></p>';
-    if (titleElem) titleElem.textContent = item.title || item.name || 'Unknown';
-    if (dateElem) dateElem.innerHTML = '';
-    if (overviewElem) overviewElem.textContent = 'We could not load details from TMDb.';
-    if (preview) preview.style.display = 'block';
-
-    return null;
+    throw new Error(error.message);
   }
 }
+function getRequestedWishlist() {
+  // Reads headers to find: Title / Status / Poster (order doesn’t matter)
+  const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
+  const SHEET_NAME = 'Titles';
 
-function isContinueWatchingLoaded() {
-  const container = document.getElementById("continueWatchingGrid");
-  return container && container.children.length > 0;
-}
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) return [];
 
-let wishlistRequestedTitles = [];
-function loadWishlistRequested() {
-  return new Promise(resolve => {
-    google.script.run.withSuccessHandler(items => {
-      wishlistRequestedTitles = items.filter(item => item.status === "Wishlist");
-      wishlistAvailableTitles = items.filter(item => item.status === "Available");
-      resolve();
-    }).getWishlistAllWithStatus();
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+
+  const headers = sh.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(h => String(h).trim().toLowerCase());
+
+  const titleCol  = headers.indexOf('title') + 1;
+  const statusCol = headers.indexOf('status') + 1;
+  const posterCol = headers.indexOf('poster') + 1; // optional
+
+  if (!titleCol || !statusCol) {
+    return [];
+  }
+
+  const rows = sh.getRange(2, 1, lastRow - 1, lastCol).getValues().map(r => {
+    const title  = String(r[titleCol - 1] || '').trim();
+    const status = String(r[statusCol - 1] || '').trim().toLowerCase();
+    const poster = posterCol ? String(r[posterCol - 1] || '').trim() : '';
+    return { title, status, poster };
   });
-}
 
-function checkStickyShadow() {
-  const stickyOffset = 100;  // or your preferred threshold
-  const titles = document.querySelectorAll('.section-title, .tmdb-title');
-  titles.forEach(el => {
-    const rect = el.getBoundingClientRect();
-    if (rect.top <= stickyOffset) {
-      el.classList.add('sticky-shadow');
-    } else {
-      el.classList.remove('sticky-shadow');
+  // Accept both "wishlist" and legacy "requested"
+  const wanted = new Set(['wishlist', 'requested']);
+
+  return rows
+    .filter(r => r.title && wanted.has(r.status))
+    .map(({ title, poster }) => ({ title, poster }));
+}
+function getRecentVideos(days = 7) {
+  const deploymentId = 'AKfycbyBnamMid90A6xc7rvm47w9R4NF5SYpBOdreX6gCs9A4xcXtVUNYmZ14lqGA2h8Jp4zxw';
+
+  const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1';
+  const rootFolder = DriveApp.getFolderById(rootFolderId);
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  const categories = ['Movies', 'TV Shows'];
+  const recentVideosMap = {};
+
+  categories.forEach(cat => {
+    const folderIterator = rootFolder.getFoldersByName(cat);
+    if (!folderIterator.hasNext()) return;
+    const categoryFolder = folderIterator.next();
+    const subfolders = categoryFolder.getFolders();
+
+    while (subfolders.hasNext()) {
+      const folder = subfolders.next();
+      const files = folder.getFiles();
+
+      let hasRecentFile = false;
+      let poster = '';
+      let videos = [];
+
+      while (files.hasNext()) {
+        const file = files.next();
+        const name = file.getName().toLowerCase();
+
+        if (!poster && (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg'))) {
+          poster = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w300';
+        } else if (/\.(mp4|mov|mkv)$/i.test(name)) {
+          videos.push({
+            title: file.getName().replace(/\.(mp4|mov|mkv)$/i, ''),
+            url: `https://drive.google.com/file/d/${file.getId()}/preview`
+          });
+        }
+      }
+
+      const filesForDateCheck = folder.getFiles();
+      while (filesForDateCheck.hasNext()) {
+        const file = filesForDateCheck.next();
+        if (file.getLastUpdated() >= cutoffDate) {
+          hasRecentFile = true;
+          break;
+        }
+      }
+
+      if (hasRecentFile) {
+        recentVideosMap[folder.getName()] = {
+          title: folder.getName(),
+          poster: poster || 'https://via.placeholder.com/300x450?text=' + encodeURIComponent(folder.getName()),
+          episodes: videos  // Always assign videos array here
+        };
+      }
     }
   });
+
+  return Object.values(recentVideosMap);
 }
 
-window.addEventListener('scroll', checkStickyShadow);
-window.addEventListener('load', checkStickyShadow);
+function getWishlistAllWithStatus() {
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheet = ss.getSheetByName('Titles');
+  if (!sheet) throw new Error("Wishlist sheet not found");
 
-waitForImagesToLoad(document.getElementById('appContent')).then(() => {
-});
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
 
-document.getElementById("mobileExploreRefresh").addEventListener("click", () => {
-  loadCombinedPopular().then(() => console.log("Explore refreshed"));
-});
+  const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
 
-// --- Refresh: Available to Watch (tap = reshuffle, long-press = force reload) ---
-let _availRefreshPressTimer = null;
-let _availDidLongPress = false;
-const availBtn = document.getElementById("mobileAvailableRefresh");
-
-function _scheduleAvailLongPress() {
-  _availDidLongPress = false;
-  _availRefreshPressTimer = setTimeout(() => {
-    _availDidLongPress = true; // so the subsequent 'click' is ignored
-    refreshAvailableToWatch({ force: true })
-      .then(() => showPopup("Available to Watch reloaded"));
-  }, 600); // long-press threshold
+  return data.map(row => ({
+    title: row[0],
+    status: row[1],
+    poster: row[2]
+  }));
 }
-function _cancelAvailLongPress() {
-  if (_availRefreshPressTimer) {
-    clearTimeout(_availRefreshPressTimer);
-    _availRefreshPressTimer = null;
+
+function syncWishlistStatusWithDrive() {
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheet = ss.getSheetByName('Titles');
+  if (!sheet) throw new Error("Titles sheet not found");
+
+  const lastRow = sheet.getLastRow();
+  const data = lastRow < 2 ? [] : sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+
+  // Build a map of existing titles in the sheet (lowercased)
+  const sheetMap = new Map();
+  data.forEach((row, i) => {
+    const title = row[0]?.toLowerCase().trim();
+    if (title) {
+      sheetMap.set(title, {
+        row: i + 2,
+        status: row[1],
+        poster: row[2]
+      });
+    }
+  });
+
+  // Get titles from Drive (both Movies and TV)
+  const libraryData = getLibraryData(); // returns { movies: [], tv: [] }
+  const driveTitles = [...libraryData.movies, ...libraryData.tv];
+
+  // Track updates
+  const statusUpdates = [];
+  const posterUpdates = [];
+
+  driveTitles.forEach(item => {
+    const titleKey = item.title.toLowerCase().trim();
+    const poster = item.poster;
+
+    if (sheetMap.has(titleKey)) {
+      const existing = sheetMap.get(titleKey);
+
+      // Update status if needed
+      if (existing.status !== "Available") {
+        statusUpdates.push({ row: existing.row, status: "Available" });
+      }
+
+      // Update poster if different
+      if (existing.poster !== poster) {
+        posterUpdates.push({ row: existing.row, poster });
+      }
+    } else {
+      // Not in sheet — add it
+      sheet.appendRow([item.title, "Available", poster]);
+    }
+  });
+
+  // Apply status updates
+  statusUpdates.forEach(update => {
+    sheet.getRange(update.row, 2).setValue(update.status);
+  });
+
+  // Apply poster updates
+  posterUpdates.forEach(update => {
+    sheet.getRange(update.row, 3).setValue(update.poster);
+  });
+}
+
+function getLibraryAndSyncWishlist() {
+  const library = getLibraryData();
+  syncWishlistStatusWithDrive();
+  return library;
+}
+
+function getContinueWatching(profileName) {
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheet = ss.getSheetByName('Profiles');
+  if (!sheet) throw new Error("Profiles sheet not found");
+
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(h => String(h).trim().toLowerCase());
+
+  const findCol = (names) => {
+    for (const n of names) {
+      const i = headers.indexOf(n);
+      if (i !== -1) return i + 1;
+    }
+    return 0;
+  };
+
+  const profileCol = findCol(['profile']);
+  const titleCol   = findCol(['title']);
+  const episodeCol = findCol(['episode', 'episode title', 'episodetitle']);
+
+  if (!profileCol || !titleCol) return [];
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  return rows
+    .filter(r => String(r[profileCol - 1]).trim().toLowerCase() === String(profileName).trim().toLowerCase())
+    .map(r => ({
+      profile: r[profileCol - 1],
+      title:   r[titleCol   - 1],
+      episode: episodeCol ? (r[episodeCol - 1] || '') : ''
+    }));
+}
+
+function saveProfileProgress(profile, fullTitle, episode /* , time */) {
+  const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('Profiles');
+  if (!sheet) throw new Error("'Profiles' sheet not found");
+
+  // Normalize
+  const baseTitle = String(fullTitle || '').split(/\s*-\s*/)[0].trim();
+  const epTitle   = String(episode || '').trim();
+  const profKey   = String(profile || '').trim().toLowerCase();
+
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+
+  const headers = (lastCol > 0)
+    ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toLowerCase())
+    : [];
+
+  const findCol = (names) => {
+    for (const n of names) {
+      const i = headers.indexOf(n);
+      if (i !== -1) return i + 1;
+    }
+    return 0;
+  };
+
+  // Require Profile & Title; Episode optional (we'll append if missing)
+  let profileCol = findCol(['profile']);
+  let titleCol   = findCol(['title']);
+  let episodeCol = findCol(['episode', 'episode title', 'episodetitle']);
+
+  // If headers missing, create them in order A:Profile B:Title C:Episode
+  if (!profileCol || !titleCol) {
+    if (lastRow === 0) sheet.insertRowBefore(1);
+    sheet.getRange(1, 1).setValue('Profile');
+    sheet.getRange(1, 2).setValue('Title');
+    sheet.getRange(1, 3).setValue('Episode');
+    profileCol = 1; titleCol = 2; episodeCol = 3;
+  } else if (!episodeCol) {
+    // Add an Episode header if not present
+    episodeCol = lastCol + 1;
+    sheet.getRange(1, episodeCol).setValue('Episode');
+  }
+
+  const data = (lastRow >= 2) ? sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, episodeCol)).getValues() : [];
+
+  const rowIndex = data.findIndex(r =>
+    String(r[profileCol - 1] || '').trim().toLowerCase() === profKey &&
+    String(r[titleCol   - 1] || '').trim().toLowerCase() === baseTitle.toLowerCase()
+  );
+
+  if (rowIndex >= 0) {
+    const updateRow = rowIndex + 2;
+    sheet.getRange(updateRow, episodeCol).setValue(epTitle);
+  } else {
+    const newRow = Array(Math.max(lastCol, episodeCol)).fill('');
+    newRow[profileCol - 1] = profile;
+    newRow[titleCol   - 1] = baseTitle;
+    newRow[episodeCol - 1] = epTitle;
+    sheet.appendRow(newRow);
   }
 }
 
-// Quick tap = reshuffle (no Drive call)
-availBtn.addEventListener("click", () => {
-  if (_availDidLongPress) { _availDidLongPress = false; return; } // suppress extra reshuffle after long-press
-  refreshAvailableToWatch().then(() => console.log("Available to Watch reshuffled"));
-});
+function testSave() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetNames = ss.getSheets().map(s => s.getName());
+  Logger.log("Sheet names: " + sheetNames.join(", "));
 
-// Long-press support for mouse & touch
-availBtn.addEventListener("mousedown", _scheduleAvailLongPress);
-availBtn.addEventListener("touchstart", _scheduleAvailLongPress, { passive: true });
+  // Try exact match
+  const exact = ss.getSheetByName("Profiles");
+  Logger.log("Exact match for 'Profiles': " + (exact ? "✅ FOUND" : "❌ NOT FOUND"));
 
-["mouseup", "mouseleave", "touchend", "touchcancel"].forEach(evt => {
-  availBtn.addEventListener(evt, _cancelAvailLongPress);
-});
+  // Try fuzzy match
+  const fuzzy = sheetNames.find(n => n.toLowerCase().includes("profile"));
+  Logger.log("Fuzzy match: " + fuzzy);
+}
 
-let libraryLoaded = false;
-</script>
-</body>
-</html>
+function testBound() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  Logger.log("ss is null: " + (ss === null));
+  const names = ss.getSheets().map(s => s.getName());
+  Logger.log("Sheet names: " + names.join(", "));
+}
+
+/**
+ * Deletes all "Continue Watching" rows matching a profile + title.
+ * Assumes sheet columns: A=Profile, B=Title, C=Episode (optional)
+ * Returns {deleted: number}
+ */
+function clearProfileProgress(profile, title) {
+  if (!profile || !title) throw new Error('Missing profile or title');
+
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sh = ss.getSheetByName('Profiles');
+  if (!sh) throw new Error('Sheet "Profiles" not found');
+
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  if (lastRow < 2) return { deleted: 0 };
+
+  const headers = sh.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(h => String(h).trim().toLowerCase());
+
+  const findCol = (names) => {
+    for (const n of names) {
+      const i = headers.indexOf(n);
+      if (i !== -1) return i + 1; // 1-based
+    }
+    return 0;
+  };
+
+  const profileCol = findCol(['profile']);
+  const titleCol   = findCol(['title']);
+
+  if (!profileCol || !titleCol) return { deleted: 0 };
+
+  const values = sh.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  // collect 1-based row numbers to delete
+  const toDelete = [];
+  const pKey = String(profile).trim().toLowerCase();
+  const tKey = String(title).trim().toLowerCase();
+
+  values.forEach((row, idx) => {
+    const p = String(row[profileCol - 1] || '').trim().toLowerCase();
+    const t = String(row[titleCol   - 1] || '').trim().toLowerCase();
+    if (p === pKey && t === tKey) toDelete.push(idx + 2);
+  });
+
+  for (let i = toDelete.length - 1; i >= 0; i--) {
+    sh.deleteRow(toDelete[i]);
+  }
+
+  return { deleted: toDelete.length };
+}
