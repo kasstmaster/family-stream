@@ -1060,6 +1060,34 @@ function showEpisodesList(showLike) {
   const displayTitle = showLike.title || showLike.name || "Episodes";
   let eps = Array.isArray(showLike.episodes) ? [...showLike.episodes] : [];
 
+  // If no episodes on the object, fetch them from the server by title.
+  if (!eps.length && (showLike.title || showLike.name)) {
+    const wantTitle = showLike.title || showLike.name;
+
+    // Temporarily show a loading state in the grid
+    const grid = document.getElementById("episodesGrid");
+    if (grid) grid.innerHTML = '<p style="color:#aaa;font-size:24px;text-align:center;">Loading episodes…</p>';
+
+    google.script.run
+      .withSuccessHandler(payload => {
+        const fromServer = Array.isArray(payload?.episodes) ? payload.episodes : [];
+        if (!fromServer.length && payload?.url) {
+          fromServer.push({ title: "Play", url: payload.url, poster: payload.poster || showLike.poster });
+        }
+        // re‑invoke with a fully hydrated object so the rest of the function renders normally
+        showEpisodesList({
+          title: payload.title || wantTitle,
+          poster: payload.poster || showLike.poster,
+          episodes: fromServer
+        });
+      })
+      .withFailureHandler(() => {
+        if (grid) grid.innerHTML = '<p style="color:#aaa;font-size:24px;text-align:center;">No episodes found.</p>';
+      })
+      .getEpisodesByTitle(wantTitle);
+    return; // stop here; the success handler will re-render
+  }
+
   // If no episodes but we have a direct URL, create a single "Play" card
   if ((!eps || eps.length === 0) && showLike.url) {
     eps = [{ title: "Play", url: showLike.url }];
