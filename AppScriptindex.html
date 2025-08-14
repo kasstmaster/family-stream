@@ -763,14 +763,8 @@ header img {
 
   <div class="bottom-bar">
     <div id="mobileRefreshButtonsContainer" style="display:none; width: 100%; justify-content: space-around;">
-      <div class="nav-item" data-section="moviesSection" role="button" tabindex="0" aria-label="Refresh Movies">
-        <i class="fa-solid fa-rotate"></i><span>Movies</span>
-      </div>
-      <div class="nav-item" data-section="tvSection" role="button" tabindex="0" aria-label="Refresh TV Shows">
-        <i class="fa-solid fa-rotate"></i><span>TV Shows</span>
-      </div>
-      <div class="nav-item" data-section="wishlistSection" role="button" tabindex="0" aria-label="Refresh Wishlist">
-        <i class="fa-solid fa-rotate"></i><span>Wishlist</span>
+      <div class="nav-item" id="mobileAvailableRefresh" role="button" tabindex="0" aria-label="Refresh Available to Watch">
+        <i class="fa-solid fa-rotate"></i><span>Available</span>
       </div>
       <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
         <i class="fa-solid fa-rotate"></i><span>Explore</span>
@@ -1183,25 +1177,29 @@ function renderAvailableToWatch(movies, tvShows) {
 }
 
 // Load Library via google.script.run and sync wishlist statuses automatically
-function loadLibrary() {
-  if (libraryLoaded) return Promise.resolve();
-  libraryLoaded = true;
+// Load Library via google.script.run and sync wishlist statuses automatically
+function loadLibrary(force = false) {
+  // only skip if we've already loaded AND not forcing
+  if (libraryLoaded && !force) return Promise.resolve();
 
-  const container = document.getElementById("availableToWatchGrid");
-  container.innerHTML = `
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-  `;
+  if (!libraryLoaded || force) {
+    const container = document.getElementById("availableToWatchGrid");
+    container.innerHTML = `
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    `;
+  }
 
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(data => {
-      fullLibrary = data.movies.concat(data.tv);
-      window.library = data;
+      fullLibrary = (data.movies || []).concat(data.tv || []);
+      window.library = data;          // keep a copy for quick reshuffles
+      libraryLoaded = true;
 
       try {
-        renderAvailableToWatch(data.movies, data.tv);
+        renderAvailableToWatch(data.movies || [], data.tv || []);
       } catch (err) {
         console.error("❌ Error in renderAvailableToWatch:", err);
         showPopup("Error rendering library.");
@@ -1213,6 +1211,21 @@ function loadLibrary() {
       resolve();
     }).getLibraryAndSyncWishlist();
   });
+}
+
+function refreshAvailableToWatch({ force = false } = {}) {
+  // If we want to fully reload from Drive, call loadLibrary(true)
+  if (force) return loadLibrary(true);
+
+  // If we already have the library, just reshuffle and re-render
+  if (window.library && Array.isArray(window.library.movies) && Array.isArray(window.library.tv)) {
+    const { movies, tv } = window.library;
+    renderAvailableToWatch(movies, tv);  // renderAvailableToWatch already shuffles
+    return Promise.resolve();
+  }
+
+  // If no library yet, load normally
+  return loadLibrary();
 }
 
 let currentProfile = null;
@@ -1677,18 +1690,6 @@ function renderRecentlyAdded(items) {
     `;
     card.addEventListener('click', () => {
       showEpisodesList(item);
-
-      // Then decide how to play
-      if (item.episodes && item.episodes.length === 1) {
-      openEpisodeInNewTab(item.episodes[0].url, item.title, item.episodes[0].title || "");
-      } else if (item.url) {
-      openEpisodeInNewTab(item.url, item.title);
-      } else if (item.episodes && item.episodes.length > 1) {
-        // Optionally play first episode automatically, or let user choose
-        // openVideo(item.episodes[0].url, item.title, item.episodes[0].title || "");
-      } else {
-        alert("Video playback not available for this item.");
-      }
     });
     grid.appendChild(card);
   });
@@ -1851,20 +1852,42 @@ window.addEventListener('load', checkStickyShadow);
 waitForImagesToLoad(document.getElementById('appContent')).then(() => {
 });
 
-document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const section = btn.getAttribute('data-section');
-    if (section === 'moviesSection' || section === 'tvSection') {
-      loadLibrary();
-    } else if (section === 'wishlistSection') {
-      loadWishlist();
-    }
-  });
-});
-
-// Example: refresh Explore section on mobile button click
 document.getElementById("mobileExploreRefresh").addEventListener("click", () => {
   loadCombinedPopular().then(() => console.log("Explore refreshed"));
+});
+
+// --- Refresh: Available to Watch (tap = reshuffle, long-press = force reload) ---
+let _availRefreshPressTimer = null;
+let _availDidLongPress = false;
+const availBtn = document.getElementById("mobileAvailableRefresh");
+
+function _scheduleAvailLongPress() {
+  _availDidLongPress = false;
+  _availRefreshPressTimer = setTimeout(() => {
+    _availDidLongPress = true; // so the subsequent 'click' is ignored
+    refreshAvailableToWatch({ force: true })
+      .then(() => showPopup("Available to Watch reloaded"));
+  }, 600); // long-press threshold
+}
+function _cancelAvailLongPress() {
+  if (_availRefreshPressTimer) {
+    clearTimeout(_availRefreshPressTimer);
+    _availRefreshPressTimer = null;
+  }
+}
+
+// Quick tap = reshuffle (no Drive call)
+availBtn.addEventListener("click", () => {
+  if (_availDidLongPress) { _availDidLongPress = false; return; } // suppress extra reshuffle after long-press
+  refreshAvailableToWatch().then(() => console.log("Available to Watch reshuffled"));
+});
+
+// Long-press support for mouse & touch
+availBtn.addEventListener("mousedown", _scheduleAvailLongPress);
+availBtn.addEventListener("touchstart", _scheduleAvailLongPress, { passive: true });
+
+["mouseup", "mouseleave", "touchend", "touchcancel"].forEach(evt => {
+  availBtn.addEventListener(evt, _cancelAvailLongPress);
 });
 
 let libraryLoaded = false;
