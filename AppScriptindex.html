@@ -932,22 +932,25 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
   }
 
   card.addEventListener("click", async () => {
-    const preview = document.getElementById("tmdbDetailsPreview");
-    const trailerContainer = document.getElementById("tmdbTrailerContainer");
-    const titleEl = document.getElementById("tmdbDetailsTitle");
-    const dateEl = document.getElementById("tmdbDetailsReleaseDate");
-    const ovEl = document.getElementById("tmdbDetailsOverview");
-
     if (isTMDb) {
+      // TMDb items: populate the TMDb Details Preview
+      const preview = document.getElementById("tmdbDetailsPreview");
+      const trailerContainer = document.getElementById("tmdbTrailerContainer");
+      const titleEl = document.getElementById("tmdbDetailsTitle");
+      const dateEl = document.getElementById("tmdbDetailsReleaseDate");
+      const ovEl = document.getElementById("tmdbDetailsOverview");
+
       const data = await fetchTMDbDetails(item, item.media_type === "tv");
       if (!data) return;
 
       const trailer = data.videos?.results.find(v => v.type === "Trailer" && v.site === "YouTube");
-      trailerContainer.innerHTML = trailer
-        ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}"
-            sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
-            allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
-        : `<p><em>No trailer available.</em></p>`;
+      if (trailerContainer) {
+        trailerContainer.innerHTML = trailer
+          ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}"
+               sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
+               allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+          : `<p><em>No trailer available.</em></p>`;
+      }
 
       const titleText = data.name || data.title || displayTitle;
       if (titleEl) titleEl.textContent = titleText;
@@ -959,26 +962,20 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
         setTimeout(() => preview.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
       }
 
+      // If there’s a matching local item with episodes, also show the episodes list beneath sections
       const local = findLocalByTitle(titleText);
       if (local?.episodes?.length) {
         showEpisodesList(local);
       } else {
-        document.getElementById("episodesSection").style.display = "none";
-        document.getElementById("episodesGrid").innerHTML = "";
+        const epSec = document.getElementById("episodesSection");
+        const epGrid = document.getElementById("episodesGrid");
+        if (epSec) epSec.style.display = "none";
+        if (epGrid) epGrid.innerHTML = "";
       }
 
     } else {
-      if (trailerContainer) trailerContainer.textContent = "";
-      if (titleEl) titleEl.textContent = displayTitle;
-      if (dateEl) dateEl.textContent = "";
-      if (ovEl) ovEl.textContent = "";
-
-      if (preview) {
-        preview.style.display = "block";
-        setTimeout(() => preview.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-      }
-
-      // ⬇️ Use the episodes row instead of the preview
+      // Local items: do NOT touch the TMDb Details Preview at all
+      // Just open the episodes list
       showEpisodesList(item);
     }
   });
@@ -1107,6 +1104,26 @@ function openVideo(url, title, episode = "") {
   }
 }
 
+function openEpisodeInNewTab(url, showTitle, episodeTitle = "") {
+  // update context
+  currentVideo = { profile: currentProfile, title: showTitle, episode: episodeTitle };
+
+  // save progress
+  if (currentProfile && showTitle) {
+    google.script.run
+      .withFailureHandler(err => console.warn("saveProfileProgress failed:", err))
+      .saveProfileProgress(currentProfile, showTitle, episodeTitle);
+  }
+
+  // open in a new tab (popup‑blocker safe since it's in a click handler)
+  try {
+    window.open(url, "_blank", "noopener");
+  } catch (e) {
+    // fallback
+    location.href = url;
+  }
+}
+
 // Put this where your current showEpisodes() is defined
 function showEpisodesList(showLike) {
   // Ensure episodesSection exists in the DOM
@@ -1172,7 +1189,7 @@ function showEpisodesList(showLike) {
         <div class="movie-title">${ep.title}</div>
       `;
       card.addEventListener("click", () => {
-        openVideo(ep.url, showLike.title || showLike.name, ep.title);
+        openEpisodeInNewTab(ep.url, showLike.title || showLike.name, ep.title);
       });
       grid.appendChild(card);
     });
@@ -1228,7 +1245,7 @@ function addEpisodesUnderPreview(showLike) {
       <div class="movie-title">${ep.title}</div>
     `;
     card.addEventListener("click", () => {
-      openVideo(ep.url, showLike.title || showLike.name, ep.title);
+      openEpisodeInNewTab(ep.url, showLike.title || showLike.name, ep.title);
     });
     row.appendChild(card);
   });
