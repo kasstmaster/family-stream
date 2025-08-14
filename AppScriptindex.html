@@ -184,9 +184,9 @@ header img {
   width: 350px;
   flex: 0 0 auto;
   position: relative;
-  transition: transform 0.3s ease;
+  transition: none !important;
 }
-.movie-card:hover { transform: scale(1.1); }
+.movie-card:hover { transition: none !important; }
 
 .movie-card img,
 .movie-item img {
@@ -627,7 +627,7 @@ header img {
 
   .movie-title { font-size: 15px !important; padding: 4px !important; }
   .movie-card { width: 150px !important; }
-  .movie-card:hover { transform: scale(1.02) !important; }
+  .movie-card:hover { transform: none !important; }
   .skeleton-card { width: 150px !important; height: 200px !important; }
 
   .movie-info-scroll { padding: 10px !important; }
@@ -644,6 +644,20 @@ header img {
   .scroll-container::-webkit-scrollbar-track { background: #1f1f1f; border-radius: 6px; }
   .scroll-container::-webkit-scrollbar-thumb { background: #888; border-radius: 6px; }
   .scroll-container::-webkit-scrollbar-thumb:hover { background: #aaa; }
+}
+
+/* Disable hover scaling on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .movie-card:hover {
+    transform: none !important;
+  }
+}
+
+/* Keep the nice hover scale on real-hover devices (mice/trackpads) */
+@media (hover: hover) and (pointer: fine) {
+  .movie-card:hover {
+    transform: none !important;
+  }
 }
 </style>
 </head>
