@@ -519,6 +519,24 @@ header img {
   #popupCloseBtn { font-size: 50px !important; padding: 14px 40px; }
 }
 
+/* Last-watched highlight in the episode strip */
+.movie-card.last-watched {
+  outline: 3px dashed #00a7b0;
+  outline-offset: 2px;
+  position: relative;
+}
+.movie-card.last-watched::after {
+  content: "Last watched";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 12px;
+  background: rgba(0, 167, 176, .9);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
 /* =======================
    RESPONSIVE: DESKTOP
    ======================= */
@@ -1015,14 +1033,14 @@ function addEpisodesUnderPreview(showLike) {
   section.appendChild(row);
 
   const eps = Array.isArray(showLike.episodes) ? showLike.episodes : [];
-  if (eps.length === 0) {
-    row.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No episodes found.</p>';
-    return;
-  }
+  const last = getLastWatchedEpisodeFor(showLike.title || showLike.name);
 
   eps.forEach(ep => {
     const card = document.createElement("div");
     card.className = "movie-card";
+    if (_norm(ep.title) === _norm(last)) {
+      card.classList.add("last-watched");
+    }
     card.innerHTML = `
       <img src="${showLike.poster}" alt="${ep.title}" loading="lazy">
       <div class="movie-title">${ep.title}</div>
@@ -1437,6 +1455,22 @@ function findLocalByTitle(title) {
   return [...movies, ...tv].find(x => _norm(x.title) === _norm(title)) || null;
 }
 
+// Cache of "last watched" by normalized title for current profile
+let cwProgressByTitle = new Map();
+
+function setCWCache(items = []) {
+  cwProgressByTitle.clear();
+  items.forEach(it => {
+    if (it && it.title) {
+      cwProgressByTitle.set(_norm(it.title), String(it.episode || ""));
+    }
+  });
+}
+
+function getLastWatchedEpisodeFor(title) {
+  return cwProgressByTitle.get(_norm(title)) || "";
+}
+
 // WISHLIST
 function addToWishlist(title, poster, btn) {
   // Immediately update UI
@@ -1581,6 +1615,9 @@ function loadContinueWatching() {
   });
 }
 function renderContinueWatching(items) {
+  // keep the cache updated for highlighting
+  setCWCache(items || []);
+
   const container = document.getElementById("continueWatchingGrid");
   if (!container) return;
   container.innerHTML = "";
