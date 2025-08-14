@@ -375,49 +375,96 @@ function getContinueWatching(profileName) {
   if (!sheet) throw new Error("Profiles sheet not found");
 
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues(); // [Profile, Title, Episode, Time]
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(h => String(h).trim().toLowerCase());
 
-  const filtered = data.filter(row => {
-    return String(row[0]).toLowerCase().trim() === profileName.toLowerCase().trim();
-  });
+  const findCol = (names) => {
+    for (const n of names) {
+      const i = headers.indexOf(n);
+      if (i !== -1) return i + 1;
+    }
+    return 0;
+  };
 
-  if (!filtered.length) return [];
+  const profileCol = findCol(['profile']);
+  const titleCol   = findCol(['title']);
+  const episodeCol = findCol(['episode', 'episode title', 'episodetitle']);
 
-  return filtered.map(row => ({
-    profile: row[0],
-    title: row[1],
-    episode: row[2] || '',
-    time: parseFloat(row[3]) || 0
-  }));
+  if (!profileCol || !titleCol) return [];
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  return rows
+    .filter(r => String(r[profileCol - 1]).trim().toLowerCase() === String(profileName).trim().toLowerCase())
+    .map(r => ({
+      profile: r[profileCol - 1],
+      title:   r[titleCol   - 1],
+      episode: episodeCol ? (r[episodeCol - 1] || '') : ''
+    }));
 }
 
-function saveProfileProgress(profile, fullTitle, episode, time) {
+function saveProfileProgress(profile, fullTitle, episode /* , time */) {
   const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
-  let ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (!ss) ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName("Profiles");
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('Profiles');
   if (!sheet) throw new Error("'Profiles' sheet not found");
 
-  const lastWatched = new Date();
+  // Normalize
+  const baseTitle = String(fullTitle || '').split(/\s*-\s*/)[0].trim();
+  const epTitle   = String(episode || '').trim();
+  const profKey   = String(profile || '').trim().toLowerCase();
+
   const lastRow = sheet.getLastRow();
-  let existing = lastRow >= 2 ? sheet.getRange(2, 1, lastRow - 1, 4).getValues() : [];
+  const lastCol = sheet.getLastColumn();
 
-  const titleParts = fullTitle.split(/\s*-\s*/);
-  const baseTitle = titleParts[0].trim();
-  const epTitle = titleParts[1] ? titleParts[1].trim() : "";
+  const headers = (lastCol > 0)
+    ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toLowerCase())
+    : [];
 
-  const rowIndex = existing.findIndex(row =>
-    (row[0] || '').toLowerCase().trim() === profile.toLowerCase().trim() &&
-    (row[1] || '').toLowerCase().trim() === baseTitle.toLowerCase()
+  const findCol = (names) => {
+    for (const n of names) {
+      const i = headers.indexOf(n);
+      if (i !== -1) return i + 1;
+    }
+    return 0;
+  };
+
+  // Require Profile & Title; Episode optional (we'll append if missing)
+  let profileCol = findCol(['profile']);
+  let titleCol   = findCol(['title']);
+  let episodeCol = findCol(['episode', 'episode title', 'episodetitle']);
+
+  // If headers missing, create them in order A:Profile B:Title C:Episode
+  if (!profileCol || !titleCol) {
+    if (lastRow === 0) sheet.insertRowBefore(1);
+    sheet.getRange(1, 1).setValue('Profile');
+    sheet.getRange(1, 2).setValue('Title');
+    sheet.getRange(1, 3).setValue('Episode');
+    profileCol = 1; titleCol = 2; episodeCol = 3;
+  } else if (!episodeCol) {
+    // Add an Episode header if not present
+    episodeCol = lastCol + 1;
+    sheet.getRange(1, episodeCol).setValue('Episode');
+  }
+
+  const data = (lastRow >= 2) ? sheet.getRange(2, 1, lastRow - 1, Math.max(lastCol, episodeCol)).getValues() : [];
+
+  const rowIndex = data.findIndex(r =>
+    String(r[profileCol - 1] || '').trim().toLowerCase() === profKey &&
+    String(r[titleCol   - 1] || '').trim().toLowerCase() === baseTitle.toLowerCase()
   );
 
   if (rowIndex >= 0) {
     const updateRow = rowIndex + 2;
-    sheet.getRange(updateRow, 3, 1, 2).setValues([[epTitle, lastWatched]]);
+    sheet.getRange(updateRow, episodeCol).setValue(epTitle);
   } else {
-    sheet.appendRow([profile, baseTitle, epTitle, lastWatched]);
+    const newRow = Array(Math.max(lastCol, episodeCol)).fill('');
+    newRow[profileCol - 1] = profile;
+    newRow[titleCol   - 1] = baseTitle;
+    newRow[episodeCol - 1] = epTitle;
+    sheet.appendRow(newRow);
   }
 }
 
@@ -440,4 +487,56 @@ function testBound() {
   Logger.log("ss is null: " + (ss === null));
   const names = ss.getSheets().map(s => s.getName());
   Logger.log("Sheet names: " + names.join(", "));
+}
+
+/**
+ * Deletes all "Continue Watching" rows matching a profile + title.
+ * Assumes sheet columns: A=Profile, B=Title, C=Episode (optional)
+ * Returns {deleted: number}
+ */
+function clearProfileProgress(profile, title) {
+  if (!profile || !title) throw new Error('Missing profile or title');
+
+  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sh = ss.getSheetByName('Profiles');
+  if (!sh) throw new Error('Sheet "Profiles" not found');
+
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  if (lastRow < 2) return { deleted: 0 };
+
+  const headers = sh.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(h => String(h).trim().toLowerCase());
+
+  const findCol = (names) => {
+    for (const n of names) {
+      const i = headers.indexOf(n);
+      if (i !== -1) return i + 1; // 1-based
+    }
+    return 0;
+  };
+
+  const profileCol = findCol(['profile']);
+  const titleCol   = findCol(['title']);
+
+  if (!profileCol || !titleCol) return { deleted: 0 };
+
+  const values = sh.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  // collect 1-based row numbers to delete
+  const toDelete = [];
+  const pKey = String(profile).trim().toLowerCase();
+  const tKey = String(title).trim().toLowerCase();
+
+  values.forEach((row, idx) => {
+    const p = String(row[profileCol - 1] || '').trim().toLowerCase();
+    const t = String(row[titleCol   - 1] || '').trim().toLowerCase();
+    if (p === pKey && t === tKey) toDelete.push(idx + 2);
+  });
+
+  for (let i = toDelete.length - 1; i >= 0; i--) {
+    sh.deleteRow(toDelete[i]);
+  }
+
+  return { deleted: toDelete.length };
 }
