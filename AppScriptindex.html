@@ -74,6 +74,14 @@ header img {
   gap: 8px;
 }
 
+/* Ensure the trailer area is on top and interactive */
+#tmdbTrailerContainer { position: relative; z-index: 1; }
+
+/* Just in case: never disable pointer events on the preview or the container */
+#tmdbDetailsPreview, #tmdbTrailerContainer, #tmdbTrailerFrame {
+  pointer-events: auto !important;
+}
+
 /* =======================
    PROFILES
    ======================= */
@@ -262,22 +270,21 @@ header img {
 }
 .add-refresh-btn.loading + .loading-text { display: inline; }
 
-/* Continue Watching: Mark complete button */
+/* Base style for the remove (–) button */
 .cw-complete-btn {
   position: absolute;
   top: 8px;
-  left: 8px;
-  width: 44px;
-  height: 44px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  line-height: 1;
   border: none;
   border-radius: 50%;
-  background: rgba(224, 32, 32, 0.95); /* red base */
-  color: #fff;
-  font-size: 26px;
-  line-height: 44px;
+  background-color: rgba(0,0,0,0.7);
+  color: white;
   cursor: pointer;
-  z-index: 12;
-  transition: transform .15s ease, background .2s ease, opacity .2s ease;
+  z-index: 3;
 }
 
 .cw-complete-btn:hover {
@@ -332,6 +339,19 @@ header img {
   cursor: default;
   pointer-events: none;
 }
+
+/* Episodes row controls */
+.episodes-close {
+  font-size: 0.9em;
+  margin-left: 12px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+}
+.episodes-close:hover { background: #444; }
 
 /* =======================
    MODALS
@@ -439,6 +459,27 @@ header img {
 .details { margin-top: 40px; }
 .trailer { margin-top: 30px; }
 
+.movie-card.last-watched {
+  position: relative; /* ensure overlay anchors correctly */
+}
+
+.movie-card.last-watched::after {
+  content: "Last watched";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;                 /* full width */
+  text-align: center;
+  background: rgba(0, 167, 176, 0.92); /* your teal, solid enough to read */
+  color: #fff;
+  font-weight: 700;
+  padding: 8px 10px;        /* desktop/base size */
+  border-radius: 12px 12px 0 0;  /* match card’s rounded top corners */
+  z-index: 2;
+  pointer-events: none;     /* never block taps on the card */
+  font-size: 14px;          /* desktop/base size */
+}
+
 /* =======================
    RESPONSIVE: MOBILE
    ======================= */
@@ -450,6 +491,18 @@ header img {
     gap: 20px;
     justify-content: center;
     align-items: center;
+  }
+
+  .movie-card.last-watched::after {
+    font-size: 40px;        /* larger text for mobile */
+    padding: 14px 16px;     /* taller banner for readability */
+  }
+
+  .cw-complete-btn {
+    width: 100px !important;
+    height: 100px !important;
+    font-size: 80px !important;
+    line-height: 96px !important;
   }
 
   #loadingScreen { font-size: 60px !important; }
@@ -517,24 +570,6 @@ header img {
     top: 15%;
   }
   #popupCloseBtn { font-size: 50px !important; padding: 14px 40px; }
-}
-
-/* Last-watched highlight in the episode strip */
-.movie-card.last-watched {
-  outline: 3px dashed #00a7b0;
-  outline-offset: 2px;
-  position: relative;
-}
-.movie-card.last-watched::after {
-  content: "Last watched";
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  font-size: 12px;
-  background: rgba(0, 167, 176, .9);
-  color: #fff;
-  padding: 2px 6px;
-  border-radius: 6px;
 }
 
 /* =======================
@@ -636,13 +671,10 @@ header img {
   <!-- Watch Header -->
   <h2 class="section-title">Available to Watch</h2>
 
-  <!-- TMDb Details Preview -->
-  <div id="tmdbDetailsPreview" 
-      style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white; display:none;">
-    <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
-    <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
-    <p id="tmdbDetailsReleaseDate"></p>
-    <p class="movie-overview" id="tmdbDetailsOverview"></p>
+  <!-- Episodes -->
+  <div id="episodesSection" style="display:none;">
+    <h2 class="subsection-title" id="episodesTitle"></h2>
+    <div class="scroll-container" id="episodesGrid"></div>
   </div>
 
   <!-- Continue Watching Section -->
@@ -673,6 +705,15 @@ header img {
   <!-- TMDb Header -->
   <h2 class="tmdb-title">Explore</h2>
 
+  <!-- TMDb Details Preview -->
+  <div id="tmdbDetailsPreview" 
+      style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white; display:none;">
+    <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
+    <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
+    <p id="tmdbDetailsReleaseDate"></p>
+    <p class="movie-overview" id="tmdbDetailsOverview"></p>
+  </div>
+
   <!-- Combined TMDb Section -->
   <div id="tmdbExploreSection">
     <h2 class="subsection-title">Explore Movies & TV Shows</h2>
@@ -689,12 +730,6 @@ header img {
   <div id="searchResultsSection" style="display:none;">
     <h2 class="subsection-title">Search Results</h2>
     <div class="scroll-container" id="searchResultsGrid"></div>
-  </div>
-
-  <!-- Episodes -->
-  <div id="episodesSection" style="display:none;">
-    <h2 class="subsection-title" id="episodesTitle"></h2>
-    <div class="scroll-container" id="episodesGrid"></div>
   </div>
 
   <!-- Video Modal -->
@@ -912,9 +947,10 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
 
       const local = findLocalByTitle(titleText);
       if (local?.episodes?.length) {
-        addEpisodesUnderPreview(local);
+        showEpisodesList(local);
       } else {
-        document.getElementById("tmdbEpisodesSection")?.remove();
+        document.getElementById("episodesSection").style.display = "none";
+        document.getElementById("episodesGrid").innerHTML = "";
       }
 
     } else {
@@ -928,7 +964,8 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
         setTimeout(() => preview.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
       }
 
-      addEpisodesUnderPreview(item);
+      // ⬇️ Use the episodes row instead of the preview
+      showEpisodesList(item);
     }
   });
 
@@ -963,27 +1000,84 @@ function openVideo(url, title, episode = "") {
   const preview = document.getElementById("tmdbDetailsPreview");
   if (preview) {
     preview.style.display = "block";
+    // Scroll it into view just below sticky header/search
     setTimeout(() => {
-      preview.scrollIntoView({ behavior: "smooth", block: "start" });
+      const yOffset = -80; // adjust for your sticky header height
+      const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
     }, 50);
   }
 
   // Play inside the TMDb preview area (no #t param)
-  const trailerContainer = document.getElementById("tmdbTrailerContainer");
-  if (trailerContainer) {
-    trailerContainer.textContent = "";
-    const iframe = document.createElement("iframe");
-    iframe.id = "tmdbTrailerFrame";
-    iframe.src = url;
-    iframe.setAttribute("sandbox", "allow-same-origin allow-scripts allow-presentation allow-popups allow-forms");
-    iframe.setAttribute("allowfullscreen", "");
-    iframe.setAttribute("allow", "autoplay; encrypted-media; fullscreen; picture-in-picture");
-    iframe.style.width = "100%";
-    iframe.style.height = "100%";
-    iframe.style.border = "none";
-    iframe.style.borderRadius = "12px";
-    trailerContainer.appendChild(iframe);
-  }
+    const trailerContainer = document.getElementById("tmdbTrailerContainer");
+    if (trailerContainer) {
+      // Make sure nothing overlays this area.
+      trailerContainer.textContent = "";
+      trailerContainer.style.position = "relative";
+      trailerContainer.style.zIndex = "1"; // above surrounding content
+      trailerContainer.style.pointerEvents = "auto";
+
+      const iframe = document.createElement("iframe");
+      iframe.id = "tmdbTrailerFrame";
+      iframe.src = url; // e.g. https://drive.google.com/file/<id>/preview
+      // IMPORTANT: don't sandbox the Drive iframe — it can block interaction on mobile.
+      // iframe.removeAttribute("sandbox");
+      iframe.setAttribute("allowfullscreen", "");
+      iframe.setAttribute(
+        "allow",
+        "autoplay; encrypted-media; fullscreen; picture-in-picture"
+      );
+      // keep it interactable
+      iframe.style.width = "100%";
+      iframe.style.height = "100%";
+      iframe.style.border = "none";
+      iframe.style.borderRadius = "12px";
+      iframe.style.pointerEvents = "auto";
+      iframe.style.background = "black";
+      trailerContainer.appendChild(iframe);
+
+      // Mobile fallback: if tapping the container doesn't focus the iframe,
+      // offer an "Open in Drive" button.
+      const isTouch =
+        "ontouchstart" in window ||
+        navigator.maxTouchPoints > 0 ||
+        navigator.msMaxTouchPoints > 0;
+
+      if (isTouch) {
+        const fallback = document.createElement("button");
+        fallback.textContent = "▶";
+        fallback.type = "button";
+        fallback.style.cssText = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 32px;
+          padding: 20px 40px;
+          border: none;
+          border-radius: 12px;
+          background: rgba(229, 9, 20, 0.95); /* Netflix red with opacity */
+          color: #fff;
+          font-weight: bold;
+          cursor: pointer;
+          z-index: 5; /* sits above the iframe */
+        `;
+        fallback.addEventListener("click", (e) => {
+          e.stopPropagation();
+          window.open(url, "_blank", "noopener");
+        });
+        trailerContainer.appendChild(fallback);
+
+        // Hide fallback after the user taps anywhere on the iframe
+        trailerContainer.addEventListener(
+          "touchstart",
+          () => {
+            setTimeout(() => (fallback.style.display = "none"), 300);
+          },
+          { once: true }
+        );
+      }
+    }
 
   // Update title (and clear date since this is a Drive video)
   const titleEl = document.getElementById("tmdbDetailsTitle");
@@ -1000,8 +1094,82 @@ function openVideo(url, title, episode = "") {
 }
 
 // Put this where your current showEpisodes() is defined
-function showEpisodes(show) {
-  addEpisodesUnderPreview(show); // unified renderer with the right heading
+function showEpisodesList(showLike) {
+  // Ensure episodesSection exists in the DOM
+  let section = document.getElementById("episodesSection");
+  if (!section) {
+    section = document.createElement("div");
+    section.id = "episodesSection";
+    section.style.display = "none";
+    section.innerHTML = `
+      <h2 class="subsection-title" id="episodesTitle"></h2>
+      <div class="scroll-container" id="episodesGrid"></div>
+    `;
+    const cwSection = document.getElementById("continueWatchingSection");
+    if (cwSection) {
+      cwSection.insertAdjacentElement("beforebegin", section);
+    } else {
+      document.body.appendChild(section); // fallback
+    }
+  }
+
+  const titleEl = document.getElementById("episodesTitle");
+  const grid = document.getElementById("episodesGrid");
+  if (!grid) return;
+
+  // Hide TMDb preview
+  const preview = document.getElementById("tmdbDetailsPreview");
+  if (preview) preview.style.display = "none";
+
+  // Clear + prep
+  grid.innerHTML = "";
+  section.style.display = "block";
+
+  // Title + close button
+  const displayTitle = showLike.title || showLike.name || "Episodes";
+  const label = (showLike.episodes?.length > 1) ? "Episodes" : "Collection";
+  titleEl.innerHTML = `${displayTitle} — <span style="opacity:.8">${label}</span>`;
+
+  let closeBtn = titleEl.querySelector("button.episodes-close");
+  if (!closeBtn) {
+    closeBtn = document.createElement("button");
+    closeBtn.className = "episodes-close";
+    closeBtn.type = "button";
+    closeBtn.textContent = "Close";
+    closeBtn.addEventListener("click", () => {
+      section.style.display = "none";
+      grid.innerHTML = "";
+    });
+    titleEl.appendChild(closeBtn);
+  }
+
+  // Build episode cards
+  const eps = Array.isArray(showLike.episodes) ? showLike.episodes : [];
+  if (eps.length === 0) {
+    grid.innerHTML = '<p style="color:#aaa;font-size:24px;text-align:center;">No episodes found.</p>';
+  } else {
+    const last = getLastWatchedEpisodeFor(showLike.title || showLike.name);
+    eps.forEach(ep => {
+      const card = document.createElement("div");
+      card.className = "movie-card";
+      if (_norm(ep.title) === _norm(last)) card.classList.add("last-watched");
+      card.innerHTML = `
+        <img src="${showLike.poster}" alt="${ep.title}" loading="lazy">
+        <div class="movie-title">${ep.title}</div>
+      `;
+      card.addEventListener("click", () => {
+        openVideo(ep.url, showLike.title || showLike.name, ep.title);
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  // Smooth scroll with header offset
+  setTimeout(() => {
+    const yOffset = -80; // adjust for sticky header
+    const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }, 50);
 }
 
 function addEpisodesUnderPreview(showLike) {
@@ -1559,8 +1727,7 @@ function renderRecentlyAdded(items) {
       <div class="movie-title">${item.title}</div>
     `;
     card.addEventListener('click', () => {
-      // Show “Continue the story” list
-      addEpisodesUnderPreview(item);
+      showEpisodesList(item);
 
       // Then decide how to play
       if (item.episodes && item.episodes.length === 1) {
@@ -1642,7 +1809,7 @@ function renderContinueWatching(items) {
 
     const card = document.createElement("div");
     card.className = "movie-card";
-    card.style.position = "relative"; // needed so the button can sit in the corner
+    card.style.position = "relative";
 
     card.innerHTML = `
       <img src="${driveItem.poster}" alt="${driveItem.title}" loading="lazy">
@@ -1655,8 +1822,8 @@ function renderContinueWatching(items) {
       const el = e.target;
       if (el && typeof el.closest === "function" && el.closest(".cw-complete-btn")) return;
 
-      // Show “Continue the story” list
-      addEpisodesUnderPreview(driveItem);
+      // Show episodes as their own row
+      showEpisodesList(driveItem);
 
       // Play the selected video
       openVideo(videoUrl, driveItem.title, item.episode || "");
