@@ -1,5 +1,8 @@
 // !DOCTYPE Code.gs
 
+// ---- TMDB KEY (single source of truth)
+const TMDB_API_KEY = '48f719a14913f9d4ee92c684c2187625';
+
 function doGet(e) {
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('My Movie Browser')
@@ -260,6 +263,97 @@ function filterOutAsian(items) {
     return !excludedLangs.includes(lang) && countries.every(c => !excludedCountries.includes(c));
   });
 }
+// ----- Watch provider helpers (US region, subscription only) -----
+function _normalizeProviderName(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[\s+]+/g, ' ')   // collapse spaces
+    .replace(/[^\w ]/g, '')    // drop punctuation
+    .trim();
+}
+
+function tmdbDiscover(params) {
+  // use the constant
+  const q = Object.entries(params)
+    .filter(([,v]) => v !== undefined && v !== null && v !== '')
+    .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
+  const url = `https://api.themoviedb.org/3/discover/${params.__type}?api_key=${encodeURIComponent(TMDB_API_KEY)}&${q}`;
+  const resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const code = resp.getResponseCode();
+  if (code < 200 || code >= 300) throw new Error(`TMDb discover ${params.__type} ${code}`);
+  return JSON.parse(resp.getContentText());
+}
+
+// Genre-aware, provider-filtered discover
+function getProviderDiscoverByGenre(page, region, genreId) {
+  const pg  = Math.max(1, Math.min(Number(page) || 1, 500));
+  const gid = String(genreId || '').trim();
+
+  const common = {
+    language: 'en-US',
+    sort_by: 'popularity.desc',
+    include_adult: 'false',
+    page: pg
+  };
+
+  const MOVIE_GENRES_ONLY = new Set(['36']); // keep your existing rule if desired
+  const TV_GENRES_ONLY    = new Set([]);
+
+  const results = [];
+
+  if (!gid || MOVIE_GENRES_ONLY.has(gid)) {
+    const movieData = tmdbDiscover({ __type: 'movie', ...common, with_genres: gid || undefined });
+    results.push(...(movieData.results || []));
+  }
+  if (!gid || TV_GENRES_ONLY.has(gid)) {
+    const tvData = tmdbDiscover({ __type: 'tv', ...common, with_genres: gid || undefined });
+    results.push(...(tvData.results || []));
+  }
+
+  const items = addPosterBasePath(filterOutAsian(results || []));
+  return items;
+}
+
+function getPopularByProviders(type /* 'movie' | 'tv' */, page, region) {
+  const apiKey = '48f719a14913f9d4ee92c684c2187625';
+  const pg = Math.max(1, Math.min(Number(page) || 1, 500));
+
+  // Top rated across all providers (no storefront filters)
+  const params = {
+    __type: type,
+    language: 'en-US',
+    include_adult: 'false',
+    sort_by: 'vote_average.desc',
+    page: pg,
+    'vote_count.gte': 200   // tweak this threshold if you want stricter/looser filtering
+  };
+
+  const data = tmdbDiscover(params);
+  const rows = Array.isArray(data.results) ? data.results : [];
+  rows.forEach(r => r.media_type = type);
+  return addPosterBasePath(filterOutAsian(rows));
+}
+
+function getProviderDiscoverByGenreType(type /* 'movie' | 'tv' */, page, region, genreId) {
+  const pg  = Math.max(1, Math.min(Number(page) || 1, 500));
+  const gid = String(genreId || '').trim();
+
+  const params = {
+    __type: type,
+    language: 'en-US',
+    include_adult: 'false',
+    sort_by: 'vote_average.desc',
+    page: pg,
+    with_genres: gid || undefined,
+    'vote_count.gte': 200
+  };
+
+  const data = tmdbDiscover(params);
+  const rows = Array.isArray(data.results) ? data.results : [];
+  rows.forEach(r => r.media_type = type);
+  return addPosterBasePath(filterOutAsian(rows));
+}
 
 function getPopularMovies(page = 1) {
   const apiKey = '48f719a14913f9d4ee92c684c2187625';
@@ -498,6 +592,63 @@ function syncWishlistStatusWithDrive() {
   posterUpdates.forEach(update => {
     sheet.getRange(update.row, 3).setValue(update.poster);
   });
+}
+
+function getDiscoverByGenreType(type, page, region, genreId) {
+  type = (type === 'tv') ? 'tv' : 'movie';
+  page = page || 1;
+
+  const base = 'https://api.themoviedb.org/3/discover/' + type;
+  const params = {
+    api_key: TMDB_API_KEY,            // ← use constant
+    language: 'en-US',
+    sort_by: 'vote_average.desc',
+    include_adult: 'false',
+    include_video: 'false',
+    page: page,
+    'vote_count.gte': (type === 'tv') ? 150 : 250   // slightly lower so lists aren’t empty
+  };
+  if (genreId) params.with_genres = String(genreId);
+
+  const qs = Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+  const resp = UrlFetchApp.fetch(base + '?' + qs, { muteHttpExceptions: true });
+  const data = JSON.parse(resp.getContentText() || '{}');
+  const results = Array.isArray(data.results) ? data.results : [];
+
+  return results.map(r => ({
+    id: r.id,
+    title: r.title,
+    name: r.name,
+    poster: r.poster_path ? ('https://image.tmdb.org/t/p/w342' + r.poster_path) : '',
+    overview: r.overview,
+    release_date: r.release_date,
+    first_air_date: r.first_air_date,
+    media_type: type,
+    genre_ids: r.genre_ids || []
+  }));
+}
+
+// Super-simple fallback: TMDB trending
+function getTrendingByType(type, page) {
+  type = (type === 'tv') ? 'tv' : 'movie';
+  page = page || 1;
+
+  const url = 'https://api.themoviedb.org/3/trending/' + type + '/week?api_key='
+    + encodeURIComponent(TMDB_API_KEY) + '&page=' + encodeURIComponent(page);
+  const data = JSON.parse(UrlFetchApp.fetch(url, { muteHttpExceptions: true }).getContentText() || '{}');
+  const results = Array.isArray(data.results) ? data.results : [];
+
+  return results.map(r => ({
+    id: r.id,
+    title: r.title,
+    name: r.name,
+    poster: r.poster_path ? ('https://image.tmdb.org/t/p/w342' + r.poster_path) : '',
+    overview: r.overview,
+    release_date: r.release_date,
+    first_air_date: r.first_air_date,
+    media_type: type,
+    genre_ids: r.genre_ids || []
+  }));
 }
 
 function getLibraryAndSyncWishlist() {
