@@ -268,12 +268,6 @@ header img {
 }
 .add-btn:hover { background: #ff4c4c; }
 
-.genre-pill{
-  background:#1f1f1f;border:1px solid #333;color:#fff;border-radius:999px;
-  padding:6px 12px;font-size:14px;cursor:pointer
-}
-.genre-pill.active{background:#00a7b0;border-color:#00a7b0;color:#000}
-
 /* =======================
    SKELETON LOADER
    ======================= */
@@ -298,7 +292,7 @@ header img {
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 60px;
   z-index: 2147483647;
 }
@@ -773,10 +767,8 @@ header img {
     </div>
   </div>
 
-  <!-- TMDb Header -->
   <h2 class="tmdb-title">Explore</h2>
 
-  <!-- TMDb Details Preview -->
   <div id="tmdbDetailsPreview" 
       style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white; display:none;">
     <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
@@ -785,41 +777,49 @@ header img {
     <p class="movie-overview" id="tmdbDetailsOverview"></p>
   </div>
 
-  <div id="tmdbGenreBar" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0 0;">
-    <button class="genre-pill" data-genre="">All</button>
-    <button class="genre-pill" data-genre="35">Comedy</button>
-    <button class="genre-pill" data-genre="37">Western</button>
-    <button class="genre-pill" data-genre="28">Action</button>
-    <button class="genre-pill" data-genre="18">Drama</button>
-    <button class="genre-pill" data-genre="16">Animation</button>
-    <button class="genre-pill" data-genre="36">History</button>
-    <button class="genre-pill" data-genre="9805">Sports</button>
-    <button class="genre-pill" data-genre="99">Documentary</button>
-    <button class="genre-pill" data-genre="10749">Romance</button>
-    <button class="genre-pill" data-genre="878">Sci-Fi</button>
-    <button class="genre-pill" data-genre="9648">Mystery</button>
+  <div id="tmdbExploreAllSection">
+    <h2 class="subsection-title">Explore All</h2>
+    <div class="scroll-container" id="tmdbExploreAllRow"></div>
   </div>
 
-  <!-- Trending TMDb Section -->
-  <div id="tmdbTrendingSection">
-    <h2 class="subsection-title">Explore Whats Trending</h2>
-    <div class="scroll-container" id="tmdbTrendingRow">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-    </div>
+  <div id="tmdbExploreComedySection">
+    <h2 class="subsection-title">Explore Comedy</h2>
+    <div class="scroll-container" id="tmdbExploreComedyRow"></div>
   </div>
 
-  <!-- Explore TMDb Section -->
-  <div id="tmdbExploreSection">
-    <h2 class="subsection-title">Explore All Movies & TV Shows</h2>
-    <div class="scroll-container" id="tmdbExploreRow">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-    </div>
+  <div id="tmdbExploreWesternSection">
+    <h2 class="subsection-title">Explore Western</h2>
+    <div class="scroll-container" id="tmdbExploreWesternRow"></div>
+  </div>
+
+  <div id="tmdbExploreActionSection">
+    <h2 class="subsection-title">Explore Action</h2>
+    <div class="scroll-container" id="tmdbExploreActionRow"></div>
+  </div>
+
+  <div id="tmdbExploreDramaSection">
+    <h2 class="subsection-title">Explore Drama</h2>
+    <div class="scroll-container" id="tmdbExploreDramaRow"></div>
+  </div>
+
+  <div id="tmdbExploreAnimationSection">
+    <h2 class="subsection-title">Explore Animation</h2>
+    <div class="scroll-container" id="tmdbExploreAnimationRow"></div>
+  </div>
+
+  <div id="tmdbExploreHistorySection">
+    <h2 class="subsection-title">Explore History</h2>
+    <div class="scroll-container" id="tmdbExploreHistoryRow"></div>
+  </div>
+
+  <div id="tmdbExploreRomanceSection">
+    <h2 class="subsection-title">Explore Romance</h2>
+    <div class="scroll-container" id="tmdbExploreRomanceRow"></div>
+  </div>
+
+  <div id="tmdbExploreScifiSection">
+    <h2 class="subsection-title">Explore Sci-Fi</h2>
+    <div class="scroll-container" id="tmdbExploreScifiRow"></div>
   </div>
 
   <!-- Wishlist Section -->
@@ -883,7 +883,6 @@ header img {
 let fullLibrary = [];
 let wishlistAvailableTitles = [];
 let wishlistRequestedTitles = [];
-let currentGenreFilter = "";
 
 let _wishlistAllCachePromise;
 function ensureWishlistAll() {
@@ -947,7 +946,7 @@ function selectProfile(profileName, iconUrl) {
 
   // 2) Ensure wishlist cache once, then load the 3 sections
   ensureWishlistAll()
-    .then(() => Promise.all([ initTrending(), initExplore(), loadWishlist() ]))
+    .then(() => Promise.all([ loadExploreRows(), loadWishlist() ]))
     .then(() => {
       const wl = document.getElementById("wishlistSection");
       const ra = document.getElementById("recentlyAddedSection");
@@ -1074,7 +1073,6 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
   if (isTMDb) {
     // Store TMDb genre IDs for filtering
     const gids = Array.isArray(item.genre_ids) ? item.genre_ids : [];
-    card.dataset.genreIds = gids.join(",");
     const btn = document.createElement("button");
     btn.classList.add("add-btn");
 
@@ -1150,51 +1148,6 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
   });
 
   return card;
-}
-
-function cardMatchesGenre(card, wantedId) {
-  if (!wantedId) return true; // All
-  const ids = (card.dataset.genreIds || "").split(",").filter(Boolean);
-  return ids.includes(String(wantedId));
-}
-
-function applyTmdbGenreFilter() {
-  const rows = [
-    document.getElementById("tmdbTrendingRow"),
-    document.getElementById("tmdbExploreRow")
-  ].filter(Boolean);
-
-  for (const row of rows) {
-    const cards = row.querySelectorAll(".movie-card");
-    cards.forEach(card => {
-      card.style.display = cardMatchesGenre(card, currentGenreFilter) ? "" : "none";
-    });
-  }
-}
-
-async function maybeTopUpFilteredRows(minVisible = 6) {
-  const rows = [
-    { id: "tmdbTrendingRow", fetch: fetchTrendingBatch, state: trendingState },
-    { id: "tmdbExploreRow",  fetch: fetchExploreBatch,  state: exploreState  },
-  ];
-
-  for (const { id, fetch, state } of rows) {
-    const row = document.getElementById(id);
-    if (!row) continue;
-
-    let visible = Array.from(row.querySelectorAll(".movie-card"))
-      .filter(c => c.style.display !== "none").length;
-
-    let tries = 0;
-    while (visible < minVisible && tries < 3) {
-      const batch = await fetch(5);
-      appendTmdbItems(row, batch, state);
-      applyTmdbGenreFilter();
-      visible = Array.from(row.querySelectorAll(".movie-card"))
-        .filter(c => c.style.display !== "none").length;
-      tries++;
-    }
-  }
 }
 
 function openEpisodeInNewTab(url, showTitle, episodeTitle = "") {
@@ -1543,9 +1496,17 @@ document.getElementById("searchInput").addEventListener("input", function (e) {
     "recentlyAddedSection",
     "availableToWatchSection",
     "wishlistSection",
-    "tmdbExploreSection",      // <-- the Explore list container
     "tmdbDetailsPreview",
-    "episodesSection"
+    "episodesSection",
+    "tmdbExploreAllSection",
+    "tmdbExploreComedySection",
+    "tmdbExploreWesternSection",
+    "tmdbExploreActionSection",
+    "tmdbExploreDramaSection",
+    "tmdbExploreAnimationSection",
+    "tmdbExploreHistorySection",
+    "tmdbExploreRomanceSection",
+    "tmdbExploreScifiSection"
   ];
 
   // If the library isn't ready, bail
@@ -1591,120 +1552,6 @@ document.getElementById("searchInput").addEventListener("input", function (e) {
   }
 });
 
-function loadTrendingNow() {
-  return loadWishlistRequested()
-    .then(() => {
-      return new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(items => {
-            if (!Array.isArray(items)) {
-              reject(new Error("Invalid trending results"));
-              return;
-            }
-
-            const row = document.getElementById('tmdbTrendingRow');
-            row.innerHTML = '';
-
-            items.forEach(item => {
-              const card = createCard(item, true, wishlistRequestedTitles);
-
-              // Show AVAILABLE banner if already in wishlistAvailable
-              const itemTitle = (item.title || item.name || '').toLowerCase();
-              if (wishlistAvailableTitles.some(w => w.title.toLowerCase() === itemTitle && w.status === "Available")) {
-                const banner = document.createElement('div');
-                banner.textContent = 'AVAILABLE';
-                banner.style.cssText = `
-                  position: absolute;
-                  top: 10px;
-                  left: 0;
-                  width: 100%;
-                  background-color: rgba(0, 128, 0, 0.75);
-                  color: white;
-                  font-weight: bold;
-                  text-align: center;
-                  padding: 6px 0;
-                  border-radius: 12px 12px 0 0;
-                  font-size: 24px;
-                  z-index: 20;
-                  pointer-events: none;
-                `;
-                card.style.position = 'relative';
-                card.appendChild(banner);
-              }
-
-              row.appendChild(card);
-            });
-
-            resolve();
-          })
-          .withFailureHandler(err => reject(err))
-          .getTrendingNow("all", "day"); // change to "week" if you want a weekly view
-      });
-    });
-}
-
-function loadCombinedPopular() {
-  return loadWishlistRequested()
-    .then(() => {
-      return new Promise((resolve, reject) => {
-        const randomPage = Math.floor(Math.random() * 500) + 1;
-        google.script.run
-          .withSuccessHandler(data => {
-            if (!data || !Array.isArray(data.movies) || !Array.isArray(data.tv)) {
-              reject(new Error('Invalid data structure from getCombinedPopular'));
-              return;
-            }
-
-            const row = document.getElementById('tmdbExploreRow');
-            row.innerHTML = ''; // Clear previous results
-
-            const limitedMovies = shuffleArray(data.movies).slice(0, 7);
-            const limitedTV = shuffleArray(data.tv).slice(0, 7);
-            const allItems = shuffleArray([...limitedMovies, ...limitedTV]);
-
-            allItems.forEach(item => {
-              const card = createCard(item, true, wishlistRequestedTitles);
-
-              // Add AVAILABLE banner if already in wishlistAvailable
-              const itemTitle = (item.title || item.name || '').toLowerCase();
-              if (wishlistAvailableTitles.some(w => w.title.toLowerCase() === itemTitle && w.status === "Available")) {
-                const banner = document.createElement('div');
-                banner.textContent = 'AVAILABLE';
-                banner.style.cssText = `
-                  position: absolute;
-                  top: 10px;
-                  left: 0;
-                  width: 100%;
-                  background-color: rgba(0, 128, 0, 0.75);
-                  color: white;
-                  font-weight: bold;
-                  text-align: center;
-                  padding: 6px 0;
-                  border-radius: 12px 12px 0 0;
-                  font-size: 24px;
-                  z-index: 20;
-                  pointer-events: none;
-                `;
-                card.style.position = 'relative';
-                card.appendChild(banner);
-              }
-
-              row.appendChild(card);
-            });
-
-            // Keep preview hidden/blank until the user selects an item
-            const trailerContainer = document.getElementById('tmdbTrailerContainer');
-            const preview = document.getElementById('tmdbDetailsPreview');
-            if (trailerContainer) trailerContainer.innerHTML = '';
-            if (preview) preview.style.display = 'none';
-
-            resolve();
-          })
-          .withFailureHandler(error => reject(error))
-          .getCombinedPopular(randomPage);
-      });
-    });
-}
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -1970,85 +1817,83 @@ async function fetchTMDbDetails(item, isTV = false) {
   });
 }
 
-const _EXP_MAX_PAGE = 500;
-const _TREND_MAX_PAGE = 500;
+const GENRES = { 
+  comedy:'35', western:'37', action:'28', drama:'18', animation:'16', history:'36', scifi:'878' 
+};
 
-const exploreState = { loading: false, loaded: 0, seenIds: new Set(), initialized: false };
-const trendingState = { loading: false, loaded: 0, seenIds: new Set(), initialized: false };
-
-function tmdbKey(item) {
-  return String(item?.id ?? '') || (item?.title || item?.name || '');
+function _dedupe(items) {
+  const seen = new Set();
+  return (items || []).filter(it => {
+    const key = `${it.id}|${it.media_type || (it.first_air_date ? 'tv' : 'movie')}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
-function appendTmdbItems(rowEl, items, stateObj) {
-  if (!rowEl || !Array.isArray(items)) return;
-
-  const fragment = document.createDocumentFragment();
-  const newlyAdded = [];
-  for (const it of items) {
-    const key = tmdbKey(it);
-    if (!key || stateObj.seenIds.has(key)) continue;
-    stateObj.seenIds.add(key);
-    newlyAdded.push(it);
+function _append(row, items) {
+  if (!row) return;
+  row.innerHTML = '';
+  if (!items || !items.length) {
+    row.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No items found.</p>';
+    return;
   }
+  const frag = document.createDocumentFragment();
+  items.forEach(it => frag.appendChild(createCard(it, true, wishlistRequestedTitles)));
+  row.appendChild(frag);
+}
 
-  for (const item of newlyAdded) {
-    const card = createCard(item, true, wishlistRequestedTitles);
-    const itemTitle = (item.title || item.name || '').toLowerCase();
-
-    if (wishlistAvailableTitles.some(
-      w => w.title.toLowerCase() === itemTitle && w.status === "Available"
-    )) {
-      const banner = document.createElement('div');
-      banner.textContent = 'AVAILABLE';
-      banner.style.cssText = `
-        position: absolute; top: 10px; left: 0; width: 100%;
-        background-color: rgba(0,128,0,.75); color: #fff; font-weight: bold;
-        text-align: center; padding: 6px 0; border-radius: 12px 12px 0 0;
-        font-size: 24px; z-index: 20; pointer-events: none;
-      `;
-      card.style.position = 'relative';
-      card.appendChild(banner);
+// Helper to call Apps Script; returns [] on failure
+function callScript(fn, ...args) {
+  return new Promise(resolve => {
+    try {
+      google.script.run
+        .withSuccessHandler(res => resolve(Array.isArray(res) ? res : []))
+        .withFailureHandler(() => resolve([]))[fn](...args);
+    } catch (_) {
+      resolve([]);
     }
+  });
+}
 
-    fragment.appendChild(card);
-    stateObj.loaded++;
+// Top-rated discover with automatic fallback to trending
+async function fetchMixedTopRated(genreId, count = 12) {
+  // First attempt: top-rated discover
+  const [m1, t1] = await Promise.all([
+    callScript('getDiscoverByGenreType', 'movie', 1, 'US', genreId || ''),
+    callScript('getDiscoverByGenreType', 'tv',    1, 'US', genreId || '')
+  ]);
+  let merged = _dedupe([...(m1 || []), ...(t1 || [])]);
+
+  // Fallback: trending if discover came back too thin
+  if (!merged.length) {
+    const [m2, t2] = await Promise.all([
+      callScript('getTrendingByType', 'movie', 1),
+      callScript('getTrendingByType', 'tv',    1)
+    ]);
+    merged = _dedupe([...(m2 || []), ...(t2 || [])]);
   }
-
-  rowEl.appendChild(fragment);
+  return merged.slice(0, count);
 }
 
-function fetchExploreBatch(limit = 5) {
-  const page = Math.floor(Math.random() * 500) + 1;
-  return new Promise((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler(data => {
-        if (!data || !Array.isArray(data.movies) || !Array.isArray(data.tv)) {
-          reject(new Error('Invalid data for Explore'));
-          return;
-        }
-        const all = shuffleArray([...data.movies, ...data.tv]);
-        resolve(all.slice(0, limit));
-      })
-      .withFailureHandler(err => reject(err))
-      .getCombinedPopular(page);
-  });
-}
+async function loadExploreRows() {
+  await ensureWishlistAll();
 
-function fetchTrendingBatch(limit = 5) {
-  const page = Math.floor(Math.random() * 500) + 1;
-  return new Promise((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler(items => {
-        if (!Array.isArray(items)) {
-          reject(new Error('Invalid data for Trending'));
-          return;
-        }
-        resolve(shuffleArray(items).slice(0, limit));
-      })
-      .withFailureHandler(err => reject(err))
-      .getTrendingNow("all", "day", page);
-  });
+  const rows = [
+    ['',                'tmdbExploreAllRow'],
+    [GENRES.comedy,     'tmdbExploreComedyRow'],
+    [GENRES.western,    'tmdbExploreWesternRow'],
+    [GENRES.action,     'tmdbExploreActionRow'],
+    [GENRES.drama,      'tmdbExploreDramaRow'],
+    [GENRES.animation,  'tmdbExploreAnimationRow'],
+    [GENRES.history,    'tmdbExploreHistoryRow'],
+    [GENRES.scifi,      'tmdbExploreScifiRow']
+  ];
+
+  for (const [genre, rowId] of rows) {
+    const items = await fetchMixedTopRated(genre);
+    _append(document.getElementById(rowId), items);
+  }
 }
 
 function loadWishlistRequested() {
@@ -2069,163 +1914,15 @@ function checkStickyShadow() {
   });
 }
 
-async function initTrending() {
-  if (trendingState.initialized) return;
-  const rowEl = document.getElementById('tmdbTrendingRow');
-  if (!rowEl) return;
-
-  trendingState.seenIds.clear();
-  trendingState.loaded = 0;
-  rowEl.innerHTML = '';
-
-  await ensureWishlistAll(); // single source of truth
-  const batch = await fetchTrendingBatch(10);
-  appendTmdbItems(rowEl, (batch || []).slice(0, 10), trendingState);
-  applyTmdbGenreFilter();
-  trendingState.initialized = true;
-}
-
-async function initExplore() {
-  if (exploreState.initialized) return;
-  const rowEl = document.getElementById('tmdbExploreRow');
-  if (!rowEl) return;
-
-  exploreState.seenIds.clear();
-  exploreState.loaded = 0;
-  rowEl.innerHTML = '';
-
-  await ensureWishlistAll(); // single source of truth
-  const batch = await fetchExploreBatch(10);
-  appendTmdbItems(rowEl, (batch || []).slice(0, 10), exploreState);
-  applyTmdbGenreFilter();
-  exploreState.initialized = true;
-}
-
-function refreshExplore() {
-  const rowEl = document.getElementById('tmdbExploreRow');
-  if (!rowEl) return Promise.resolve();
-
-  exploreState.seenIds.clear();
-  exploreState.loaded = 0;
-  exploreState.initialized = false;   // allow init to run again
-  rowEl.innerHTML = '';
-
-  return initExplore();               // loads exactly 10
-}
-
-async function refreshExploreSeamless() {
-  const rowEl = document.getElementById('tmdbExploreRow');
-  if (!rowEl) return;
-
-  rowEl.classList.add('is-refreshing');
-
-  exploreState.seenIds.clear();
-  exploreState.loaded = 0;
-  exploreState.initialized = false;
-
-  const savedScroll = rowEl.scrollLeft;
-
-  const batch = await fetchExploreBatch(10);
-  const temp = document.createElement('div');
-  appendTmdbItems(temp, (batch || []).slice(0, 10), exploreState);
-
-  rowEl.replaceChildren(...Array.from(temp.childNodes));
-  exploreState.initialized = true;
-
-  requestAnimationFrame(() => {
-    rowEl.scrollLeft = Math.min(savedScroll, Math.max(0, rowEl.scrollWidth - rowEl.clientWidth));
-    rowEl.classList.remove('is-refreshing');
-  });
-}
-
-async function refreshTrendingSeamless() {
-  const rowEl = document.getElementById('tmdbTrendingRow');
-  if (!rowEl) return;
-
-  rowEl.classList.add('is-refreshing');
-
-  trendingState.seenIds.clear();
-  trendingState.loaded = 0;
-  trendingState.initialized = false;
-
-  const savedScroll = rowEl.scrollLeft;
-
-  const batch = await fetchTrendingBatch(10);
-  const temp = document.createElement('div');
-  appendTmdbItems(temp, (batch || []).slice(0, 10), trendingState);
-
-  rowEl.replaceChildren(...Array.from(temp.childNodes));
-  trendingState.initialized = true;
-
-  requestAnimationFrame(() => {
-    rowEl.scrollLeft = Math.min(savedScroll, Math.max(0, rowEl.scrollWidth - rowEl.clientWidth));
-    rowEl.classList.remove('is-refreshing');
-  });
-}
-
-function refreshTrending() {
-  const rowEl = document.getElementById('tmdbTrendingRow');
-  if (!rowEl) return Promise.resolve();
-
-  trendingState.seenIds.clear();
-  trendingState.loaded = 0;
-  trendingState.initialized = false; // allow init to run again
-  rowEl.innerHTML = '';
-
-  return initTrending(); // loads exactly 10
-}
-
-function attachInfiniteScroll(containerId, fetchFn, stateObj) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  el.addEventListener('scroll', async () => {
-    if (stateObj.loading) return;
-    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 50) {
-      stateObj.loading = true;
-      const batch = await fetchFn(5);
-      appendTmdbItems(el, batch, stateObj);
-      applyTmdbGenreFilter(); // ensure new cards obey current filter
-      stateObj.loading = false;
-    }
-  });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  attachInfiniteScroll('tmdbTrendingRow', fetchTrendingBatch, trendingState);
-  attachInfiniteScroll('tmdbExploreRow', fetchExploreBatch, exploreState);
-});
-
-// --- Genre pills wiring ---
-document.addEventListener("DOMContentLoaded", () => {
-  const bar = document.getElementById("tmdbGenreBar");
-  if (!bar) return;
-
-  const pills = bar.querySelectorAll(".genre-pill");
-  pills.forEach(p => p.classList.toggle("active", p.dataset.genre === ""));
-
-  bar.addEventListener("click", (e) => {
-    const btn = e.target.closest(".genre-pill");
-    if (!btn) return;
-
-    pills.forEach(p => p.classList.remove("active"));
-    btn.classList.add("active");
-
-    currentGenreFilter = btn.dataset.genre || "";
-    applyTmdbGenreFilter();
-    maybeTopUpFilteredRows();
-  });
-});
-
 window.addEventListener('scroll', checkStickyShadow);
 window.addEventListener('load', checkStickyShadow);
 
 waitForImagesToLoad(document.getElementById('appContent')).then(() => {
 });
 
-document.getElementById("mobileExploreRefresh").addEventListener("click", () => {
-  Promise.all([refreshExploreSeamless(), refreshTrendingSeamless()]).then(() => {
-    console.log("Explore & Trending refreshed (seamless)");
-  });
+document.getElementById("mobileExploreRefresh").addEventListener("click", async () => {
+  await loadExploreRows();  // reload all Explore lists
+  console.log("Explore lists refreshed");
 });
 
 // --- Refresh: Available to Watch (tap = reshuffle, long-press = force reload) ---
