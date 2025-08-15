@@ -908,6 +908,7 @@ let fullLibrary = [];
 let wishlistAvailableTitles = [];
 let wishlistRequestedTitles = [];
 let _recentlyCache = { items: [], stamp: 0 };
+let _exploreCache = new Map();
 
 
 let _wishlistAllCachePromise;
@@ -1910,6 +1911,63 @@ function refreshRecentlyAddedSmooth() {
   );
 }
 
+function _exploreSetState(rowId, genre, items) {
+  // Reset row state with provided items so appendExploreItems() can render from cache
+  const st = { genre, items: Array.isArray(items) ? items : [], loaded: 0, loading: false };
+  exploreState.set(rowId, st);
+  return st;
+}
+
+function _exploreRenderFirstBatch(rowEl, rowId, count = 10) {
+  rowEl.innerHTML = '';
+  appendExploreItems(rowEl, rowId, count);
+}
+
+function _arraysDifferById(a = [], b = []) {
+  if (a.length !== b.length) return true;
+  for (let i = 0; i < a.length; i++) if (a[i]?.id !== b[i]?.id) return true;
+  return false;
+}
+
+/**
+ * Instant reshuffle from cache, then background fetch to refresh items.
+ * @param {string} rowId - e.g. 'tmdbExploreAllRow'
+ * @param {string} genreId - '' for All, or a TMDb genre id
+ */
+function refreshExploreRowSmooth(rowId, genreId) {
+  const rowEl = document.getElementById(rowId);
+  if (!rowEl) return Promise.resolve();
+
+  // 1) If we have a cache: instant reshuffle + render (no overlay)
+  const cached = _exploreCache.get(rowId);
+  if (cached && Array.isArray(cached.items) && cached.items.length) {
+    const shuffled = shuffleArray([ ...cached.items ]);
+    _exploreSetState(rowId, cached.genre, shuffled);
+    _exploreRenderFirstBatch(rowEl, rowId, 10);
+
+    // 2) Background refresh — update CACHE ONLY (no DOM touch here)
+    fetchMixedTopRated(genreId || '', 16)
+      .then(items => {
+        if (Array.isArray(items) && items.length &&
+            (!_exploreCache.has(rowId) || _arraysDifferById(items, _exploreCache.get(rowId).items))) {
+          _exploreCache.set(rowId, { genre: genreId || '', items, stamp: Date.now() });
+          // ✅ Do NOT call _exploreSetState / _exploreRenderFirstBatch here.
+          //     We keep the current UI; the new data is used on the next refresh.
+        }
+      })
+      .catch(() => { /* ignore; keep current UI */ });
+
+    return Promise.resolve();
+  }
+
+  // 3) Cache miss (first ever): show overlay while we init; then fill cache
+  return withSeamlessOverlay(rowEl, async () => {
+    await initExploreRow(genreId || '', rowId);
+    const st = exploreState.get(rowId) || { items: [] };
+    _exploreCache.set(rowId, { genre: genreId || '', items: st.items.slice(), stamp: Date.now() });
+  });
+}
+
 // CONTINUE WATCHING
 function loadContinueWatching() {
   if (!currentProfile) {
@@ -2086,6 +2144,11 @@ async function initExploreRow(genre, rowId) {
   rowEl.innerHTML = '';
   appendExploreItems(rowEl, rowId, 10);
   attachExploreInfiniteScroll(rowEl, rowId);
+
+  // Save the initialized set into cache for instant reshuffles later
+  if (st && Array.isArray(st.items) && st.items.length) {
+    _exploreCache.set(rowId, { genre, items: st.items.slice(), stamp: Date.now() });
+  }
 }
 
 // Helper to call Apps Script; returns [] on failure
@@ -2147,41 +2210,6 @@ async function fetchMixedTopRated(genreId, count = 12) {
   return shuffleArray(merged).slice(0, count);
 }
 
-async function loadExploreRows() {
-  await ensureWishlistAll();
-
-  // Only include per-genre rows here; "All" is handled separately elsewhere
-  const orderedPairs = [
-    [GENRES.comedy,    'tmdbExploreComedyRow'],
-    [GENRES.western,   'tmdbExploreWesternRow'],
-    [GENRES.action,    'tmdbExploreActionRow'],
-    [GENRES.drama,     'tmdbExploreDramaRow'],
-    [GENRES.animation, 'tmdbExploreAnimationRow'],
-    [GENRES.history,   'tmdbExploreHistoryRow'],
-    [GENRES.scifi,     'tmdbExploreScifiRow']
-  ];
-
-  // turn on overlay for every visible row first (harmless if hidden)
-  orderedPairs.forEach(([, rowId]) => {
-    const row = document.getElementById(rowId);
-    if (row) row.classList.add('is-refreshing');
-  });
-
-  // sequential load in strict order
-  for (const [genre, rowId] of orderedPairs) {
-    const rowEl = document.getElementById(rowId);
-    if (!rowEl) continue;
-    try {
-      await initExploreRow(genre, rowId);
-    } catch (err) {
-      console.error(`Explore init failed for ${rowId}:`, err);
-      rowEl.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">Couldn’t load this list.</p>';
-    } finally {
-      rowEl.classList.remove('is-refreshing');
-    }
-  }
-}
-
 async function revealAndLoadAllGenres() {
   if (_genresRevealed) return;
   _genresRevealed = true;
@@ -2189,47 +2217,20 @@ async function revealAndLoadAllGenres() {
   const btnWrap = document.getElementById('revealGenresWrap');
   if (btnWrap) btnWrap.style.display = 'none';
 
-  // unhide sections
-  const genreSections = [
-    'tmdbExploreComedySection','tmdbExploreWesternSection','tmdbExploreActionSection',
-    'tmdbExploreDramaSection','tmdbExploreAnimationSection','tmdbExploreHistorySection',
-    'tmdbExploreScifiSection'
-  ];
-  genreSections.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'block';
-  });
+  // Show each genre section title, but keep the row empty
+  GENRE_ROWS.forEach(({ sectionId, rowId }) => {
+    const sectionEl = document.getElementById(sectionId);
+    if (sectionEl) sectionEl.style.display = 'block';
 
-  // desired order
-  const orderedPairs = [
-    [GENRES.comedy,    'tmdbExploreComedyRow'],
-    [GENRES.western,   'tmdbExploreWesternRow'],
-    [GENRES.action,    'tmdbExploreActionRow'],
-    [GENRES.drama,     'tmdbExploreDramaRow'],
-    [GENRES.animation, 'tmdbExploreAnimationRow'],
-    [GENRES.history,   'tmdbExploreHistoryRow'],
-    [GENRES.scifi,     'tmdbExploreScifiRow']
-  ];
-
-  // turn on overlay for all
-  orderedPairs.forEach(([, rowId]) => {
-    const row = document.getElementById(rowId);
-    if (row) row.classList.add('is-refreshing');
-  });
-
-  // sequential load in strict order
-  for (const [gid, rowId] of orderedPairs) {
     const rowEl = document.getElementById(rowId);
-    if (!rowEl) continue;
-    try {
-      await initExploreRow(gid, rowId);
-    } catch (err) {
-      console.error(`Explore init failed for ${rowId}:`, err);
-      rowEl.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">Couldn’t load this list.</p>';
-    } finally {
+    if (rowEl) {
       rowEl.classList.remove('is-refreshing');
+      rowEl.innerHTML = ''; // ← titles hidden until user clicks "Show"
     }
-  }
+  });
+
+  // Ensure “Show” sidebars exist
+  attachAllListSidebars();
 }
 
 // Make sure we have at least `need` items cached for this row
@@ -2300,22 +2301,19 @@ function attachExploreInfiniteScroll(rowEl, rowId) {
  */
 function addSidebarRefresh(gridId, onClick, label = 'Refresh', ariaLabel) {
   const grid = document.getElementById(gridId);
-  if (!grid || grid._sidebarAttached) return;
+  if (!grid) return null;
+  if (grid._sidebarAttached) return grid._sidebarBtn || null;
 
-  // Create wrapper and insert before grid
   const wrapper = document.createElement('div');
   wrapper.className = 'list-row';
   grid.parentNode.insertBefore(wrapper, grid);
 
-  // Sidebar column
   const side = document.createElement('div');
   side.className = 'list-sidebar';
   wrapper.appendChild(side);
 
-  // Move the grid into the wrapper (right column)
   wrapper.appendChild(grid);
 
-  // Button (match .nav-item look)
   const btn = document.createElement('div');
   btn.className = 'nav-item';
   btn.role = 'button';
@@ -2324,13 +2322,22 @@ function addSidebarRefresh(gridId, onClick, label = 'Refresh', ariaLabel) {
   btn.innerHTML = `<i class="fa-solid fa-rotate"></i><span>${label}</span>`;
   side.appendChild(btn);
 
+  // dynamic handler we can swap later
+  btn._dynamicHandler = onClick;
+
   let busy = false;
   const doClick = async () => {
     if (busy) return;
     busy = true;
     btn.setAttribute('aria-busy','true');
-    try { await onClick(); }
-    finally { busy = false; btn.removeAttribute('aria-busy'); }
+    try {
+      if (typeof btn._dynamicHandler === 'function') {
+        await btn._dynamicHandler();
+      }
+    } finally {
+      busy = false;
+      btn.removeAttribute('aria-busy');
+    }
   };
 
   btn.addEventListener('click', doClick);
@@ -2339,6 +2346,69 @@ function addSidebarRefresh(gridId, onClick, label = 'Refresh', ariaLabel) {
   });
 
   grid._sidebarAttached = true;
+  grid._sidebarBtn = btn;
+  return btn;
+}
+
+// Track which genre section is currently shown
+let _currentShownGenre = null;
+
+// SINGLE SOURCE OF TRUTH: genre sections/rows
+const GENRE_ROWS = [
+  { sectionId:'tmdbExploreComedySection',    rowId:'tmdbExploreComedyRow',    genre: GENRES.comedy,    label:'Comedy' },
+  { sectionId:'tmdbExploreWesternSection',   rowId:'tmdbExploreWesternRow',   genre: GENRES.western,   label:'Western' },
+  { sectionId:'tmdbExploreActionSection',    rowId:'tmdbExploreActionRow',    genre: GENRES.action,    label:'Action' },
+  { sectionId:'tmdbExploreDramaSection',     rowId:'tmdbExploreDramaRow',     genre: GENRES.drama,     label:'Drama' },
+  { sectionId:'tmdbExploreAnimationSection', rowId:'tmdbExploreAnimationRow', genre: GENRES.animation, label:'Animation' },
+  { sectionId:'tmdbExploreHistorySection',   rowId:'tmdbExploreHistoryRow',   genre: GENRES.history,   label:'History' },
+  { sectionId:'tmdbExploreScifiSection',     rowId:'tmdbExploreScifiRow',     genre: GENRES.scifi,     label:'Sci-Fi' }
+];
+
+// Button visual modes
+function setSidebarBtnState(btn, mode = 'show', labelText = 'Show', rowId = '') {
+  if (!btn) return;
+  if (mode === 'show') {
+    btn.innerHTML = `<i class="fa-solid fa-eye"></i><span>Show</span>`;
+    btn.setAttribute('aria-label', `Show ${rowId}`);
+  } else { // refresh
+    btn.innerHTML = `<i class="fa-solid fa-rotate"></i><span>Refresh</span>`;
+    btn.setAttribute('aria-label', `Refresh ${rowId}`);
+  }
+}
+
+// Makes only the chosen genre list populated (others keep their headings but no titles)
+async function showOnlyGenre(cfg) {
+  // 1) Clear titles (not the headers) for all other genre rows + set their buttons to "Show"
+  GENRE_ROWS.forEach(other => {
+    if (other.rowId === cfg.rowId) return;
+    const grid = document.getElementById(other.rowId);
+    if (grid) grid.innerHTML = ''; // hide titles only
+    const otherBtn = grid? grid._sidebarBtn : null;
+    if (otherBtn) {
+      setSidebarBtnState(otherBtn, 'show', 'Show', other.rowId);
+      // When in SHOW mode: clicking loads only that list
+      otherBtn._dynamicHandler = async () => { await showOnlyGenre(other); };
+    }
+  });
+
+  // 2) Ensure the chosen row is populated; if empty, load it; if cached, render from cache
+  const grid = document.getElementById(cfg.rowId);
+  if (!grid) return;
+
+  if (grid.children.length === 0) {
+    // First time: init row (fills exploreState + cache)
+    await initExploreRow(cfg.genre, cfg.rowId);
+  } else {
+    // Already has cards; no-op (you wanted it to just be the active one)
+  }
+
+  // 3) Switch the chosen button to "Refresh" behavior
+  const btn = grid._sidebarBtn;
+  if (btn) {
+    setSidebarBtnState(btn, 'refresh', 'Refresh', cfg.rowId);
+    // When in REFRESH mode: clicking refreshes the active list (smooth)
+    btn._dynamicHandler = async () => { await refreshExploreRowSmooth(cfg.rowId, cfg.genre); };
+  }
 }
 
 /* Map each list to its own refresh action */
@@ -2382,24 +2452,38 @@ function attachAllListSidebars() {
 
   // Explore — All
   addSidebarRefresh(
-    'tmdbExploreAllRow',
-    async () => { await loadExploreAllRow(); },
-    'Refresh',
-    'Refresh Explore All'
+  'tmdbExploreAllRow',
+    async () => {
+      // Hide any shown genre section
+      if (_currentShownGenre) {
+        const prev = document.getElementById(_currentShownGenre.sectionId);
+        if (prev) prev.style.display = 'none';
+        _currentShownGenre = null;
+      }
+      // Ensure All is visible and (re)initialized if empty
+      const sec = document.getElementById('tmdbExploreAllSection');
+      const row = document.getElementById('tmdbExploreAllRow');
+      if (sec) sec.style.display = 'block';
+      if (row && row.children.length === 0) {
+        row.classList.add('is-refreshing');
+        try { await initExploreRow('', 'tmdbExploreAllRow'); }
+        finally { row.classList.remove('is-refreshing'); }
+      }
+      sec?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+    'Show',
+    'Show Explore All'
   );
 
-  // Explore — per-genre rows (use your existing GENRES + initExploreRow)
-  const genreRows = [
-    ['tmdbExploreComedyRow',   GENRES.comedy,    'Refresh Explore Comedy'],
-    ['tmdbExploreWesternRow',  GENRES.western,   'Refresh Explore Western'],
-    ['tmdbExploreActionRow',   GENRES.action,    'Refresh Explore Action'],
-    ['tmdbExploreDramaRow',    GENRES.drama,     'Refresh Explore Drama'],
-    ['tmdbExploreAnimationRow',GENRES.animation, 'Refresh Explore Animation'],
-    ['tmdbExploreHistoryRow',  GENRES.history,   'Refresh Explore History'],
-    ['tmdbExploreScifiRow',    GENRES.scifi,     'Refresh Explore Sci‑Fi'],
-  ];
-  genreRows.forEach(([rowId, gid, aria]) => {
-    addSidebarRefresh(rowId, async () => { await initExploreRow(gid, rowId); }, 'Refresh', aria);
+  // Explore — per-genre rows: use "Show" first
+  GENRE_ROWS.forEach(cfg => {
+    const btn = addSidebarRefresh(
+      cfg.rowId,
+      async () => { await showOnlyGenre(cfg); },
+      'Show',
+      `Show ${cfg.rowId}`
+    );
+    if (btn) setSidebarBtnState(btn, 'show', 'Show', cfg.rowId);
   });
 }
 
@@ -2435,11 +2519,19 @@ if (exploreBtn) {
       exploreBtn.dataset.busy = "1";
       exploreBtn.setAttribute("aria-busy", "true");
       if (_genresRevealed) {
-        await loadExploreRows();      // all rows
+        // Smooth refresh each visible genre row
+        await refreshExploreRowSmooth('tmdbExploreComedyRow',    GENRES.comedy);
+        await refreshExploreRowSmooth('tmdbExploreWesternRow',   GENRES.western);
+        await refreshExploreRowSmooth('tmdbExploreActionRow',    GENRES.action);
+        await refreshExploreRowSmooth('tmdbExploreDramaRow',     GENRES.drama);
+        await refreshExploreRowSmooth('tmdbExploreAnimationRow', GENRES.animation);
+        await refreshExploreRowSmooth('tmdbExploreHistoryRow',   GENRES.history);
+        await refreshExploreRowSmooth('tmdbExploreScifiRow',     GENRES.scifi);
       } else {
-        await loadExploreAllRow();    // only “All” row
+        // Only the “All” row is visible
+        await refreshExploreRowSmooth('tmdbExploreAllRow', '');
       }
-      console.log("Explore lists refreshed");
+    console.log("Explore lists refreshed (smooth)");
     } finally {
       exploreBtn.dataset.busy = "0";
       exploreBtn.removeAttribute("aria-busy");
