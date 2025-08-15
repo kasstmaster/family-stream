@@ -209,6 +209,32 @@ header img {
 }
 
 /* =======================
+   LIST SIDEBAR REFRESH BUTTONS
+   ======================= */
+.list-row {
+  display: grid;
+  grid-template-columns: 70px 1fr; /* sidebar | list */
+  align-items: start;
+  gap: 10px;
+}
+
+.list-sidebar {
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+}
+
+/* Match the visual language of your bottom-bar .nav-item */
+.list-sidebar .nav-item {
+  width: 56px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+.list-sidebar .nav-item i { margin-bottom: 6px; }
+.list-sidebar .nav-item span { font-size: 0.8em; }
+
+/* =======================
    CARDS & ITEMS
    ======================= */
 .movie-card,
@@ -650,6 +676,11 @@ header img {
   .scroll-container::-webkit-scrollbar-track { background: #1f1f1f; border-radius: 6px; }
   .scroll-container::-webkit-scrollbar-thumb { background: #888; border-radius: 6px; }
   .scroll-container::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+    /* list sidebar — desktop tweaks */
+  .list-row { grid-template-columns: 44px 1fr; }
+  .list-sidebar .nav-item { width: 36px !important; }
+  .list-sidebar .nav-item span { display: none; } /* icon-only on desktop */
 }
 
 /* Disable hover scaling on touch devices */
@@ -775,7 +806,7 @@ header img {
   <div id="revealGenresWrap" style="text-align:center; margin: 10px 0 40px;">
     <button id="revealGenresBtn" type="button" aria-expanded="false"
             style="background:#00a7b0;color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:1em;cursor:pointer;">
-      Explore all genres
+      Explore Genres
     </button>
   </div>
 
@@ -876,6 +907,8 @@ header img {
 let fullLibrary = [];
 let wishlistAvailableTitles = [];
 let wishlistRequestedTitles = [];
+let _recentlyCache = { items: [], stamp: 0 };
+
 
 let _wishlistAllCachePromise;
 function ensureWishlistAll() {
@@ -1040,6 +1073,19 @@ function waitForImagesToLoad(container, { timeoutMs = 2500 } = {}) {
 
   const timeout = new Promise(res => setTimeout(res, timeoutMs));
   return Promise.race([Promise.all(promises), timeout]);
+}
+
+function withSeamlessOverlay(el, fn) {
+  if (!el) return fn();
+  el.classList.add('is-refreshing');
+  return Promise.resolve()
+    .then(fn)
+    .finally(() => el.classList.remove('is-refreshing'));
+}
+
+function replaceChildrenFast(el, newChildrenFragment) {
+  while (el.firstChild) el.removeChild(el.firstChild);
+  el.appendChild(newChildrenFragment);
 }
 
 // Create card
@@ -1410,14 +1456,27 @@ function loadLibrary(force = false) {
 }
 
 function refreshAvailableToWatch({ force = false } = {}) {
-  if (force) return loadLibrary(true).then(() => initAvailableToWatch());
+  const grid = document.getElementById('availableToWatchGrid');
 
-  if (window.library) {
-    // Quick reshuffle without Drive call
-    initAvailableToWatch(); // rebuilds list, loads 10, then scroll adds 5 at a time
-    return Promise.resolve();
-  }
-  return loadLibrary().then(() => initAvailableToWatch());
+  return withSeamlessOverlay(grid, () => {
+    if (force) {
+      return loadLibrary(true).then(() => {
+        initAvailableToWatch();
+        if (grid && grid.children.length === 0) appendAvailableItems(10);
+      });
+    }
+
+    if (window.library) {
+      initAvailableToWatch(); // quick reshuffle
+      if (grid && grid.children.length === 0) appendAvailableItems(10);
+      return Promise.resolve();
+    }
+
+    return loadLibrary().then(() => {
+      initAvailableToWatch();
+      if (grid && grid.children.length === 0) appendAvailableItems(10);
+    });
+  });
 }
 
 // Live refresh helper for the Available row
@@ -1500,11 +1559,22 @@ window.addEventListener("load", () => {
     });
   }
 
-  // NEW: “Explore all genres” button
+  // NEW: “Explore genres” button
   const revealBtn = document.getElementById('revealGenresBtn');
   if (revealBtn) {
     revealBtn.addEventListener('click', revealAndLoadAllGenres);
   }
+
+  // == Attach sidebar refresh buttons for all visible lists
+  attachAllListSidebars();
+
+  // == Ensure sidebars appear after user reveals hidden genre rows
+  const _origReveal = revealAndLoadAllGenres;
+  window.revealAndLoadAllGenres = async function(...args) {
+    const res = await _origReveal.apply(this, args);
+    attachAllListSidebars(); // rows now exist & are visible
+    return res;
+  };
 });
 
 document.getElementById("searchInput").addEventListener("input", function (e) {
@@ -1737,6 +1807,29 @@ function renderRecentlyAdded(items) {
     grid.appendChild(card);
   });
 }
+
+function buildRecentlyAddedFragment(items) {
+  const frag = document.createDocumentFragment();
+  if (!items || !items.length) {
+    const p = document.createElement('p');
+    p.style.cssText = 'color:#aaa; font-size:24px; text-align:center;';
+    p.textContent = 'No recent videos found.';
+    frag.appendChild(p);
+    return frag;
+  }
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.classList.add('movie-card');
+    card.innerHTML = `
+      <img src="${item.poster}" alt="${item.title}" loading="lazy" decoding="async">
+      <div class="movie-title">${item.title}</div>
+    `;
+    card.addEventListener('click', () => showEpisodesList(item));
+    frag.appendChild(card);
+  });
+  return frag;
+}
+
 function loadRecentlyAdded() {
   const grid = document.getElementById('recentlyAddedGrid');
   grid.innerHTML = `
@@ -1747,6 +1840,10 @@ function loadRecentlyAdded() {
 
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(items => {
+      // ✅ cache newest→oldest for instant reshuffles later
+      _recentlyCache.items = Array.isArray(items) ? items : [];
+      _recentlyCache.stamp = Date.now();
+
       renderRecentlyAdded(items);
       resolve();
     }).withFailureHandler(err => {
@@ -1755,6 +1852,62 @@ function loadRecentlyAdded() {
       resolve();
     }).getRecentVideos(14);
   });
+}
+
+function refreshRecentlyAddedSmooth() {
+  const grid = document.getElementById('recentlyAddedGrid');
+
+  // If we have a cache, do an instant, no-network reshuffle right away
+  if (Array.isArray(_recentlyCache.items) && _recentlyCache.items.length) {
+    const nowFrag = buildRecentlyAddedFragment(shuffleArray([ ..._recentlyCache.items ]));
+    replaceChildrenFast(grid, nowFrag);
+
+    // Fire-and-forget background refresh to update the cache (no overlay)
+    google.script.run
+      .withSuccessHandler(items => {
+        if (!Array.isArray(items)) return;
+        // Only swap in new content if something actually changed
+        const oldLen = _recentlyCache.items.length;
+        const newLen = items.length;
+        const changed = (oldLen !== newLen) ||
+                        items.some((it, i) => (it.title !== _recentlyCache.items[i]?.title));
+        _recentlyCache.items = items;
+        _recentlyCache.stamp = Date.now();
+
+        if (changed) {
+          // Update the row silently in-place (also shuffled for variety)
+          const frag = buildRecentlyAddedFragment(shuffleArray([ ...items ]));
+          replaceChildrenFast(grid, frag);
+        }
+      })
+      .withFailureHandler(err => {
+        console.warn('Recently Added background refresh failed:', err);
+        // Keep the instant reshuffle; no UX penalty.
+      })
+      .getRecentVideos(14);
+
+    return Promise.resolve();
+  }
+
+  // Cache miss (e.g., first ever click) → do the seamless overlay path
+  return withSeamlessOverlay(grid, () =>
+    new Promise(resolve => {
+      google.script.run
+        .withSuccessHandler(items => {
+          _recentlyCache.items = Array.isArray(items) ? items : [];
+          _recentlyCache.stamp = Date.now();
+          const frag = buildRecentlyAddedFragment(shuffleArray([ ..._recentlyCache.items ]));
+          replaceChildrenFast(grid, frag);
+          resolve();
+        })
+        .withFailureHandler(err => {
+          console.error("❌ Failed to refresh recently added:", err);
+          showPopup("Error refreshing recently added.");
+          resolve();
+        })
+        .getRecentVideos(14);
+    })
+  );
 }
 
 // CONTINUE WATCHING
@@ -2137,6 +2290,119 @@ function attachExploreInfiniteScroll(rowEl, rowId) {
   rowEl._hasScrollListener = true;
 }
 
+/* ---- LIST SIDEBAR REFRESH (helpers) ---- */
+/**
+ * Wrap a scroll container in a two‑column layout and attach a sidebar refresh button.
+ * @param {string} gridId  - the list’s scroll container id
+ * @param {Function} onClick - handler to refresh just this list
+ * @param {string} [label='Refresh']
+ * @param {string} [ariaLabel]
+ */
+function addSidebarRefresh(gridId, onClick, label = 'Refresh', ariaLabel) {
+  const grid = document.getElementById(gridId);
+  if (!grid || grid._sidebarAttached) return;
+
+  // Create wrapper and insert before grid
+  const wrapper = document.createElement('div');
+  wrapper.className = 'list-row';
+  grid.parentNode.insertBefore(wrapper, grid);
+
+  // Sidebar column
+  const side = document.createElement('div');
+  side.className = 'list-sidebar';
+  wrapper.appendChild(side);
+
+  // Move the grid into the wrapper (right column)
+  wrapper.appendChild(grid);
+
+  // Button (match .nav-item look)
+  const btn = document.createElement('div');
+  btn.className = 'nav-item';
+  btn.role = 'button';
+  btn.tabIndex = 0;
+  btn.setAttribute('aria-label', ariaLabel || `Refresh ${gridId}`);
+  btn.innerHTML = `<i class="fa-solid fa-rotate"></i><span>${label}</span>`;
+  side.appendChild(btn);
+
+  let busy = false;
+  const doClick = async () => {
+    if (busy) return;
+    busy = true;
+    btn.setAttribute('aria-busy','true');
+    try { await onClick(); }
+    finally { busy = false; btn.removeAttribute('aria-busy'); }
+  };
+
+  btn.addEventListener('click', doClick);
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doClick(); }
+  });
+
+  grid._sidebarAttached = true;
+}
+
+/* Map each list to its own refresh action */
+function attachAllListSidebars() {
+  // Continue Watching
+  addSidebarRefresh(
+    'continueWatchingGrid',
+    async () => { if (currentProfile) await loadContinueWatching(); },
+    'Refresh',
+    'Refresh Continue Watching'
+  );
+
+  // Recently Added
+  addSidebarRefresh(
+    'recentlyAddedGrid',
+    async () => { await refreshRecentlyAddedSmooth(); },
+    'Refresh',
+    'Refresh Recently Added'
+  );
+
+  addSidebarRefresh(
+    'availableToWatchGrid',
+    async () => {
+      await refreshAvailableToWatch();                  // smooth reshuffle
+      const grid = document.getElementById('availableToWatchGrid');
+      if (!grid || grid.children.length === 0) {
+        await refreshAvailableToWatch({ force: true }); // rare fallback
+      }
+    },
+    'Refresh',
+    'Refresh Available to Watch'
+  );
+
+  // Wishlist
+  addSidebarRefresh(
+    'wishlistGrid',
+    async () => { await loadWishlist(); },
+    'Refresh',
+    'Refresh Wishlist'
+  );
+
+  // Explore — All
+  addSidebarRefresh(
+    'tmdbExploreAllRow',
+    async () => { await loadExploreAllRow(); },
+    'Refresh',
+    'Refresh Explore All'
+  );
+
+  // Explore — per-genre rows (use your existing GENRES + initExploreRow)
+  const genreRows = [
+    ['tmdbExploreComedyRow',   GENRES.comedy,    'Refresh Explore Comedy'],
+    ['tmdbExploreWesternRow',  GENRES.western,   'Refresh Explore Western'],
+    ['tmdbExploreActionRow',   GENRES.action,    'Refresh Explore Action'],
+    ['tmdbExploreDramaRow',    GENRES.drama,     'Refresh Explore Drama'],
+    ['tmdbExploreAnimationRow',GENRES.animation, 'Refresh Explore Animation'],
+    ['tmdbExploreHistoryRow',  GENRES.history,   'Refresh Explore History'],
+    ['tmdbExploreScifiRow',    GENRES.scifi,     'Refresh Explore Sci‑Fi'],
+  ];
+  genreRows.forEach(([rowId, gid, aria]) => {
+    addSidebarRefresh(rowId, async () => { await initExploreRow(gid, rowId); }, 'Refresh', aria);
+  });
+}
+
 function loadWishlistRequested() {
   // Backward-compatible shim; use ensureWishlistAll internally
   return ensureWishlistAll().then(() => {});
@@ -2201,10 +2467,11 @@ function _cancelAvailLongPress() {
   }
 }
 
-// Quick tap = reshuffle (no Drive call)
 availBtn.addEventListener("click", () => {
-  if (_availDidLongPress) { _availDidLongPress = false; return; } // suppress extra reshuffle after long-press
-  refreshAvailableToWatch().then(() => console.log("Available to Watch reshuffled"));
+  if (_availDidLongPress) { _availDidLongPress = false; return; }
+  const grid = document.getElementById('availableToWatchGrid');
+  withSeamlessOverlay(grid, () => refreshAvailableToWatch())
+    .then(() => console.log("Available to Watch reshuffled"));
 });
 
 // Long-press support for mouse & touch
