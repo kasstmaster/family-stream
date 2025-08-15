@@ -744,6 +744,12 @@ header img {
     <p class="movie-overview" id="tmdbDetailsOverview"></p>
   </div>
 
+  <!-- Trending Now Section -->
+  <div id="tmdbTrendingSection">
+    <h2 class="subsection-title">Trending Now</h2>
+    <div class="scroll-container" id="tmdbTrendingRow"></div>
+  </div>
+
   <!-- Combined TMDb Section -->
   <div id="tmdbExploreSection">
     <h2 class="subsection-title">Explore Movies & TV Shows</h2>
@@ -847,8 +853,8 @@ function selectProfile(profileName, iconUrl) {
       hideLoadingScreen(0);
     });
 
-  // 2) Kick off the rest in parallel (no loader blocking)
-  Promise.all([ loadWishlist(), loadCombinedPopular() ])
+  // 2) Kick off the rest in parallel (10 items each via init*; no extra TMDb loaders)
+  Promise.all([ loadWishlist(), initExplore(), initTrending() ])
     .then(() => {
       const wl = document.getElementById("wishlistSection");
       const ra = document.getElementById("recentlyAddedSection");
@@ -1382,6 +1388,58 @@ document.getElementById("searchInput").addEventListener("input", function (e) {
   }
 });
 
+function loadTrendingNow() {
+  return loadWishlistRequested()
+    .then(() => {
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(items => {
+            if (!Array.isArray(items)) {
+              reject(new Error("Invalid trending results"));
+              return;
+            }
+
+            const row = document.getElementById('tmdbTrendingRow');
+            row.innerHTML = '';
+
+            items.forEach(item => {
+              const card = createCard(item, true, wishlistRequestedTitles);
+
+              // Show AVAILABLE banner if already in wishlistAvailable
+              const itemTitle = (item.title || item.name || '').toLowerCase();
+              if (wishlistAvailableTitles.some(w => w.title.toLowerCase() === itemTitle && w.status === "Available")) {
+                const banner = document.createElement('div');
+                banner.textContent = 'AVAILABLE';
+                banner.style.cssText = `
+                  position: absolute;
+                  top: 10px;
+                  left: 0;
+                  width: 100%;
+                  background-color: rgba(0, 128, 0, 0.75);
+                  color: white;
+                  font-weight: bold;
+                  text-align: center;
+                  padding: 6px 0;
+                  border-radius: 12px 12px 0 0;
+                  font-size: 24px;
+                  z-index: 20;
+                  pointer-events: none;
+                `;
+                card.style.position = 'relative';
+                card.appendChild(banner);
+              }
+
+              row.appendChild(card);
+            });
+
+            resolve();
+          })
+          .withFailureHandler(err => reject(err))
+          .getTrendingNow("all", "day"); // change to "week" if you want a weekly view
+      });
+    });
+}
+
 function loadCombinedPopular() {
   return loadWishlistRequested()
     .then(() => {
@@ -1709,7 +1767,95 @@ async function fetchTMDbDetails(item, isTV = false) {
   });
 }
 
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 let wishlistRequestedTitles = [];
+
+const _EXP_MAX_PAGE = 500;
+const _TREND_MAX_PAGE = 500;
+
+const exploreState = { loading: false, loaded: 0, seenIds: new Set(), initialized: false };
+const trendingState = { loading: false, loaded: 0, seenIds: new Set(), initialized: false };
+
+function tmdbKey(item) {
+  return String(item?.id ?? '') || (item?.title || item?.name || '');
+}
+
+function appendTmdbItems(rowEl, items, stateObj) {
+  if (!rowEl || !Array.isArray(items)) return;
+
+  const newlyAdded = [];
+  for (const it of items) {
+    const key = tmdbKey(it);
+    if (!key || stateObj.seenIds.has(key)) continue;
+    stateObj.seenIds.add(key);
+    newlyAdded.push(it);
+  }
+
+  newlyAdded.forEach(item => {
+    const card = createCard(item, true, wishlistRequestedTitles);
+    const itemTitle = (item.title || item.name || '').toLowerCase();
+
+    if (wishlistAvailableTitles.some(
+      w => w.title.toLowerCase() === itemTitle && w.status === "Available"
+    )) {
+      const banner = document.createElement('div');
+      banner.textContent = 'AVAILABLE';
+      banner.style.cssText = `
+        position: absolute; top: 10px; left: 0; width: 100%;
+        background-color: rgba(0,128,0,.75); color: #fff; font-weight: bold;
+        text-align: center; padding: 6px 0; border-radius: 12px 12px 0 0;
+        font-size: 24px; z-index: 20; pointer-events: none;
+      `;
+      card.style.position = 'relative';
+      card.appendChild(banner);
+    }
+
+    rowEl.appendChild(card);
+    stateObj.loaded++;
+  });
+}
+
+function fetchExploreBatch(limit = 5) {
+  const page = Math.floor(Math.random() * 500) + 1;
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler(data => {
+        if (!data || !Array.isArray(data.movies) || !Array.isArray(data.tv)) {
+          reject(new Error('Invalid data for Explore'));
+          return;
+        }
+        const all = shuffleArray([...data.movies, ...data.tv]);
+        resolve(all.slice(0, limit));
+      })
+      .withFailureHandler(err => reject(err))
+      .getCombinedPopular(page);
+  });
+}
+
+function fetchTrendingBatch(limit = 5) {
+  const page = Math.floor(Math.random() * 500) + 1;
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler(items => {
+        if (!Array.isArray(items)) {
+          reject(new Error('Invalid data for Trending'));
+          return;
+        }
+        resolve(shuffleArray(items).slice(0, limit));
+      })
+      .withFailureHandler(err => reject(err))
+      .getTrendingNow("all", "day", page);
+  });
+}
+
 function loadWishlistRequested() {
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(items => {
@@ -1733,6 +1879,69 @@ function checkStickyShadow() {
   });
 }
 
+async function initTrending() {
+  if (trendingState.initialized) return;                 // guard
+  const rowEl = document.getElementById('tmdbTrendingRow');
+  if (!rowEl) return;
+
+  // reset & clear
+  trendingState.seenIds.clear();
+  trendingState.loaded = 0;
+  rowEl.innerHTML = '';
+
+  await loadWishlistRequested();                         // ensure badges accurate
+  const batch = await fetchTrendingBatch(10);
+  appendTmdbItems(rowEl, (batch || []).slice(0, 10), trendingState);
+  trendingState.initialized = true;                      // mark done
+}
+
+async function initExplore() {
+  if (exploreState.initialized) return;                  // guard
+  const rowEl = document.getElementById('tmdbExploreRow');
+  if (!rowEl) return;
+
+  // reset & clear
+  exploreState.seenIds.clear();
+  exploreState.loaded = 0;
+  rowEl.innerHTML = '';
+
+  await loadWishlistRequested();                         // ensure badges accurate
+  const batch = await fetchExploreBatch(10);
+  appendTmdbItems(rowEl, (batch || []).slice(0, 10), exploreState);
+  exploreState.initialized = true;                       // mark done
+}
+
+function refreshExplore() {
+  const rowEl = document.getElementById('tmdbExploreRow');
+  if (!rowEl) return Promise.resolve();
+
+  exploreState.seenIds.clear();
+  exploreState.loaded = 0;
+  exploreState.initialized = false;   // allow init to run again
+  rowEl.innerHTML = '';
+
+  return initExplore();               // loads exactly 10
+}
+
+function attachInfiniteScroll(containerId, fetchFn, stateObj) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.addEventListener('scroll', async () => {
+    if (stateObj.loading) return;
+    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 50) {
+      stateObj.loading = true;
+      const batch = await fetchFn(5);
+      appendTmdbItems(el, batch, stateObj);
+      stateObj.loading = false;
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  attachInfiniteScroll('tmdbTrendingRow', fetchTrendingBatch, trendingState);
+  attachInfiniteScroll('tmdbExploreRow', fetchExploreBatch, exploreState);
+});
+
 window.addEventListener('scroll', checkStickyShadow);
 window.addEventListener('load', checkStickyShadow);
 
@@ -1740,7 +1949,7 @@ waitForImagesToLoad(document.getElementById('appContent')).then(() => {
 });
 
 document.getElementById("mobileExploreRefresh").addEventListener("click", () => {
-  loadCombinedPopular().then(() => console.log("Explore refreshed"));
+  refreshExplore().then(() => console.log("Explore refreshed"));
 });
 
 // --- Refresh: Available to Watch (tap = reshuffle, long-press = force reload) ---
