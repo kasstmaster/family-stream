@@ -771,38 +771,47 @@ header img {
     <div class="scroll-container" id="tmdbExploreAllRow"></div>
   </div>
 
-  <div id="tmdbExploreComedySection">
+  <!-- NEW: reveal button -->
+  <div id="revealGenresWrap" style="text-align:center; margin: 10px 0 40px;">
+    <button id="revealGenresBtn" type="button" aria-expanded="false"
+            style="background:#00a7b0;color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:1em;cursor:pointer;">
+      Explore all genres
+    </button>
+  </div>
+
+  <!-- Make these hidden initially -->
+  <div id="tmdbExploreComedySection" style="display:none;">
     <h2 class="subsection-title">Explore Comedy</h2>
     <div class="scroll-container" id="tmdbExploreComedyRow"></div>
   </div>
 
-  <div id="tmdbExploreWesternSection">
+  <div id="tmdbExploreWesternSection" style="display:none;">
     <h2 class="subsection-title">Explore Western</h2>
     <div class="scroll-container" id="tmdbExploreWesternRow"></div>
   </div>
 
-  <div id="tmdbExploreActionSection">
+  <div id="tmdbExploreActionSection" style="display:none;">
     <h2 class="subsection-title">Explore Action</h2>
     <div class="scroll-container" id="tmdbExploreActionRow"></div>
   </div>
 
-  <div id="tmdbExploreDramaSection">
+  <div id="tmdbExploreDramaSection" style="display:none;">
     <h2 class="subsection-title">Explore Drama</h2>
     <div class="scroll-container" id="tmdbExploreDramaRow"></div>
   </div>
 
-  <div id="tmdbExploreAnimationSection">
+  <div id="tmdbExploreAnimationSection" style="display:none;">
     <h2 class="subsection-title">Explore Animation</h2>
     <div class="scroll-container" id="tmdbExploreAnimationRow"></div>
   </div>
 
-  <div id="tmdbExploreHistorySection">
+  <div id="tmdbExploreHistorySection" style="display:none;">
     <h2 class="subsection-title">Explore History</h2>
     <div class="scroll-container" id="tmdbExploreHistoryRow"></div>
   </div>
 
-  <div id="tmdbExploreScifiSection">
-    <h2 class="subsection-title">Explore Sci-Fi</h2>
+  <div id="tmdbExploreScifiSection" style="display:none;">
+    <h2 class="subsection-title">Explore Sci‑Fi</h2>
     <div class="scroll-container" id="tmdbExploreScifiRow"></div>
   </div>
 
@@ -930,7 +939,7 @@ function selectProfile(profileName, iconUrl) {
 
   // 2) Ensure wishlist cache once, then load the 3 sections
   ensureWishlistAll()
-    .then(() => Promise.all([ loadExploreRows(), loadWishlist() ]))
+    .then(() => Promise.all([ loadExploreAllRow(), loadWishlist() ])) // only the “All” row
     .then(() => {
       const wl = document.getElementById("wishlistSection");
       const ra = document.getElementById("recentlyAddedSection");
@@ -1490,6 +1499,12 @@ window.addEventListener("load", () => {
       profileModal.classList.add("active");
     });
   }
+
+  // NEW: “Explore all genres” button
+  const revealBtn = document.getElementById('revealGenresBtn');
+  if (revealBtn) {
+    revealBtn.addEventListener('click', revealAndLoadAllGenres);
+  }
 });
 
 document.getElementById("searchInput").addEventListener("input", function (e) {
@@ -1519,12 +1534,24 @@ document.getElementById("searchInput").addEventListener("input", function (e) {
   if (!Array.isArray(fullLibrary) || fullLibrary.length === 0) return;
 
   if (query === "") {
-    // Show everything again
-    sectionsToToggle.forEach(id => {
+    // Always restore these
+    ["continueWatchingSection","recentlyAddedSection","availableToWatchSection",
+    "wishlistSection","tmdbDetailsPreview","episodesSection","tmdbExploreAllSection"]
+      .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "block"; });
+
+    // Only show per-genre sections if user revealed them
+    const genreSections = [
+      "tmdbExploreComedySection","tmdbExploreWesternSection","tmdbExploreActionSection",
+      "tmdbExploreDramaSection","tmdbExploreAnimationSection","tmdbExploreHistorySection",
+      "tmdbExploreScifiSection"
+    ];
+    genreSections.forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.style.display = "block";
+      if (!el) return;
+      el.style.display = _genresRevealed ? "block" : "none";
     });
-    // Show the Explore header (h2.tmdb-title)
+
+    // Show the Explore header
     const tmdbHeader = document.querySelector(".tmdb-title");
     if (tmdbHeader) tmdbHeader.style.display = "block";
 
@@ -1850,6 +1877,25 @@ const GENRES = {
   comedy:'35', western:'37', action:'28', drama:'18', animation:'16', history:'36', scifi:'878' 
 };
 
+// NEW: track if user has revealed the per-genre lists
+let _genresRevealed = false;
+
+// NEW: load only the "Explore All" row
+async function loadExploreAllRow() {
+  const rowId = 'tmdbExploreAllRow';
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  row.classList.add('is-refreshing');
+  try {
+    await initExploreRow('', rowId); // '' = no genre filter (your “All” mixed row)
+  } catch (e) {
+    console.error('Explore All init failed:', e);
+    row.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">Couldn’t load this list.</p>';
+  } finally {
+    row.classList.remove('is-refreshing');
+  }
+}
+
 // Helpers for randomness (if you added these earlier)
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function randPage(max = 500) { return randInt(1, max); }
@@ -1951,27 +1997,27 @@ async function fetchMixedTopRated(genreId, count = 12) {
 async function loadExploreRows() {
   await ensureWishlistAll();
 
-  const rows = [
-    ['',                'tmdbExploreAllRow'],
-    [GENRES.comedy,     'tmdbExploreComedyRow'],
-    [GENRES.western,    'tmdbExploreWesternRow'],
-    [GENRES.action,     'tmdbExploreActionRow'],
-    [GENRES.drama,      'tmdbExploreDramaRow'],
-    [GENRES.animation,  'tmdbExploreAnimationRow'],
-    [GENRES.history,    'tmdbExploreHistoryRow'],
-    [GENRES.scifi,      'tmdbExploreScifiRow']
+  // Only include per-genre rows here; "All" is handled separately elsewhere
+  const orderedPairs = [
+    [GENRES.comedy,    'tmdbExploreComedyRow'],
+    [GENRES.western,   'tmdbExploreWesternRow'],
+    [GENRES.action,    'tmdbExploreActionRow'],
+    [GENRES.drama,     'tmdbExploreDramaRow'],
+    [GENRES.animation, 'tmdbExploreAnimationRow'],
+    [GENRES.history,   'tmdbExploreHistoryRow'],
+    [GENRES.scifi,     'tmdbExploreScifiRow']
   ];
 
-  // overlay
-  rows.forEach(([, rowId]) => {
+  // turn on overlay for every visible row first (harmless if hidden)
+  orderedPairs.forEach(([, rowId]) => {
     const row = document.getElementById(rowId);
     if (row) row.classList.add('is-refreshing');
   });
 
-  // init all rows in parallel; isolate errors per row
-  await Promise.all(rows.map(async ([genre, rowId]) => {
+  // sequential load in strict order
+  for (const [genre, rowId] of orderedPairs) {
     const rowEl = document.getElementById(rowId);
-    if (!rowEl) return;
+    if (!rowEl) continue;
     try {
       await initExploreRow(genre, rowId);
     } catch (err) {
@@ -1980,7 +2026,57 @@ async function loadExploreRows() {
     } finally {
       rowEl.classList.remove('is-refreshing');
     }
-  }));
+  }
+}
+
+async function revealAndLoadAllGenres() {
+  if (_genresRevealed) return;
+  _genresRevealed = true;
+
+  const btnWrap = document.getElementById('revealGenresWrap');
+  if (btnWrap) btnWrap.style.display = 'none';
+
+  // unhide sections
+  const genreSections = [
+    'tmdbExploreComedySection','tmdbExploreWesternSection','tmdbExploreActionSection',
+    'tmdbExploreDramaSection','tmdbExploreAnimationSection','tmdbExploreHistorySection',
+    'tmdbExploreScifiSection'
+  ];
+  genreSections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'block';
+  });
+
+  // desired order
+  const orderedPairs = [
+    [GENRES.comedy,    'tmdbExploreComedyRow'],
+    [GENRES.western,   'tmdbExploreWesternRow'],
+    [GENRES.action,    'tmdbExploreActionRow'],
+    [GENRES.drama,     'tmdbExploreDramaRow'],
+    [GENRES.animation, 'tmdbExploreAnimationRow'],
+    [GENRES.history,   'tmdbExploreHistoryRow'],
+    [GENRES.scifi,     'tmdbExploreScifiRow']
+  ];
+
+  // turn on overlay for all
+  orderedPairs.forEach(([, rowId]) => {
+    const row = document.getElementById(rowId);
+    if (row) row.classList.add('is-refreshing');
+  });
+
+  // sequential load in strict order
+  for (const [gid, rowId] of orderedPairs) {
+    const rowEl = document.getElementById(rowId);
+    if (!rowEl) continue;
+    try {
+      await initExploreRow(gid, rowId);
+    } catch (err) {
+      console.error(`Explore init failed for ${rowId}:`, err);
+      rowEl.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">Couldn’t load this list.</p>';
+    } finally {
+      rowEl.classList.remove('is-refreshing');
+    }
+  }
 }
 
 // Make sure we have at least `need` items cached for this row
@@ -2072,7 +2168,11 @@ if (exploreBtn) {
     try {
       exploreBtn.dataset.busy = "1";
       exploreBtn.setAttribute("aria-busy", "true");
-      await loadExploreRows();
+      if (_genresRevealed) {
+        await loadExploreRows();      // all rows
+      } else {
+        await loadExploreAllRow();    // only “All” row
+      }
       console.log("Explore lists refreshed");
     } finally {
       exploreBtn.dataset.busy = "0";
