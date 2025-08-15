@@ -12,6 +12,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" media="all" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"></noscript>
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
 
 <style>
@@ -196,8 +198,27 @@ header img {
   gap: 30px;
   overflow-x: auto;
   padding: 0 20px 10px;
+  position: relative; /* needed for seamless refresh overlay */
 }
 .scroll-container::-webkit-scrollbar { display: none; }
+
+/* --- Seamless refresh overlay: keep content visible while fetching --- */
+.scroll-container.is-refreshing::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(0deg, rgba(20,20,20,0) 0%, rgba(20,20,20,0.25) 100%);
+  pointer-events: none;
+  border-radius: 0; /* inherits the container shape */
+}
+.scroll-container.is-refreshing::before {
+  content: "";
+  position: absolute; top: 12px; right: 12px;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 3px solid #666; border-top-color: #e50914;
+  animation: spin .8s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
 
 /* =======================
    CARDS & ITEMS
@@ -246,6 +267,12 @@ header img {
   transition: background 0.3s ease;
 }
 .add-btn:hover { background: #ff4c4c; }
+
+.genre-pill{
+  background:#1f1f1f;border:1px solid #333;color:#fff;border-radius:999px;
+  padding:6px 12px;font-size:14px;cursor:pointer
+}
+.genre-pill.active{background:#00a7b0;border-color:#00a7b0;color:#000}
 
 /* =======================
    SKELETON LOADER
@@ -704,26 +731,40 @@ header img {
   <!-- Episodes -->
   <div id="episodesSection" style="display:none;">
     <h2 class="subsection-title" id="episodesTitle"></h2>
-    <div class="scroll-container" id="episodesGrid"></div>
+    <div class="scroll-container" id="episodesGrid">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
   </div>
 
   <!-- Continue Watching Section -->
   <div id="continueWatchingSection">
     <h2 class="subsection-title">Continue Watching</h2>
-    <div class="scroll-container" id="continueWatchingGrid"></div>
+    <div class="scroll-container" id="continueWatchingGrid">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
   </div>
 
-  <!-- Recently Added Section -->
+  <!-- Recently Available Section -->
   <div id="recentlyAddedSection">
-    <h2 class="subsection-title">Recently Added</h2>
-    <div class="scroll-container" id="recentlyAddedGrid"></div>
+    <h2 class="subsection-title">Recently Added & Available</h2>
+    <div class="scroll-container" id="recentlyAddedGrid">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
   </div>
 
-  <!-- Combined Available to Watch Section -->
+  <!-- All Available Section -->
   <div id="availableToWatchSection">
-    <h2 class="subsection-title">Available to Watch</h2>
-
-    <!-- Combined Scroll Container -->
+    <h2 class="subsection-title">All Available Movies & TV Shows</h2>
+    <!-- Placeholders while loading -->
     <div class="scroll-container" id="availableToWatchGrid">
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
@@ -744,22 +785,52 @@ header img {
     <p class="movie-overview" id="tmdbDetailsOverview"></p>
   </div>
 
-  <!-- Trending Now Section -->
+  <div id="tmdbGenreBar" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0 0;">
+    <button class="genre-pill" data-genre="">All</button>
+    <button class="genre-pill" data-genre="35">Comedy</button>
+    <button class="genre-pill" data-genre="37">Western</button>
+    <button class="genre-pill" data-genre="28">Action</button>
+    <button class="genre-pill" data-genre="18">Drama</button>
+    <button class="genre-pill" data-genre="16">Animation</button>
+    <button class="genre-pill" data-genre="36">History</button>
+    <button class="genre-pill" data-genre="9805">Sports</button>
+    <button class="genre-pill" data-genre="99">Documentary</button>
+    <button class="genre-pill" data-genre="10749">Romance</button>
+    <button class="genre-pill" data-genre="878">Sci-Fi</button>
+    <button class="genre-pill" data-genre="9648">Mystery</button>
+  </div>
+
+  <!-- Trending TMDb Section -->
   <div id="tmdbTrendingSection">
-    <h2 class="subsection-title">Trending Now</h2>
-    <div class="scroll-container" id="tmdbTrendingRow"></div>
+    <h2 class="subsection-title">Explore Whats Trending</h2>
+    <div class="scroll-container" id="tmdbTrendingRow">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
   </div>
 
-  <!-- Combined TMDb Section -->
+  <!-- Explore TMDb Section -->
   <div id="tmdbExploreSection">
-    <h2 class="subsection-title">Explore Movies & TV Shows</h2>
-    <div class="scroll-container" id="tmdbExploreRow"></div>
+    <h2 class="subsection-title">Explore All Movies & TV Shows</h2>
+    <div class="scroll-container" id="tmdbExploreRow">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
   </div>
 
-  <!-- Wishlist Requested Section -->
+  <!-- Wishlist Section -->
   <div id="wishlistSection">
     <h2 class="subsection-title">Wishlist</h2>
-    <div class="scroll-container" id="wishlistGrid"></div>
+    <div class="scroll-container" id="wishlistGrid">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
   </div>
 
   <!-- Search Results -->
@@ -811,6 +882,27 @@ header img {
 <script>
 let fullLibrary = [];
 let wishlistAvailableTitles = [];
+let wishlistRequestedTitles = [];
+let currentGenreFilter = "";
+
+let _wishlistAllCachePromise;
+function ensureWishlistAll() {
+  if (!_wishlistAllCachePromise) {
+    _wishlistAllCachePromise = new Promise(res => {
+      google.script.run
+        .withSuccessHandler(items => {
+          items = items || [];
+          const norm = s => String(s || '').trim().toLowerCase();
+          wishlistRequestedTitles = items.filter(x => norm(x.status) === "wishlist");
+          wishlistAvailableTitles = items.filter(x => norm(x.status) === "available");
+          res(items);
+        })
+        .withFailureHandler(() => res([]))
+        .getWishlistAllWithStatus();
+    });
+  }
+  return _wishlistAllCachePromise;
+}
 
 const appContent = document.getElementById('appContent');
 
@@ -853,8 +945,9 @@ function selectProfile(profileName, iconUrl) {
       hideLoadingScreen(0);
     });
 
-  // 2) Kick off the rest in parallel (10 items each via init*; no extra TMDb loaders)
-  Promise.all([ loadWishlist(), initExplore(), initTrending() ])
+  // 2) Ensure wishlist cache once, then load the 3 sections
+  ensureWishlistAll()
+    .then(() => Promise.all([ initTrending(), initExplore(), loadWishlist() ]))
     .then(() => {
       const wl = document.getElementById("wishlistSection");
       const ra = document.getElementById("recentlyAddedSection");
@@ -979,6 +1072,9 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
 
   // Wishlist button for TMDb items
   if (isTMDb) {
+    // Store TMDb genre IDs for filtering
+    const gids = Array.isArray(item.genre_ids) ? item.genre_ids : [];
+    card.dataset.genreIds = gids.join(",");
     const btn = document.createElement("button");
     btn.classList.add("add-btn");
 
@@ -1054,6 +1150,51 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
   });
 
   return card;
+}
+
+function cardMatchesGenre(card, wantedId) {
+  if (!wantedId) return true; // All
+  const ids = (card.dataset.genreIds || "").split(",").filter(Boolean);
+  return ids.includes(String(wantedId));
+}
+
+function applyTmdbGenreFilter() {
+  const rows = [
+    document.getElementById("tmdbTrendingRow"),
+    document.getElementById("tmdbExploreRow")
+  ].filter(Boolean);
+
+  for (const row of rows) {
+    const cards = row.querySelectorAll(".movie-card");
+    cards.forEach(card => {
+      card.style.display = cardMatchesGenre(card, currentGenreFilter) ? "" : "none";
+    });
+  }
+}
+
+async function maybeTopUpFilteredRows(minVisible = 6) {
+  const rows = [
+    { id: "tmdbTrendingRow", fetch: fetchTrendingBatch, state: trendingState },
+    { id: "tmdbExploreRow",  fetch: fetchExploreBatch,  state: exploreState  },
+  ];
+
+  for (const { id, fetch, state } of rows) {
+    const row = document.getElementById(id);
+    if (!row) continue;
+
+    let visible = Array.from(row.querySelectorAll(".movie-card"))
+      .filter(c => c.style.display !== "none").length;
+
+    let tries = 0;
+    while (visible < minVisible && tries < 3) {
+      const batch = await fetch(5);
+      appendTmdbItems(row, batch, state);
+      applyTmdbGenreFilter();
+      visible = Array.from(row.querySelectorAll(".movie-card"))
+        .filter(c => c.style.display !== "none").length;
+      tries++;
+    }
+  }
 }
 
 function openEpisodeInNewTab(url, showTitle, episodeTitle = "") {
@@ -1336,37 +1477,43 @@ window.addEventListener("load", () => {
   const profileModal = document.getElementById("profileModal");
 
   app.style.display = "block";
-  loadingScreen.style.display = "flex"; // Show loading screen immediately
+  loadingScreen.style.display = "flex";
 
-  // Preload shared content (library + recently added)
-  Promise.all([ loadLibrary(), loadRecentlyAdded() ])
-    .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
-    .then(() => hideLoadingScreen())
-    .catch(err => {
-      console.error("❌ Error during preload:", err);
-      showPopup("Something went wrong while preloading content.");
-      hideLoadingScreen();
-    });
-
-  // Try to auto-select last profile
   let savedName = null, savedIcon = null;
   try {
     savedName = localStorage.getItem("lastProfileName");
-    savedIcon = localStorage.getItem("lastProfileIcon");
+    savedIcon = localStorage.getItem("lastProfileIcon") || "https://via.placeholder.com/50";
   } catch (e) {
     console.warn("localStorage unavailable:", e);
   }
 
   if (savedName) {
-    // Skip the modal and go straight in
+    // Start profile flow immediately (CW can start sooner)
     profileModal.classList.remove("active");
-    selectProfile(savedName, savedIcon || "https://via.placeholder.com/50");
+    selectProfile(savedName, savedIcon);
+    // Warm above-the-fold rows in parallel
+    Promise.all([ loadLibrary(), loadRecentlyAdded() ])
+      .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
+      .then(() => hideLoadingScreen())
+      .catch(err => {
+        console.error("❌ Error during preload:", err);
+        showPopup("Something went wrong while preloading content.");
+        hideLoadingScreen();
+      });
   } else {
-    // No saved profile — show the picker modal
+    // No saved profile → preload visible rows before pick
+    Promise.all([ loadLibrary(), loadRecentlyAdded() ])
+      .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
+      .then(() => hideLoadingScreen())
+      .catch(err => {
+        console.error("❌ Error during preload:", err);
+        showPopup("Something went wrong while preloading content.");
+        hideLoadingScreen();
+      });
     profileModal.classList.add("active");
   }
 
-  // Handle manual profile selection via buttons
+  // Manual profile selection
   document.querySelectorAll(".profile-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const chosenName = btn.dataset.profile;
@@ -1376,17 +1523,13 @@ window.addEventListener("load", () => {
     });
   });
 
-  // (Optional but handy) Allow switching profiles from the bottom bar button
+  // Switch profile from bottom bar
   const switchBtn = document.getElementById("switchProfileBtn");
   if (switchBtn) {
     switchBtn.addEventListener("click", () => {
       profileModal.classList.add("active");
     });
   }
-});
-
-document.getElementById("switchProfileBtn").addEventListener("click", () => {
-  document.getElementById("profileModal").classList.add("active");
 });
 
 document.getElementById("searchInput").addEventListener("input", function (e) {
@@ -1827,17 +1970,6 @@ async function fetchTMDbDetails(item, isTV = false) {
   });
 }
 
-function shuffleArray(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-let wishlistRequestedTitles = [];
-
 const _EXP_MAX_PAGE = 500;
 const _TREND_MAX_PAGE = 500;
 
@@ -1851,6 +1983,7 @@ function tmdbKey(item) {
 function appendTmdbItems(rowEl, items, stateObj) {
   if (!rowEl || !Array.isArray(items)) return;
 
+  const fragment = document.createDocumentFragment();
   const newlyAdded = [];
   for (const it of items) {
     const key = tmdbKey(it);
@@ -1859,7 +1992,7 @@ function appendTmdbItems(rowEl, items, stateObj) {
     newlyAdded.push(it);
   }
 
-  newlyAdded.forEach(item => {
+  for (const item of newlyAdded) {
     const card = createCard(item, true, wishlistRequestedTitles);
     const itemTitle = (item.title || item.name || '').toLowerCase();
 
@@ -1878,9 +2011,11 @@ function appendTmdbItems(rowEl, items, stateObj) {
       card.appendChild(banner);
     }
 
-    rowEl.appendChild(card);
+    fragment.appendChild(card);
     stateObj.loaded++;
-  });
+  }
+
+  rowEl.appendChild(fragment);
 }
 
 function fetchExploreBatch(limit = 5) {
@@ -1917,13 +2052,8 @@ function fetchTrendingBatch(limit = 5) {
 }
 
 function loadWishlistRequested() {
-  return new Promise(resolve => {
-    google.script.run.withSuccessHandler(items => {
-      wishlistRequestedTitles = items.filter(item => item.status === "Wishlist");
-      wishlistAvailableTitles = items.filter(item => item.status === "Available");
-      resolve();
-    }).getWishlistAllWithStatus();
-  });
+  // Backward-compatible shim; use ensureWishlistAll internally
+  return ensureWishlistAll().then(() => {});
 }
 
 function checkStickyShadow() {
@@ -1940,35 +2070,35 @@ function checkStickyShadow() {
 }
 
 async function initTrending() {
-  if (trendingState.initialized) return;                 // guard
+  if (trendingState.initialized) return;
   const rowEl = document.getElementById('tmdbTrendingRow');
   if (!rowEl) return;
 
-  // reset & clear
   trendingState.seenIds.clear();
   trendingState.loaded = 0;
   rowEl.innerHTML = '';
 
-  await loadWishlistRequested();                         // ensure badges accurate
+  await ensureWishlistAll(); // single source of truth
   const batch = await fetchTrendingBatch(10);
   appendTmdbItems(rowEl, (batch || []).slice(0, 10), trendingState);
-  trendingState.initialized = true;                      // mark done
+  applyTmdbGenreFilter();
+  trendingState.initialized = true;
 }
 
 async function initExplore() {
-  if (exploreState.initialized) return;                  // guard
+  if (exploreState.initialized) return;
   const rowEl = document.getElementById('tmdbExploreRow');
   if (!rowEl) return;
 
-  // reset & clear
   exploreState.seenIds.clear();
   exploreState.loaded = 0;
   rowEl.innerHTML = '';
 
-  await loadWishlistRequested();                         // ensure badges accurate
+  await ensureWishlistAll(); // single source of truth
   const batch = await fetchExploreBatch(10);
   appendTmdbItems(rowEl, (batch || []).slice(0, 10), exploreState);
-  exploreState.initialized = true;                       // mark done
+  applyTmdbGenreFilter();
+  exploreState.initialized = true;
 }
 
 function refreshExplore() {
@@ -1983,6 +2113,68 @@ function refreshExplore() {
   return initExplore();               // loads exactly 10
 }
 
+async function refreshExploreSeamless() {
+  const rowEl = document.getElementById('tmdbExploreRow');
+  if (!rowEl) return;
+
+  rowEl.classList.add('is-refreshing');
+
+  exploreState.seenIds.clear();
+  exploreState.loaded = 0;
+  exploreState.initialized = false;
+
+  const savedScroll = rowEl.scrollLeft;
+
+  const batch = await fetchExploreBatch(10);
+  const temp = document.createElement('div');
+  appendTmdbItems(temp, (batch || []).slice(0, 10), exploreState);
+
+  rowEl.replaceChildren(...Array.from(temp.childNodes));
+  exploreState.initialized = true;
+
+  requestAnimationFrame(() => {
+    rowEl.scrollLeft = Math.min(savedScroll, Math.max(0, rowEl.scrollWidth - rowEl.clientWidth));
+    rowEl.classList.remove('is-refreshing');
+  });
+}
+
+async function refreshTrendingSeamless() {
+  const rowEl = document.getElementById('tmdbTrendingRow');
+  if (!rowEl) return;
+
+  rowEl.classList.add('is-refreshing');
+
+  trendingState.seenIds.clear();
+  trendingState.loaded = 0;
+  trendingState.initialized = false;
+
+  const savedScroll = rowEl.scrollLeft;
+
+  const batch = await fetchTrendingBatch(10);
+  const temp = document.createElement('div');
+  appendTmdbItems(temp, (batch || []).slice(0, 10), trendingState);
+
+  rowEl.replaceChildren(...Array.from(temp.childNodes));
+  trendingState.initialized = true;
+
+  requestAnimationFrame(() => {
+    rowEl.scrollLeft = Math.min(savedScroll, Math.max(0, rowEl.scrollWidth - rowEl.clientWidth));
+    rowEl.classList.remove('is-refreshing');
+  });
+}
+
+function refreshTrending() {
+  const rowEl = document.getElementById('tmdbTrendingRow');
+  if (!rowEl) return Promise.resolve();
+
+  trendingState.seenIds.clear();
+  trendingState.loaded = 0;
+  trendingState.initialized = false; // allow init to run again
+  rowEl.innerHTML = '';
+
+  return initTrending(); // loads exactly 10
+}
+
 function attachInfiniteScroll(containerId, fetchFn, stateObj) {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -1992,6 +2184,7 @@ function attachInfiniteScroll(containerId, fetchFn, stateObj) {
       stateObj.loading = true;
       const batch = await fetchFn(5);
       appendTmdbItems(el, batch, stateObj);
+      applyTmdbGenreFilter(); // ensure new cards obey current filter
       stateObj.loading = false;
     }
   });
@@ -2002,6 +2195,27 @@ document.addEventListener('DOMContentLoaded', () => {
   attachInfiniteScroll('tmdbExploreRow', fetchExploreBatch, exploreState);
 });
 
+// --- Genre pills wiring ---
+document.addEventListener("DOMContentLoaded", () => {
+  const bar = document.getElementById("tmdbGenreBar");
+  if (!bar) return;
+
+  const pills = bar.querySelectorAll(".genre-pill");
+  pills.forEach(p => p.classList.toggle("active", p.dataset.genre === ""));
+
+  bar.addEventListener("click", (e) => {
+    const btn = e.target.closest(".genre-pill");
+    if (!btn) return;
+
+    pills.forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+
+    currentGenreFilter = btn.dataset.genre || "";
+    applyTmdbGenreFilter();
+    maybeTopUpFilteredRows();
+  });
+});
+
 window.addEventListener('scroll', checkStickyShadow);
 window.addEventListener('load', checkStickyShadow);
 
@@ -2009,7 +2223,9 @@ waitForImagesToLoad(document.getElementById('appContent')).then(() => {
 });
 
 document.getElementById("mobileExploreRefresh").addEventListener("click", () => {
-  refreshExplore().then(() => console.log("Explore refreshed"));
+  Promise.all([refreshExploreSeamless(), refreshTrendingSeamless()]).then(() => {
+    console.log("Explore & Trending refreshed (seamless)");
+  });
 });
 
 // --- Refresh: Available to Watch (tap = reshuffle, long-press = force reload) ---
