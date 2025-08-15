@@ -770,6 +770,44 @@ function getLibraryAndSyncWishlist() {
   return library;
 }
 
+/**
+ * Return a random sample from a cached library snapshot (fast).
+ * Cache TTL: 10 minutes (tune as needed).
+ */
+function getRandomLibrarySample(limit) {
+  limit = Math.max(1, Math.min(Number(limit) || 10, 50));
+
+  var cache = CacheService.getScriptCache();
+  var raw = cache.get('LIBRARY_SNAPSHOT_V1');
+
+  if (!raw) {
+    var lib = getLibraryAndSyncWishlist(); // heavy once if cache cold
+    raw = JSON.stringify(lib || { movies:[], tv:[] });
+    cache.put('LIBRARY_SNAPSHOT_V1', raw, 600); // 600s = 10 min
+  }
+
+  var libObj = JSON.parse(raw);
+  var merged = [].concat(libObj.movies || [], libObj.tv || []);
+  if (!merged.length) return [];
+
+  // Fisher-Yates
+  for (var i = merged.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = merged[i]; merged[i] = merged[j]; merged[j] = tmp;
+  }
+  return merged.slice(0, limit);
+}
+
+/**
+ * Optional: rebuild and warm the cache now.
+ */
+function warmLibraryCacheNow() {
+  var lib = getLibraryAndSyncWishlist(); // heavy once
+  var cache = CacheService.getScriptCache();
+  cache.put('LIBRARY_SNAPSHOT_V1', JSON.stringify(lib || { movies:[], tv:[] }), 600);
+  return { ok: true, count: (lib.movies||[]).length + (lib.tv||[]).length };
+}
+
 function getContinueWatching(profileName) {
   const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
   const sheet = ss.getSheetByName('Profiles');
