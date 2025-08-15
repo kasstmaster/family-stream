@@ -229,25 +229,38 @@ function getTMDbDetails(id, isTV) {
 function addPosterBasePath(items) {
   return items.map(item => {
     item.poster = item.poster_path
-      ? 'https://image.tmdb.org/t/p/w300' + item.poster_path
-      : 'https://via.placeholder.com/300x450?text=No+Image';
+    ? 'https://image.tmdb.org/t/p/w185' + item.poster_path
+    : 'https://via.placeholder.com/300x450?text=No+Image';
     return item;
   });
 }
+function filterOutAsian(items) {
+  const excludedLangs = ['zh', 'ko', 'ja', 'hi', 'ta', 'te', 'th']; 
+  const excludedCountries = ['CN', 'KR', 'JP', 'IN', 'TH', 'HK', 'SG', 'TW'];
+
+  return items.filter(item => {
+    const lang = (item.original_language || '').toLowerCase();
+    const countries = (item.origin_country || []).map(c => c.toUpperCase());
+    return !excludedLangs.includes(lang) && countries.every(c => !excludedCountries.includes(c));
+  });
+}
+
 function getPopularMovies(page = 1) {
   const apiKey = '48f719a14913f9d4ee92c684c2187625';
-  const url = `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=en-US&page=${page}`;
+  const url = `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=en-US&page=${page}&include_adult=false`;
   const response = UrlFetchApp.fetch(url);
   const data = JSON.parse(response.getContentText());
-  return addPosterBasePath(data.results);
+  return addPosterBasePath(filterOutAsian(data.results));
 }
+
 function getPopularTVShows(page = 1) {
   const apiKey = '48f719a14913f9d4ee92c684c2187625';
-  const url = `https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=en-US&page=${page}`;
+  const url = `https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=en-US&page=${page}&include_adult=false`;
   const response = UrlFetchApp.fetch(url);
   const data = JSON.parse(response.getContentText());
-  return addPosterBasePath(data.results);
+  return addPosterBasePath(filterOutAsian(data.results));
 }
+
 function getCombinedPopular(page = 1) {
   return {
     movies: getPopularMovies(page),
