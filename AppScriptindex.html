@@ -85,7 +85,19 @@ header img {
 
 /* =======================
    PROFILES
-   ======================= */
+======================= */
+
+#switchProfileBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+#switchProfileBtn img {
+  border-radius: 50%; /* circular icon */
+}
+
 .profile-btn {
   background: #1f1f1f;
   color: #fff;
@@ -761,6 +773,10 @@ header img {
       <div class="nav-item" id="mobileAvailableRefresh" role="button" tabindex="0" aria-label="Refresh Available to Watch">
         <i class="fa-solid fa-rotate"></i><span>Available</span>
       </div>
+      <div class="nav-item" id="switchProfileBtn" role="button" tabindex="0" aria-label="Switch Profile">
+        <img id="currentProfileIcon" src="https://via.placeholder.com/50" alt="Profile" style="width:50px;height:50px;object-fit:cover;border-radius:50%;margin-bottom:5px;">
+        <span id="currentProfileName">Profile</span>
+      </div>
       <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
         <i class="fa-solid fa-rotate"></i><span>Explore</span>
       </div>
@@ -793,6 +809,58 @@ let wishlistAvailableTitles = [];
 const appContent = document.getElementById('appContent');
 
 let _lastFocus = null;
+
+function selectProfile(profileName, iconUrl) {
+  // Set current profile
+  currentProfile = profileName;
+
+  // Update bottom bar button
+  const nameEl = document.getElementById("currentProfileName");
+  const iconEl = document.getElementById("currentProfileIcon");
+  if (nameEl) nameEl.textContent = currentProfile || "Profile";
+  if (iconEl) iconEl.src = iconUrl || "https://via.placeholder.com/50";
+
+  // Persist for next visit
+  try {
+    localStorage.setItem("lastProfileName", currentProfile);
+    if (iconEl && iconEl.src) localStorage.setItem("lastProfileIcon", iconEl.src);
+  } catch (e) {
+    console.warn("localStorage unavailable:", e);
+  }
+
+  // Proceed just like your existing click handler
+  const profileModal = document.getElementById("profileModal");
+  const app = document.getElementById("appContent");
+  profileModal.classList.remove("active");
+  app.style.display = "block";
+  loadingScreen.style.display = "flex"; // show while CW loads
+
+  // 1) Load Continue Watching first; hide loader as soon as it's ready
+  loadContinueWatching()
+    .then(() => {
+      const cw = document.getElementById("continueWatchingSection");
+      if (cw) cw.style.display = "block";
+      hideLoadingScreen(0);
+    })
+    .catch(err => {
+      console.error("❌ Error loading Continue Watching:", err);
+      hideLoadingScreen(0);
+    });
+
+  // 2) Kick off the rest in parallel (no loader blocking)
+  Promise.all([ loadWishlist(), loadCombinedPopular() ])
+    .then(() => {
+      const wl = document.getElementById("wishlistSection");
+      const ra = document.getElementById("recentlyAddedSection");
+      if (wl) wl.style.display = "block";
+      if (ra) ra.style.display = "block";
+      return waitForImagesToLoad(app, { timeoutMs: 2500 });
+    })
+    .catch(err => {
+      console.error("❌ Error during background loads:", err);
+      showPopup("Some items are still loading. Try again if they don't appear.");
+    });
+}
 
 function showPopup(messageHtml) {
   _lastFocus = document.activeElement;
@@ -1202,10 +1270,9 @@ window.addEventListener("load", () => {
   const profileModal = document.getElementById("profileModal");
 
   app.style.display = "block";
-  profileModal.classList.add("active");
-  loadingScreen.style.display = "flex"; // Show loading screen
+  loadingScreen.style.display = "flex"; // Show loading screen immediately
 
-  // Preload shared content
+  // Preload shared content (library + recently added)
   Promise.all([ loadLibrary(), loadRecentlyAdded() ])
     .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
     .then(() => hideLoadingScreen())
@@ -1215,42 +1282,45 @@ window.addEventListener("load", () => {
       hideLoadingScreen();
     });
 
-  // Handle profile selection via buttons
-  document.querySelectorAll('.profile-btn').forEach(btn => {
+  // Try to auto-select last profile
+  let savedName = null, savedIcon = null;
+  try {
+    savedName = localStorage.getItem("lastProfileName");
+    savedIcon = localStorage.getItem("lastProfileIcon");
+  } catch (e) {
+    console.warn("localStorage unavailable:", e);
+  }
+
+  if (savedName) {
+    // Skip the modal and go straight in
+    profileModal.classList.remove("active");
+    selectProfile(savedName, savedIcon || "https://via.placeholder.com/50");
+  } else {
+    // No saved profile — show the picker modal
+    profileModal.classList.add("active");
+  }
+
+  // Handle manual profile selection via buttons
+  document.querySelectorAll(".profile-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      currentProfile = btn.dataset.profile;
-
-      profileModal.classList.remove("active");
-      app.style.display = "block";
-      loadingScreen.style.display = "flex"; // show while CW loads
-
-      // 1) Load Continue Watching first; hide loader as soon as it's ready
-      loadContinueWatching()
-        .then(() => {
-          const cw = document.getElementById("continueWatchingSection");
-          if (cw) cw.style.display = "block";
-          hideLoadingScreen(0); // <- stop the loading screen right after CW loads
-        })
-        .catch(err => {
-          console.error("❌ Error loading Continue Watching:", err);
-          hideLoadingScreen(0); // fail-safe: don't keep the loader up
-        });
-
-      // 2) Kick off the rest in parallel (no loader blocking)
-      Promise.all([ loadWishlist(), loadCombinedPopular() ])
-        .then(() => {
-          const wl = document.getElementById("wishlistSection");
-          const ra = document.getElementById("recentlyAddedSection");
-          if (wl) wl.style.display = "block";
-          if (ra) ra.style.display = "block";
-          return waitForImagesToLoad(app, { timeoutMs: 2500 });
-        })
-        .catch(err => {
-          console.error("❌ Error during background loads:", err);
-          showPopup("Some items are still loading. Try again if they don't appear.");
-        });
+      const chosenName = btn.dataset.profile;
+      const imgEl = btn.querySelector("img");
+      const chosenIcon = imgEl ? imgEl.src : "https://via.placeholder.com/50";
+      selectProfile(chosenName, chosenIcon);
     });
   });
+
+  // (Optional but handy) Allow switching profiles from the bottom bar button
+  const switchBtn = document.getElementById("switchProfileBtn");
+  if (switchBtn) {
+    switchBtn.addEventListener("click", () => {
+      profileModal.classList.add("active");
+    });
+  }
+});
+
+document.getElementById("switchProfileBtn").addEventListener("click", () => {
+  document.getElementById("profileModal").classList.add("active");
 });
 
 document.getElementById("searchInput").addEventListener("input", function (e) {
