@@ -1397,27 +1397,8 @@ function initAvailableToWatch() {
     grid.innerHTML = "";            // clear skeletons
     appendAvailableItems(10);       // FIRST LOAD = 10
     availableState.initialized = true;
-
-    // attach infinite scroll (only once per init)
-    attachAvailableInfiniteScroll();
+    // ❌ no infinite scroll
   });
-}
-
-function attachAvailableInfiniteScroll() {
-  const el = document.getElementById("availableToWatchGrid");
-  if (!el || el._hasScrollListener) return;
-
-  const onScroll = () => {
-    if (availableState.loading || !availableState.initialized) return;
-    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 50) {
-      availableState.loading = true;
-      appendAvailableItems(5);
-      availableState.loading = false;
-    }
-  };
-
-  el.addEventListener("scroll", onScroll, { passive: true });
-  el._hasScrollListener = true;
 }
 
 // Load Library via google.script.run and sync wishlist statuses automatically
@@ -1929,42 +1910,18 @@ function _arraysDifferById(a = [], b = []) {
   return false;
 }
 
-/**
- * Instant reshuffle from cache, then background fetch to refresh items.
- * @param {string} rowId - e.g. 'tmdbExploreAllRow'
- * @param {string} genreId - '' for All, or a TMDb genre id
- */
 function refreshExploreRowSmooth(rowId, genreId) {
   const rowEl = document.getElementById(rowId);
   if (!rowEl) return Promise.resolve();
 
-  // 1) If we have a cache: instant reshuffle + render (no overlay)
-  const cached = _exploreCache.get(rowId);
-  if (cached && Array.isArray(cached.items) && cached.items.length) {
-    const shuffled = shuffleArray([ ...cached.items ]);
-    _exploreSetState(rowId, cached.genre, shuffled);
-    _exploreRenderFirstBatch(rowEl, rowId, 10);
-
-    // 2) Background refresh — update CACHE ONLY (no DOM touch here)
-    fetchMixedTopRated(genreId || '', 16)
-      .then(items => {
-        if (Array.isArray(items) && items.length &&
-            (!_exploreCache.has(rowId) || _arraysDifferById(items, _exploreCache.get(rowId).items))) {
-          _exploreCache.set(rowId, { genre: genreId || '', items, stamp: Date.now() });
-          // ✅ Do NOT call _exploreSetState / _exploreRenderFirstBatch here.
-          //     We keep the current UI; the new data is used on the next refresh.
-        }
-      })
-      .catch(() => { /* ignore; keep current UI */ });
-
-    return Promise.resolve();
-  }
-
-  // 3) Cache miss (first ever): show overlay while we init; then fill cache
+  // Always fetch fresh items
   return withSeamlessOverlay(rowEl, async () => {
-    await initExploreRow(genreId || '', rowId);
-    const st = exploreState.get(rowId) || { items: [] };
-    _exploreCache.set(rowId, { genre: genreId || '', items: st.items.slice(), stamp: Date.now() });
+    const newItems = await fetchMixedTopRated(genreId || '', 16);
+    if (Array.isArray(newItems) && newItems.length) {
+      _exploreCache.set(rowId, { genre: genreId || '', items: newItems.slice(), stamp: Date.now() });
+      _exploreSetState(rowId, genreId || '', newItems);
+      _exploreRenderFirstBatch(rowEl, rowId, 10);
+    }
   });
 }
 
@@ -1992,6 +1949,7 @@ function loadContinueWatching() {
     })
   );
 }
+
 function renderContinueWatching(items) {
   // newest → oldest by updatedAt; if missing, they fall to the bottom
   items = (items || []).slice().sort((a, b) => {
@@ -2143,7 +2101,7 @@ async function initExploreRow(genre, rowId) {
   const st = await ensureExploreBuffer(rowId, genre, 12);
   rowEl.innerHTML = '';
   appendExploreItems(rowEl, rowId, 10);
-  attachExploreInfiniteScroll(rowEl, rowId);
+  // ❌ no infinite scroll
 
   // Save the initialized set into cache for instant reshuffles later
   if (st && Array.isArray(st.items) && st.items.length) {
@@ -2274,23 +2232,6 @@ function appendExploreItems(rowEl, rowId, count = 5) {
   st.loaded = end;
 }
 
-function attachExploreInfiniteScroll(rowEl, rowId) {
-  if (!rowEl || rowEl._hasScrollListener) return;
-
-  const onScroll = async () => {
-    const st = exploreState.get(rowId);
-    if (!st || st.loading) return;
-
-    if (rowEl.scrollLeft + rowEl.clientWidth >= rowEl.scrollWidth - 50) {
-      await ensureExploreBuffer(rowId, st.genre, st.loaded + 5);
-      appendExploreItems(rowEl, rowId, 5);
-    }
-  };
-
-  rowEl.addEventListener("scroll", onScroll, { passive: true });
-  rowEl._hasScrollListener = true;
-}
-
 /* ---- LIST SIDEBAR REFRESH (helpers) ---- */
 /**
  * Wrap a scroll container in a two‑column layout and attach a sidebar refresh button.
@@ -2349,6 +2290,31 @@ function addSidebarRefresh(gridId, onClick, label = 'Refresh', ariaLabel) {
   grid._sidebarBtn = btn;
   return btn;
 }
+
+// Explore — All (sidebar button should REFRESH like the others)
+addSidebarRefresh(
+  'tmdbExploreAllRow',
+  async () => {
+    if (_currentShownGenre) {
+      const prev = document.getElementById(_currentShownGenre.sectionId);
+      if (prev) prev.style.display = 'none';
+      _currentShownGenre = null;
+    }
+    const sec = document.getElementById('tmdbExploreAllSection');
+    if (sec) sec.style.display = 'block';
+
+    const row = document.getElementById('tmdbExploreAllRow');
+    if (row && row.children.length === 0) {
+      row.classList.add('is-refreshing');
+      try { await initExploreRow('', 'tmdbExploreAllRow'); }
+      finally { row.classList.remove('is-refreshing'); }
+    }
+    await refreshExploreRowSmooth('tmdbExploreAllRow', '');
+    sec?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+  'Refresh',
+  'Refresh Explore All'
+);
 
 // Track which genre section is currently shown
 let _currentShownGenre = null;
@@ -2450,30 +2416,55 @@ function attachAllListSidebars() {
     'Refresh Wishlist'
   );
 
-  // Explore — All
-  addSidebarRefresh(
-  'tmdbExploreAllRow',
-    async () => {
-      // Hide any shown genre section
-      if (_currentShownGenre) {
-        const prev = document.getElementById(_currentShownGenre.sectionId);
-        if (prev) prev.style.display = 'none';
-        _currentShownGenre = null;
-      }
-      // Ensure All is visible and (re)initialized if empty
-      const sec = document.getElementById('tmdbExploreAllSection');
+    // Explore — All (sidebar button should REFRESH like the others)
+    addSidebarRefresh(
+      'tmdbExploreAllRow',
+      async () => {
+        // Hide any shown per-genre section
+        if (_currentShownGenre) {
+          const prev = document.getElementById(_currentShownGenre.sectionId);
+          if (prev) prev.style.display = 'none';
+          _currentShownGenre = null;
+        }
+
+        // Ensure the section is visible
+        const sec = document.getElementById('tmdbExploreAllSection');
+        if (sec) sec.style.display = 'block';
+
+        const row = document.getElementById('tmdbExploreAllRow');
+
+        // Init once if empty
+        if (row && row.children.length === 0) {
+          row.classList.add('is-refreshing');
+          try { await initExploreRow('', 'tmdbExploreAllRow'); }
+          finally { row.classList.remove('is-refreshing'); }
+        }
+
+        // 🔁 Actual refresh
+        await refreshExploreRowSmooth('tmdbExploreAllRow', '');
+        sec?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      },
+      'Refresh',
+      'Refresh Explore All'
+    );
+
+  const _allBtn = document.getElementById('tmdbExploreAllRow')?._sidebarBtn;
+  if (_allBtn) _allBtn._dynamicHandler = async () => {
+    const row = document.getElementById('tmdbExploreAllRow');
+    if (row && row.children.length === 0) await initExploreRow('', 'tmdbExploreAllRow');
+    await refreshExploreRowSmooth('tmdbExploreAllRow', '');
+  };
+
+  // Explore All: set button to "Refresh" and force it to actually refresh
+  const _exploreAllBtn = document.getElementById('tmdbExploreAllRow')?._sidebarBtn;
+  if (_exploreAllBtn) {
+    setSidebarBtnState(_exploreAllBtn, 'refresh', 'Refresh', 'tmdbExploreAllRow');
+    _exploreAllBtn._dynamicHandler = async () => {
       const row = document.getElementById('tmdbExploreAllRow');
-      if (sec) sec.style.display = 'block';
-      if (row && row.children.length === 0) {
-        row.classList.add('is-refreshing');
-        try { await initExploreRow('', 'tmdbExploreAllRow'); }
-        finally { row.classList.remove('is-refreshing'); }
-      }
-      sec?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    },
-    'Show',
-    'Show Explore All'
-  );
+      if (row && row.children.length === 0) await initExploreRow('', 'tmdbExploreAllRow');
+      await refreshExploreRowSmooth('tmdbExploreAllRow', '');
+    };
+  }
 
   // Explore — per-genre rows: use "Show" first
   GENRE_ROWS.forEach(cfg => {
