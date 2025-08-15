@@ -1195,13 +1195,77 @@ function showEpisodesList(showLike) {
 // (Optional but harmless): ensure global
 window.showEpisodesList = showEpisodesList;
 
-function renderAvailableToWatch(movies, tvShows) {
-  const container = document.getElementById("availableToWatchGrid");
-  container.innerHTML = "";
+// --- Available-to-Watch (batched) ---
+const availableState = {
+  initialized: false,
+  loading: false,
+  loaded: 0,
+  items: [],
+};
 
-  const combined = shuffleArray([...movies, ...tvShows]);
-  combined.forEach(item => {
-    container.appendChild(createCard(item));
+function buildAvailableList() {
+  if (!window.library) return [];
+  const { movies = [], tv = [] } = window.library;
+  // Shuffle a fresh combined list
+  return shuffleArray([...movies, ...tv]);
+}
+
+function appendAvailableItems(limit = 5) {
+  const grid = document.getElementById("availableToWatchGrid");
+  if (!grid || !availableState.items.length) return;
+
+  const start = availableState.loaded;
+  const end = Math.min(start + limit, availableState.items.length);
+  for (let i = start; i < end; i++) {
+    grid.appendChild(createCard(availableState.items[i]));
+  }
+  availableState.loaded = end;
+}
+
+function initAvailableToWatch() {
+  const grid = document.getElementById("availableToWatchGrid");
+  if (!grid) return;
+
+  // reset state
+  availableState.initialized = false;
+  availableState.loading = false;
+  availableState.loaded = 0;
+  availableState.items = buildAvailableList();
+
+  // skeletons then first batch
+  grid.innerHTML = `
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  `;
+
+  requestAnimationFrame(() => {
+    grid.innerHTML = "";            // clear skeletons
+    appendAvailableItems(10);       // FIRST LOAD = 10
+    availableState.initialized = true;
+
+    // attach infinite scroll (only once per init)
+    attachAvailableInfiniteScroll();
+  });
+}
+
+function attachAvailableInfiniteScroll() {
+  const el = document.getElementById("availableToWatchGrid");
+  if (!el) return;
+
+  // Remove any previous listener by cloning (keeps styles/children)
+  const clone = el.cloneNode(true);
+  el.parentNode.replaceChild(clone, el);
+
+  clone.addEventListener("scroll", async () => {
+    if (availableState.loading || !availableState.initialized) return;
+    // near the right edge?
+    if (clone.scrollLeft + clone.clientWidth >= clone.scrollWidth - 50) {
+      availableState.loading = true;
+      appendAvailableItems(5);      // SUBSEQUENT LOADS = 5
+      availableState.loading = false;
+    }
   });
 }
 
@@ -1222,18 +1286,18 @@ function loadLibrary(force = false) {
 
   return new Promise(resolve => {
     google.script.run.withSuccessHandler(data => {
-      fullLibrary = (data.movies || []).concat(data.tv || []);
-      window.library = data;          // keep a copy for quick reshuffles
-      libraryLoaded = true;
+    fullLibrary = (data.movies || []).concat(data.tv || []);
+    window.library = data;
+    libraryLoaded = true;
 
-      try {
-        renderAvailableToWatch(data.movies || [], data.tv || []);
-      } catch (err) {
-        console.error("❌ Error in renderAvailableToWatch:", err);
-        showPopup("Error rendering library.");
-      }
-      resolve();
-    }).withFailureHandler(err => {
+    try {
+      initAvailableToWatch(); // <-- batched initializer
+    } catch (err) {
+      console.error("❌ Error in initAvailableToWatch:", err);
+      showPopup("Error rendering Available to Watch.");
+    }
+    resolve();
+  }).withFailureHandler(err => {
       console.error("❌ Failed to load library:", err);
       showPopup("Error loading library.");
       resolve();
@@ -1242,18 +1306,14 @@ function loadLibrary(force = false) {
 }
 
 function refreshAvailableToWatch({ force = false } = {}) {
-  // If we want to fully reload from Drive, call loadLibrary(true)
-  if (force) return loadLibrary(true);
+  if (force) return loadLibrary(true).then(() => initAvailableToWatch());
 
-  // If we already have the library, just reshuffle and re-render
-  if (window.library && Array.isArray(window.library.movies) && Array.isArray(window.library.tv)) {
-    const { movies, tv } = window.library;
-    renderAvailableToWatch(movies, tv);  // renderAvailableToWatch already shuffles
+  if (window.library) {
+    // Quick reshuffle without Drive call
+    initAvailableToWatch(); // rebuilds list, loads 10, then scroll adds 5 at a time
     return Promise.resolve();
   }
-
-  // If no library yet, load normally
-  return loadLibrary();
+  return loadLibrary().then(() => initAvailableToWatch());
 }
 
 let currentProfile = null;
