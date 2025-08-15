@@ -214,6 +214,22 @@ function getLibraryData() {
 }
 
 // TMDB
+function getTrendingNow(mediaType = "all", timeWindow = "day", page = 1) {
+  const apiKey = '48f719a14913f9d4ee92c684c2187625';
+  const type = encodeURIComponent(mediaType);
+  const window = encodeURIComponent(timeWindow);
+  const pg = Math.max(1, Math.min(Number(page) || 1, 500));
+
+  const url = `https://api.themoviedb.org/3/trending/${type}/${window}?api_key=${apiKey}&language=en-US&page=${pg}&include_adult=false`;
+  const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const code = response.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error(`TMDb Trending error: ${code}`);
+  }
+
+  const data = JSON.parse(response.getContentText());
+  return addPosterBasePath(filterOutAsian(data.results || []));
+}
 function getTMDbDetails(id, isTV) {
   const apiKey = '48f719a14913f9d4ee92c684c2187625'; // keep server-side
   const type = isTV ? 'tv' : 'movie';
@@ -262,9 +278,10 @@ function getPopularTVShows(page = 1) {
 }
 
 function getCombinedPopular(page = 1) {
+  const pg = Math.max(1, Math.min(Number(page) || 1, 500));
   return {
-    movies: getPopularMovies(page),
-    tv: getPopularTVShows(page)
+    movies: getPopularMovies(pg),
+    tv: getPopularTVShows(pg)
   };
 }
 function addToWishlistSheet(title, poster) {
