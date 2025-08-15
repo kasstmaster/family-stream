@@ -53,29 +53,17 @@ header img {
 }
 
 /* =======================
-   EPISODES (compact cards)
+   EPISODES (same sizing as titles)
    ======================= */
 .active-episode {
   outline: 3px solid #00a7b0;
   outline-offset: 2px;
 }
-#episodesSection .movie-card {
-  flex: 0 0 90px;
-  max-width: 90px;
-  margin: 3px;
-}
-#episodesSection .movie-poster {
-  width: 100%;
-  height: auto;
-}
-#episodesSection .movie-title {
-  font-size: 0.65rem;
-  line-height: 1.1;
-  padding: 4px;
-}
-#episodesSection .scroll-container {
-  gap: 8px;
-}
+
+/* NOTE:
+   We intentionally DO NOT override width, fonts, or gap inside #episodesSection,
+   so episode cards inherit the same .movie-card sizing as titles (mobile & desktop).
+   If you previously had compact styles here, they've been removed. */
 
 /* Ensure the trailer area is on top and interactive */
 #tmdbTrailerContainer { position: relative; z-index: 1; }
@@ -566,6 +554,7 @@ header img {
   }
   #videoFrameContainer { flex: 1 1 100% !important; min-height: 300px !important; width: 100% !important; }
   .movie-info-scroll { flex: 1 1 100% !important; width: 100% !important; padding: 30px !important; }
+  .scroll-container { -webkit-overflow-scrolling: touch; /* smoother iOS scrolling */ }
 
   .refresh-emoji { font-size: 50px; }
 
@@ -1261,19 +1250,38 @@ function showEpisodesList(showLike) {
         <img src="${ep.poster || showLike.poster}" alt="${ep.title}" loading="lazy">
         <div class="movie-title">${ep.title}</div>
       `;
-      card.addEventListener("click", () => {
-        // Visually select in the list
-        grid.querySelectorAll(".movie-card").forEach(c => c.classList.remove("active-episode"));
-        card.classList.add("active-episode");
+        card.addEventListener("click", () => {
+        // Visually select + mark as last watched immediately
+        grid.querySelectorAll(".movie-card").forEach(c => 
+          c.classList.remove("active-episode", "last-watched")
+        );
+        card.classList.add("active-episode", "last-watched");
 
-        // Open in new tab + save progress
+        // Update in-memory + localStorage so UI updates without refresh
+        saveLastWatchedEpisodeFor(displayTitle, ep.title);
+
+        // 🔁 Refresh the "Available to Watch" row live
+        updateAvailableToWatchRow();
+
+        // Persist to sheet (your existing behavior) + open
         openEpisodeInNewTab(ep.url, displayTitle, ep.title);
       });
       grid.appendChild(card);
     });
   }
 
-  // Smooth scroll with header offset
+  // Auto-scroll to last watched (double RAF to ensure layout on mobile)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const lastWatchedCard = grid.querySelector(".last-watched");
+      if (lastWatchedCard) {
+        lastWatchedCard.classList.add("active-episode"); // optional
+        scrollCardIntoViewHorizontally(grid, lastWatchedCard, { smooth: true });
+      }
+    });
+  });
+
+  // Smooth scroll the section into view (account for sticky header)
   setTimeout(() => {
     const yOffset = -80; // adjust for sticky header height
     const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
@@ -1341,21 +1349,19 @@ function initAvailableToWatch() {
 
 function attachAvailableInfiniteScroll() {
   const el = document.getElementById("availableToWatchGrid");
-  if (!el) return;
+  if (!el || el._hasScrollListener) return;
 
-  // Remove any previous listener by cloning (keeps styles/children)
-  const clone = el.cloneNode(true);
-  el.parentNode.replaceChild(clone, el);
-
-  clone.addEventListener("scroll", async () => {
+  const onScroll = () => {
     if (availableState.loading || !availableState.initialized) return;
-    // near the right edge?
-    if (clone.scrollLeft + clone.clientWidth >= clone.scrollWidth - 50) {
+    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 50) {
       availableState.loading = true;
-      appendAvailableItems(5);      // SUBSEQUENT LOADS = 5
+      appendAvailableItems(5);
       availableState.loading = false;
     }
-  });
+  };
+
+  el.addEventListener("scroll", onScroll, { passive: true });
+  el._hasScrollListener = true;
 }
 
 // Load Library via google.script.run and sync wishlist statuses automatically
@@ -1403,6 +1409,12 @@ function refreshAvailableToWatch({ force = false } = {}) {
     return Promise.resolve();
   }
   return loadLibrary().then(() => initAvailableToWatch());
+}
+
+// Live refresh helper for the Available row
+function updateAvailableToWatchRow() {
+  // quick reshuffle/rebuild without a Drive call
+  try { refreshAvailableToWatch(); } catch (e) { console.warn(e); }
 }
 
 let currentProfile = null;
@@ -1574,7 +1586,30 @@ function setCWCache(items = []) {
 }
 
 function getLastWatchedEpisodeFor(title) {
-  return cwProgressByTitle.get(_norm(title)) || "";
+  const k = _norm(title);
+  if (cwProgressByTitle.has(k)) return cwProgressByTitle.get(k) || "";
+  try {
+    return localStorage.getItem(`lastWatched_${k}`) || "";
+  } catch (_) {
+    return "";
+  }
+}
+
+function saveLastWatchedEpisodeFor(showTitle, episodeTitle) {
+  try {
+    const key = `lastWatched_${_norm(showTitle)}`;
+    localStorage.setItem(key, episodeTitle);
+  } catch (err) {
+    console.error("Could not save last watched:", err);
+  }
+}
+
+// Horizontal scroll centering helper (mobile + desktop safe)
+function scrollCardIntoViewHorizontally(container, card, { smooth = true } = {}) {
+  if (!container || !card) return;
+  const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+  const target = Math.max(0, cardCenter - container.clientWidth / 2);
+  container.scrollTo({ left: target, top: 0, behavior: smooth ? 'smooth' : 'auto' });
 }
 
 // WISHLIST
@@ -1989,23 +2024,21 @@ function appendExploreItems(rowEl, rowId, count = 5) {
   st.loaded = end;
 }
 
-// Attach/replace a scroll listener that loads more when near the end
 function attachExploreInfiniteScroll(rowEl, rowId) {
-  // remove old listeners by cloning node
-  const clone = rowEl.cloneNode(true);
-  rowEl.parentNode.replaceChild(clone, rowEl);
+  if (!rowEl || rowEl._hasScrollListener) return;
 
-  clone.addEventListener('scroll', async () => {
+  const onScroll = async () => {
     const st = exploreState.get(rowId);
     if (!st || st.loading) return;
 
-    // near the right edge?
-    if (clone.scrollLeft + clone.clientWidth >= clone.scrollWidth - 50) {
-      // make sure we have at least 5 more ready
+    if (rowEl.scrollLeft + rowEl.clientWidth >= rowEl.scrollWidth - 50) {
       await ensureExploreBuffer(rowId, st.genre, st.loaded + 5);
-      appendExploreItems(clone, rowId, 5);
+      appendExploreItems(rowEl, rowId, 5);
     }
-  });
+  };
+
+  rowEl.addEventListener("scroll", onScroll, { passive: true });
+  rowEl._hasScrollListener = true;
 }
 
 function loadWishlistRequested() {
