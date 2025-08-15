@@ -909,6 +909,7 @@ let wishlistAvailableTitles = [];
 let wishlistRequestedTitles = [];
 let _recentlyCache = { items: [], stamp: 0 };
 let _exploreCache = new Map();
+let _nextAvailableSample = null;
 
 
 let _wishlistAllCachePromise;
@@ -1375,40 +1376,54 @@ function appendAvailableItems(limit = 5) {
   availableState.loaded = end;
 }
 
-function initAvailableToWatch() {
+function initAvailableToWatch({ allowSkeletons = true } = {}) {
   const grid = document.getElementById("availableToWatchGrid");
   if (!grid) return;
 
-  // reset state
+  // Rebuild fresh shuffled list
   availableState.initialized = false;
   availableState.loading = false;
   availableState.loaded = 0;
   availableState.items = buildAvailableList();
 
-  // skeletons then first batch
-  grid.innerHTML = `
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-  `;
+  // If nothing at all, show empty state and bail
+  if (!availableState.items || availableState.items.length === 0) {
+    grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center; width:100%;">No videos available.</p>';
+    return;
+  }
 
+  const alreadyHasCards = !!grid.querySelector(".movie-card");
+
+  // Only show skeletons when it's the *very first* paint (no cards yet)
+  if (allowSkeletons && !alreadyHasCards) {
+    grid.innerHTML = `
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    `;
+  }
+
+  // Build off-DOM and swap in atomically (no flicker either way)
   requestAnimationFrame(() => {
-    grid.innerHTML = "";            // clear skeletons
-    appendAvailableItems(10);       // FIRST LOAD = 10
+    const frag = document.createDocumentFragment();
+    const limit = 10;
+    availableState.items.slice(0, limit).forEach(it => frag.appendChild(createCard(it)));
+    replaceChildrenFast(grid, frag);
+    availableState.loaded = Math.min(limit, availableState.items.length);
     availableState.initialized = true;
-    // ❌ no infinite scroll
   });
 }
 
 // Load Library via google.script.run and sync wishlist statuses automatically
-function loadLibrary(force = false) {
-  // only skip if we've already loaded AND not forcing
+function loadLibrary({ force = false, showSkeletons = true } = {}) {
+  // skip if already loaded and not forcing
   if (libraryLoaded && !force) return Promise.resolve();
 
-  if (!libraryLoaded || force) {
-    const container = document.getElementById("availableToWatchGrid");
-    container.innerHTML = `
+  const grid = document.getElementById("availableToWatchGrid");
+
+  if (showSkeletons && grid) {
+    grid.innerHTML = `
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
@@ -1417,47 +1432,114 @@ function loadLibrary(force = false) {
   }
 
   return new Promise(resolve => {
-    google.script.run.withSuccessHandler(data => {
-    fullLibrary = (data.movies || []).concat(data.tv || []);
-    window.library = data;
-    libraryLoaded = true;
+    google.script.run
+      .withSuccessHandler(data => {
+        fullLibrary = (data.movies || []).concat(data.tv || []);
+        window.library = data;
+        libraryLoaded = true;
 
-    try {
-      initAvailableToWatch(); // <-- batched initializer
-    } catch (err) {
-      console.error("❌ Error in initAvailableToWatch:", err);
-      showPopup("Error rendering Available to Watch.");
-    }
-    resolve();
-  }).withFailureHandler(err => {
-      console.error("❌ Failed to load library:", err);
-      showPopup("Error loading library.");
-      resolve();
-    }).getLibraryAndSyncWishlist();
+        try {
+          initAvailableToWatch({ allowSkeletons: showSkeletons });
+        } catch (err) {
+          console.error("❌ Error in initAvailableToWatch:", err);
+          showPopup("Error rendering Available to Watch.");
+        }
+        resolve();
+      })
+      .withFailureHandler(err => {
+        console.error("❌ Failed to load library:", err);
+        if (showSkeletons && grid) {
+          grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">Error loading library.</p>';
+        }
+        resolve();
+      })
+      .getLibraryAndSyncWishlist();
   });
 }
 
-function refreshAvailableToWatch({ force = false } = {}) {
+function buildCardsFragment(items, limit = 10) {
+  const frag = document.createDocumentFragment();
+  const slice = items.slice(0, limit);
+  slice.forEach((item, idx) => {
+    const card = createCard(item);
+    // Nudge first few posters to load sooner for snappier visual completion
+    const img = card.querySelector('img');
+    if (img) {
+      img.decoding = 'async';
+      if (idx < 4) img.loading = 'eager';
+      if (idx < 2) img.fetchPriority = 'high'; // 👈 new
+    }
+    frag.appendChild(card);
+  });
+  return frag;
+}
+
+function prewarmAvailableSample(limit = 10) {
+  // Fire & forget: warms a ready-to-render set for the next refresh
+  callScript('getRandomLibrarySample', limit).then(sample => {
+    _nextAvailableSample = Array.isArray(sample) && sample.length ? sample : null;
+  }).catch(() => { _nextAvailableSample = null; });
+}
+
+async function refreshAvailableToWatch({ limit = 10 } = {}) {
   const grid = document.getElementById('availableToWatchGrid');
+  if (!grid) return;
 
-  return withSeamlessOverlay(grid, () => {
-    if (force) {
-      return loadLibrary(true).then(() => {
-        initAvailableToWatch();
-        if (grid && grid.children.length === 0) appendAvailableItems(10);
-      });
+  await withSeamlessOverlay(grid, async () => {
+    // 1) Use a prewarmed set immediately if we have it
+    let sample = _nextAvailableSample;
+    _nextAvailableSample = null; // consume it
+
+    // 2) If no prewarm available, fetch one now
+    if (!sample) {
+      sample = await callScript('getRandomLibrarySample', limit);
     }
 
-    if (window.library) {
-      initAvailableToWatch(); // quick reshuffle
-      if (grid && grid.children.length === 0) appendAvailableItems(10);
-      return Promise.resolve();
+    // 3) If we got a server-sampled set, render that
+    if (Array.isArray(sample) && sample.length) {
+      const frag = buildCardsFragment(sample, limit);
+      replaceChildrenFast(grid, frag);
+
+      // keep overlay until first few images actually paint (like Explore feel)
+      await waitForImagesToLoad(grid, { timeoutMs: 900 });
+
+      // update state
+      availableState.items = sample.slice();
+      availableState.loaded = Math.min(limit, sample.length);
+      availableState.initialized = true;
+      availableState.loading = false;
+
+      // 4) Prewarm the *next* batch in the background
+      prewarmAvailableSample(limit);
+      return;
     }
 
-    return loadLibrary().then(() => {
-      initAvailableToWatch();
-      if (grid && grid.children.length === 0) appendAvailableItems(10);
-    });
+    // 5) Fallback to local library (no Drive roundtrip)
+    if (!window.library) {
+      await loadLibrary({ force: false, showSkeletons: false });
+    }
+    const newItems = buildAvailableList();
+
+    if (!Array.isArray(newItems) || newItems.length === 0) {
+      grid.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center; width:100%;">No videos available.</p>';
+      availableState.items = [];
+      availableState.loaded = 0;
+      return;
+    }
+
+    const frag = buildCardsFragment(newItems, limit);
+    replaceChildrenFast(grid, frag);
+
+    // Hold overlay just long enough for posters to pop in
+    await waitForImagesToLoad(grid, { timeoutMs: 900 });
+
+    availableState.items = newItems.slice();
+    availableState.loaded = Math.min(limit, newItems.length);
+    availableState.initialized = true;
+    availableState.loading = false;
+
+    // Still prewarm for the *next* click
+    prewarmAvailableSample(limit);
   });
 }
 
@@ -1557,6 +1639,9 @@ window.addEventListener("load", () => {
     attachAllListSidebars(); // rows now exist & are visible
     return res;
   };
+  
+  // 🔥 Prewarm the first Available-to-Watch batch for instant refresh
+  prewarmAvailableSample(10);
 });
 
 document.getElementById("searchInput").addEventListener("input", function (e) {
@@ -1834,62 +1919,6 @@ function loadRecentlyAdded() {
       resolve();
     }).getRecentVideos(14);
   });
-}
-
-function refreshRecentlyAddedSmooth() {
-  const grid = document.getElementById('recentlyAddedGrid');
-
-  // If we have a cache, do an instant, no-network reshuffle right away
-  if (Array.isArray(_recentlyCache.items) && _recentlyCache.items.length) {
-    const nowFrag = buildRecentlyAddedFragment(shuffleArray([ ..._recentlyCache.items ]));
-    replaceChildrenFast(grid, nowFrag);
-
-    // Fire-and-forget background refresh to update the cache (no overlay)
-    google.script.run
-      .withSuccessHandler(items => {
-        if (!Array.isArray(items)) return;
-        // Only swap in new content if something actually changed
-        const oldLen = _recentlyCache.items.length;
-        const newLen = items.length;
-        const changed = (oldLen !== newLen) ||
-                        items.some((it, i) => (it.title !== _recentlyCache.items[i]?.title));
-        _recentlyCache.items = items;
-        _recentlyCache.stamp = Date.now();
-
-        if (changed) {
-          // Update the row silently in-place (also shuffled for variety)
-          const frag = buildRecentlyAddedFragment(shuffleArray([ ...items ]));
-          replaceChildrenFast(grid, frag);
-        }
-      })
-      .withFailureHandler(err => {
-        console.warn('Recently Added background refresh failed:', err);
-        // Keep the instant reshuffle; no UX penalty.
-      })
-      .getRecentVideos(14);
-
-    return Promise.resolve();
-  }
-
-  // Cache miss (e.g., first ever click) → do the seamless overlay path
-  return withSeamlessOverlay(grid, () =>
-    new Promise(resolve => {
-      google.script.run
-        .withSuccessHandler(items => {
-          _recentlyCache.items = Array.isArray(items) ? items : [];
-          _recentlyCache.stamp = Date.now();
-          const frag = buildRecentlyAddedFragment(shuffleArray([ ..._recentlyCache.items ]));
-          replaceChildrenFast(grid, frag);
-          resolve();
-        })
-        .withFailureHandler(err => {
-          console.error("❌ Failed to refresh recently added:", err);
-          showPopup("Error refreshing recently added.");
-          resolve();
-        })
-        .getRecentVideos(14);
-    })
-  );
 }
 
 function _exploreSetState(rowId, genre, items) {
@@ -2379,30 +2408,11 @@ async function showOnlyGenre(cfg) {
 
 /* Map each list to its own refresh action */
 function attachAllListSidebars() {
-  // Continue Watching
-  addSidebarRefresh(
-    'continueWatchingGrid',
-    async () => { if (currentProfile) await loadContinueWatching(); },
-    'Refresh',
-    'Refresh Continue Watching'
-  );
-
-  // Recently Added
-  addSidebarRefresh(
-    'recentlyAddedGrid',
-    async () => { await refreshRecentlyAddedSmooth(); },
-    'Refresh',
-    'Refresh Recently Added'
-  );
 
   addSidebarRefresh(
     'availableToWatchGrid',
     async () => {
-      await refreshAvailableToWatch();                  // smooth reshuffle
-      const grid = document.getElementById('availableToWatchGrid');
-      if (!grid || grid.children.length === 0) {
-        await refreshAvailableToWatch({ force: true }); // rare fallback
-      }
+      await refreshAvailableToWatch({ force: true });   // always pull fresh 10 from Drive
     },
     'Refresh',
     'Refresh Available to Watch'
@@ -2530,39 +2540,12 @@ if (exploreBtn) {
   });
 }
 
-// --- Refresh: Available to Watch (tap = reshuffle, long-press = force reload) ---
-let _availRefreshPressTimer = null;
-let _availDidLongPress = false;
+// --- Refresh: Available to Watch (always pull fresh 10 from Drive) ---
 const availBtn = document.getElementById("mobileAvailableRefresh");
-
-function _scheduleAvailLongPress() {
-  _availDidLongPress = false;
-  _availRefreshPressTimer = setTimeout(() => {
-    _availDidLongPress = true; // so the subsequent 'click' is ignored
-    refreshAvailableToWatch({ force: true })
-      .then(() => showPopup("Available to Watch reloaded"));
-  }, 600); // long-press threshold
-}
-function _cancelAvailLongPress() {
-  if (_availRefreshPressTimer) {
-    clearTimeout(_availRefreshPressTimer);
-    _availRefreshPressTimer = null;
-  }
-}
-
-availBtn.addEventListener("click", () => {
-  if (_availDidLongPress) { _availDidLongPress = false; return; }
+availBtn.addEventListener("click", async () => {
   const grid = document.getElementById('availableToWatchGrid');
-  withSeamlessOverlay(grid, () => refreshAvailableToWatch())
-    .then(() => console.log("Available to Watch reshuffled"));
-});
-
-// Long-press support for mouse & touch
-availBtn.addEventListener("mousedown", _scheduleAvailLongPress);
-availBtn.addEventListener("touchstart", _scheduleAvailLongPress, { passive: true });
-
-["mouseup", "mouseleave", "touchend", "touchcancel"].forEach(evt => {
-  availBtn.addEventListener(evt, _cancelAvailLongPress);
+  await withSeamlessOverlay(grid, () => refreshAvailableToWatch({ force: true }));
+  console.log("Available to Watch reloaded (fresh 10)");
 });
 
 let libraryLoaded = false;
