@@ -812,11 +812,6 @@ header img {
     <div class="scroll-container" id="tmdbExploreHistoryRow"></div>
   </div>
 
-  <div id="tmdbExploreRomanceSection">
-    <h2 class="subsection-title">Explore Romance</h2>
-    <div class="scroll-container" id="tmdbExploreRomanceRow"></div>
-  </div>
-
   <div id="tmdbExploreScifiSection">
     <h2 class="subsection-title">Explore Sci-Fi</h2>
     <div class="scroll-container" id="tmdbExploreScifiRow"></div>
@@ -1505,7 +1500,6 @@ document.getElementById("searchInput").addEventListener("input", function (e) {
     "tmdbExploreDramaSection",
     "tmdbExploreAnimationSection",
     "tmdbExploreHistorySection",
-    "tmdbExploreRomanceSection",
     "tmdbExploreScifiSection"
   ];
 
@@ -1821,6 +1815,13 @@ const GENRES = {
   comedy:'35', western:'37', action:'28', drama:'18', animation:'16', history:'36', scifi:'878' 
 };
 
+// Helpers for randomness (if you added these earlier)
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function randPage(max = 500) { return randInt(1, max); }
+
+// Per-row lazy-load state for Explore sections
+const exploreState = new Map(); // key = rowId, value = { genre, items:[], loaded:0, loading:false }
+
 function _dedupe(items) {
   const seen = new Set();
   return (items || []).filter(it => {
@@ -1831,16 +1832,26 @@ function _dedupe(items) {
   });
 }
 
-function _append(row, items) {
-  if (!row) return;
-  row.innerHTML = '';
-  if (!items || !items.length) {
-    row.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No items found.</p>';
-    return;
-  }
-  const frag = document.createDocumentFragment();
-  items.forEach(it => frag.appendChild(createCard(it, true, wishlistRequestedTitles)));
-  row.appendChild(frag);
+async function initExploreRow(genre, rowId) {
+  const rowEl = document.getElementById(rowId);
+  if (!rowEl) return;
+
+  // reset state for this row
+  exploreState.set(rowId, { genre, items: [], loaded: 0, loading: false });
+
+  // show skeletons (optional)
+  rowEl.innerHTML = `
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  `;
+
+  // prime ~12 items, then render first 10
+  const st = await ensureExploreBuffer(rowId, genre, 12);
+  rowEl.innerHTML = '';
+  appendExploreItems(rowEl, rowId, 10);
+  attachExploreInfiniteScroll(rowEl, rowId);
 }
 
 // Helper to call Apps Script; returns [] on failure
@@ -1856,24 +1867,50 @@ function callScript(fn, ...args) {
   });
 }
 
-// Top-rated discover with automatic fallback to trending
-async function fetchMixedTopRated(genreId, count = 12) {
-  // First attempt: top-rated discover
-  const [m1, t1] = await Promise.all([
-    callScript('getDiscoverByGenreType', 'movie', 1, 'US', genreId || ''),
-    callScript('getDiscoverByGenreType', 'tv',    1, 'US', genreId || '')
-  ]);
-  let merged = _dedupe([...(m1 || []), ...(t1 || [])]);
+// Helpers for randomness
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function randPage(max = 500) { return randInt(1, max); }
 
-  // Fallback: trending if discover came back too thin
-  if (!merged.length) {
-    const [m2, t2] = await Promise.all([
-      callScript('getTrendingByType', 'movie', 1),
-      callScript('getTrendingByType', 'tv',    1)
+async function fetchMixedTopRated(genreId, count = 12) {
+  const ATTEMPTS = 3;         // how many random-page attempts per step
+  const REGION   = 'US';
+  const wanted   = Number(genreId || 0);
+
+  let merged = [];
+
+  // 1) Provider-filtered: random pages, multiple attempts
+  for (let i = 0; i < ATTEMPTS && merged.length < count; i++) {
+    const [m, t] = await Promise.all([
+      callScript('getDiscoverByGenreTypeProviders', 'movie', randPage(), REGION, genreId || ''),
+      callScript('getDiscoverByGenreTypeProviders', 'tv',    randPage(), REGION, genreId || '')
     ]);
-    merged = _dedupe([...(m2 || []), ...(t2 || [])]);
+    merged = _dedupe([...merged, ...(m || []), ...(t || [])]);
   }
-  return merged.slice(0, count);
+
+  // 2) Fallback: genre-only (no provider filter), still random pages
+  if (merged.length < count) {
+    for (let i = 0; i < ATTEMPTS && merged.length < count; i++) {
+      const [m, t] = await Promise.all([
+        callScript('getDiscoverByGenreType', 'movie', randPage(), REGION, genreId || ''),
+        callScript('getDiscoverByGenreType', 'tv',    randPage(), REGION, genreId || '')
+      ]);
+      merged = _dedupe([...merged, ...(m || []), ...(t || [])]);
+    }
+  }
+
+  // 3) (Optional) Last fallback: trending BUT keep genre pure
+  //    Remove this whole block if you want strict genre-only.
+  if (merged.length < count) {
+    const [m2, t2] = await Promise.all([
+      callScript('getTrendingByType', 'movie', randPage()),
+      callScript('getTrendingByType', 'tv',    randPage())
+    ]);
+    merged = _dedupe([...merged, ...(m2 || []), ...(t2 || [])])
+      .filter(it => Array.isArray(it.genre_ids) && it.genre_ids.includes(wanted));
+  }
+
+  // Final: shuffle every time, then cap to `count`
+  return shuffleArray(merged).slice(0, count);
 }
 
 async function loadExploreRows() {
@@ -1890,10 +1927,85 @@ async function loadExploreRows() {
     [GENRES.scifi,      'tmdbExploreScifiRow']
   ];
 
-  for (const [genre, rowId] of rows) {
-    const items = await fetchMixedTopRated(genre);
-    _append(document.getElementById(rowId), items);
+  // overlay
+  rows.forEach(([, rowId]) => {
+    const row = document.getElementById(rowId);
+    if (row) row.classList.add('is-refreshing');
+  });
+
+  // init all rows in parallel; isolate errors per row
+  await Promise.all(rows.map(async ([genre, rowId]) => {
+    const rowEl = document.getElementById(rowId);
+    if (!rowEl) return;
+    try {
+      await initExploreRow(genre, rowId);
+    } catch (err) {
+      console.error(`Explore init failed for ${rowId}:`, err);
+      rowEl.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">Couldn’t load this list.</p>';
+    } finally {
+      rowEl.classList.remove('is-refreshing');
+    }
+  }));
+}
+
+// Make sure we have at least `need` items cached for this row
+async function ensureExploreBuffer(rowId, genre, need = 10) {
+  let st = exploreState.get(rowId);
+  if (!st) {
+    st = { genre, items: [], loaded: 0, loading: false };
+    exploreState.set(rowId, st);
   }
+  const missing = Math.max(0, need - (st.items.length - st.loaded));
+  if (missing <= 0) return st;
+
+  if (st.loading) return st; // someone else is fetching
+  st.loading = true;
+  try {
+    // ask for a bit extra to keep things feeling fresh
+    const batch = await fetchMixedTopRated(genre, Math.max(12, missing + 8));
+    // merge + dedupe by id|type
+    const merged = _dedupe([...st.items, ...batch]);
+    st.items = merged;
+  } finally {
+    st.loading = false;
+  }
+  return st;
+}
+
+// Append up to `count` new cards to the row from its cache
+function appendExploreItems(rowEl, rowId, count = 5) {
+  const st = exploreState.get(rowId);
+  if (!st || !st.items.length) return;
+
+  const start = st.loaded;
+  const end = Math.min(start + count, st.items.length);
+  if (start >= end) return;
+
+  const frag = document.createDocumentFragment();
+  for (let i = start; i < end; i++) {
+    frag.appendChild(createCard(st.items[i], true, wishlistRequestedTitles));
+  }
+  rowEl.appendChild(frag);
+  st.loaded = end;
+}
+
+// Attach/replace a scroll listener that loads more when near the end
+function attachExploreInfiniteScroll(rowEl, rowId) {
+  // remove old listeners by cloning node
+  const clone = rowEl.cloneNode(true);
+  rowEl.parentNode.replaceChild(clone, rowEl);
+
+  clone.addEventListener('scroll', async () => {
+    const st = exploreState.get(rowId);
+    if (!st || st.loading) return;
+
+    // near the right edge?
+    if (clone.scrollLeft + clone.clientWidth >= clone.scrollWidth - 50) {
+      // make sure we have at least 5 more ready
+      await ensureExploreBuffer(rowId, st.genre, st.loaded + 5);
+      appendExploreItems(clone, rowId, 5);
+    }
+  });
 }
 
 function loadWishlistRequested() {
@@ -1920,10 +2032,21 @@ window.addEventListener('load', checkStickyShadow);
 waitForImagesToLoad(document.getElementById('appContent')).then(() => {
 });
 
-document.getElementById("mobileExploreRefresh").addEventListener("click", async () => {
-  await loadExploreRows();  // reload all Explore lists
-  console.log("Explore lists refreshed");
-});
+const exploreBtn = document.getElementById("mobileExploreRefresh");
+if (exploreBtn) {
+  exploreBtn.addEventListener("click", async () => {
+    if (exploreBtn.dataset.busy === "1") return; // debounce
+    try {
+      exploreBtn.dataset.busy = "1";
+      exploreBtn.setAttribute("aria-busy", "true");
+      await loadExploreRows();
+      console.log("Explore lists refreshed");
+    } finally {
+      exploreBtn.dataset.busy = "0";
+      exploreBtn.removeAttribute("aria-busy");
+    }
+  });
+}
 
 // --- Refresh: Available to Watch (tap = reshuffle, long-press = force reload) ---
 let _availRefreshPressTimer = null;
