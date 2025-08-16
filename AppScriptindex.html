@@ -910,6 +910,7 @@ let wishlistRequestedTitles = [];
 let _recentlyCache = { items: [], stamp: 0 };
 let _exploreCache = new Map();
 let _nextAvailableSample = null;
+const _exploreNextSample = new Map();
 
 
 let _wishlistAllCachePromise;
@@ -1543,6 +1544,25 @@ async function refreshAvailableToWatch({ limit = 10 } = {}) {
   });
 }
 
+/**
+ * Prewarm a future set for an Explore row so refresh can be instant.
+ * @param {string} rowId   - e.g. 'tmdbExploreAllRow'
+ * @param {string} genreId - TMDb genre id ('' means "All")
+ * @param {number} count   - how many items to prefetch
+ */
+function prewarmExploreRow(rowId, genreId = '', count = 16) {
+  // Fire & forget
+  fetchMixedTopRated(genreId, count)
+    .then(items => {
+      if (Array.isArray(items) && items.length) {
+        _exploreNextSample.set(rowId, items.slice(0, count));
+      } else {
+        _exploreNextSample.delete(rowId);
+      }
+    })
+    .catch(() => _exploreNextSample.delete(rowId));
+}
+
 // Live refresh helper for the Available row
 function updateAvailableToWatchRow() {
   // quick reshuffle/rebuild without a Drive call
@@ -1639,9 +1659,12 @@ window.addEventListener("load", () => {
     attachAllListSidebars(); // rows now exist & are visible
     return res;
   };
-  
+
   // 🔥 Prewarm the first Available-to-Watch batch for instant refresh
   prewarmAvailableSample(10);
+
+  // 🔥 Prewarm Explore All so its first refresh is instant
+  prewarmExploreRow('tmdbExploreAllRow', '', 16);
 });
 
 document.getElementById("searchInput").addEventListener("input", function (e) {
@@ -1943,13 +1966,26 @@ function refreshExploreRowSmooth(rowId, genreId) {
   const rowEl = document.getElementById(rowId);
   if (!rowEl) return Promise.resolve();
 
-  // Always fetch fresh items
   return withSeamlessOverlay(rowEl, async () => {
-    const newItems = await fetchMixedTopRated(genreId || '', 16);
-    if (Array.isArray(newItems) && newItems.length) {
-      _exploreCache.set(rowId, { genre: genreId || '', items: newItems.slice(), stamp: Date.now() });
-      _exploreSetState(rowId, genreId || '', newItems);
+    // 1) Use prewarmed set instantly if available
+    let items = _exploreNextSample.get(rowId) || null;
+    if (items && items.length) {
+      _exploreNextSample.delete(rowId); // consume
+    } else {
+      // 2) No prewarm available → fetch now
+      items = await fetchMixedTopRated(genreId || '', 16);
+    }
+
+    if (Array.isArray(items) && items.length) {
+      _exploreCache.set(rowId, { genre: genreId || '', items: items.slice(), stamp: Date.now() });
+      _exploreSetState(rowId, genreId || '', items);
       _exploreRenderFirstBatch(rowEl, rowId, 10);
+
+      // Keep overlay a touch longer until first posters paint (matches Available feel)
+      await waitForImagesToLoad(rowEl, { timeoutMs: 900 });
+
+      // 3) Prewarm the *next* batch in the background
+      prewarmExploreRow(rowId, genreId || '', 16);
     }
   });
 }
@@ -2215,6 +2251,15 @@ async function revealAndLoadAllGenres() {
       rowEl.innerHTML = ''; // ← titles hidden until user clicks "Show"
     }
   });
+
+  // 🔥 Prewarm each genre once so the first refresh after "Show" is instant
+  prewarmExploreRow('tmdbExploreComedyRow',    GENRES.comedy,    16);
+  prewarmExploreRow('tmdbExploreWesternRow',   GENRES.western,   16);
+  prewarmExploreRow('tmdbExploreActionRow',    GENRES.action,    16);
+  prewarmExploreRow('tmdbExploreDramaRow',     GENRES.drama,     16);
+  prewarmExploreRow('tmdbExploreAnimationRow', GENRES.animation, 16);
+  prewarmExploreRow('tmdbExploreHistoryRow',   GENRES.history,   16);
+  prewarmExploreRow('tmdbExploreScifiRow',     GENRES.scifi,     16);
 
   // Ensure “Show” sidebars exist
   attachAllListSidebars();
