@@ -572,6 +572,33 @@ header img {
   font-size: 15px;
 }
 
+/* Inline title actions (Show/Refresh next to the title) */
+.title-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;         
+  margin-right: 0.75em;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  background-color: #00a7b0;
+  color: #fff;
+  font-size: 1rem;     
+  padding: 0.25em 0.5em; 
+  border-radius: 0.4em; 
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+.title-action i {
+  font-size: 1.4em;   /* make the icon stand out more */
+  line-height: 1;
+}
+.title-action span {
+  display: none;
+}
+
+
 /* =======================
    RESPONSIVE: MOBILE
    ======================= */
@@ -610,6 +637,23 @@ header img {
   .tmdb-title { box-shadow: none; transition: box-shadow 0.3s ease; }
 
   .sticky-shadow { box-shadow: 0 2px 5px rgba(0,0,0,0.7); }
+
+  .title-action {
+    font-size: 2rem;           /* scale up */
+    padding: 0.5em;            /* big hit area */
+    border-radius: 0.6em;      /* rounded pill */
+    background: #00a7b0;       /* teal fill */
+    color: #fff;
+    border: none;
+    outline: none;
+    box-shadow: none;
+  }
+  .title-action i {
+    font-size: 1.6em;         /* bigger icon */
+  }
+  .title-action span {
+    display: none;            /* keep icon-only, less clutter */
+  }
 
   .section-title,
   .tmdb-title {
@@ -669,6 +713,36 @@ header img {
 
   #inlinePromptHost { bottom: calc(100px + 16px); } /* more room above big mobile bar */
   .inline-prompt { font-size: 1.1em; }
+
+  /* Sidebar Refresh + Show buttons */
+  .list-row {
+    grid-template-columns: 100px 1fr !important; /* widen sidebar column */
+    gap: 25px !important;                        /* space between button + cards */
+  }
+
+  .list-sidebar {
+    justify-content: flex-start !important;
+    padding-left: 35px !important;  /* move button in from edge */
+  }
+
+  .list-sidebar .nav-item {
+    font-size: 0 !important;     /* no text */
+    width: auto !important;         /* no forced narrow width */
+    text-align: center;
+  }
+
+  .list-sidebar .nav-item i {
+    font-size: 70px !important;     /* bigger refresh/show icon */
+    margin-bottom: 12px;
+  }
+
+  /* "Show Genres" + "Explore Genres" buttons */
+  #revealMyGenresBtn,
+  #revealGenresBtn {
+    font-size: 45px !important;      /* bigger text */
+    padding: 28px 40px !important;   /* taller + wider */
+    border-radius: 20px !important;
+  }
 }
 
 /* =======================
@@ -743,7 +817,7 @@ header img {
   .scroll-container::-webkit-scrollbar-thumb:hover { background: #aaa; }
 
     /* list sidebar — desktop tweaks */
-  .list-row { grid-template-columns: 44px 1fr; }
+  .list-row { grid-template-columns: 44px 1fr; gap: 10px !important; }
   .list-sidebar .nav-item { width: 36px !important; }
   .list-sidebar .nav-item span { display: none; } /* icon-only on desktop */
 }
@@ -948,19 +1022,14 @@ header img {
 
   <div class="bottom-bar">
     <div id="mobileRefreshButtonsContainer" style="display:none; width: 100%; justify-content: space-around;">
-      <div class="nav-item" id="mobileAvailableRefresh" role="button" tabindex="0" aria-label="Refresh Available to Watch">
-        <i class="fa-solid fa-rotate"></i><span>Available</span>
-      </div>
       <div class="nav-item" id="switchProfileBtn" role="button" tabindex="0" aria-label="Switch Profile">
         <img id="currentProfileIcon" src="https://via.placeholder.com/50" alt="Profile" style="width:50px;height:50px;object-fit:cover;border-radius:50%;margin-bottom:5px;">
         <span id="currentProfileName">Profile</span>
       </div>
-      <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
-        <i class="fa-solid fa-rotate"></i><span>Explore</span>
-      </div>
     </div>
   </div>
 
+<br><br>
 </div>
 
 <div id="loadingScreen" style="
@@ -3114,6 +3183,116 @@ async function showOnlyGenre(cfg) {
     // When in REFRESH mode: clicking refreshes the active list (smooth)
     btn._dynamicHandler = async () => { await refreshExploreRowSmooth(cfg.rowId, cfg.genre); };
   }
+}
+
+/* === Inline title actions (replace the old sidebar column) ================= */
+
+function _findTitleForGrid(grid) {
+  if (!grid) return null;
+  // common pattern in your markup: <h2/h3.subsection-title> right before the grid
+  const prev = grid.previousElementSibling;
+  if (prev && (prev.classList?.contains('subsection-title') || prev.classList?.contains('section-title') || prev.classList?.contains('tmdb-title'))) {
+    return prev;
+  }
+  // Episodes title has a fixed id
+  const epiTitle = document.getElementById('episodesTitle');
+  if (epiTitle && grid.id === 'episodesGrid') return epiTitle;
+
+  // Fallback: search upward for nearest heading
+  return grid.closest('.my-genre-block')?.querySelector('.subsection-title') || null;
+}
+
+/* If this grid lives in an old .list-row wrapper, unwrap it (remove the sidebar) */
+function _unwrapLegacySidebarIfPresent(grid) {
+  const wrap = grid?.parentNode;
+  if (wrap && wrap.classList && wrap.classList.contains('list-row')) {
+    // move grid out, drop wrapper
+    const parent = wrap.parentNode;
+    if (parent) {
+      parent.insertBefore(grid, wrap);
+      try { wrap.remove(); } catch(_) { parent.removeChild(wrap); }
+    }
+  }
+}
+
+/* Set icon/label for the inline action button */
+function setTitleBtnState(btn, mode = 'show', rowId = '') {
+  if (!btn) return;
+  if (mode === 'show') {
+    btn.innerHTML = `<i class="fa-solid fa-eye" aria-hidden="true"></i><span>Show</span>`;
+    btn.setAttribute('aria-label', `Show ${rowId || 'list'}`);
+  } else {
+    btn.innerHTML = `<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>`;
+    btn.setAttribute('aria-label', `Refresh ${rowId || 'list'}`);
+  }
+}
+
+/* New: add an inline action button inside the title, directly to the left of the text */
+function addTitleAction(gridId, onClick, initialLabel = 'Refresh', ariaLabel) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return null;
+
+  // If this grid was previously wrapped in the sidebar layout, unwrap it.
+  _unwrapLegacySidebarIfPresent(grid);
+
+  // Find the matching title node
+  const titleEl = _findTitleForGrid(grid);
+  if (!titleEl) return null;
+
+  // Avoid duplicates
+  if (titleEl._inlineActionBtn) return titleEl._inlineActionBtn;
+
+  // Build a small inline button
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'title-action';
+  btn.setAttribute('role', 'button');
+  btn.setAttribute('tabindex', '0');
+  btn.setAttribute('aria-label', ariaLabel || initialLabel);
+
+  // Default visual (we’ll let callers switch to "Show" when needed)
+  btn.innerHTML = `<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>${initialLabel}</span>`;
+
+  // Wire it
+  let busy = false;
+  btn._dynamicHandler = onClick;
+  const run = async () => {
+    if (busy) return;
+    busy = true;
+    btn.setAttribute('aria-busy','true');
+    try {
+      if (typeof btn._dynamicHandler === 'function') {
+        await btn._dynamicHandler();
+      }
+    } finally {
+      busy = false;
+      btn.removeAttribute('aria-busy');
+    }
+  };
+  btn.addEventListener('click', run);
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); run(); }
+  });
+
+  // Insert as the very first thing inside the title
+  titleEl.insertBefore(btn, titleEl.firstChild);
+  titleEl._inlineActionBtn = btn;
+
+  // For convenience, also expose on the grid (similar to your old pattern)
+  grid._sidebarAttached = true;      // compatibility flag used elsewhere
+  grid._sidebarBtn = btn;
+
+  return btn;
+}
+
+/* Backwards-compatible shim: keep your existing calls working */
+function addSidebarRefresh(gridId, onClick, label = 'Refresh', ariaLabel) {
+  return addTitleAction(gridId, onClick, label, ariaLabel);
+}
+
+/* Back-compat for callers that expect this name */
+function setSidebarBtnState(btn, mode = 'show', _labelText = 'Show', rowId = '') {
+  setTitleBtnState(btn, mode, rowId);
 }
 
 /* Map each list to its own refresh action */
