@@ -477,7 +477,7 @@ header img {
 }
 
 /* =======================
-   POPUP
+   POPUP & PROMPTS
    ======================= */
 #customPopup {
   display: none;
@@ -497,6 +497,51 @@ header img {
   width: 500px;
   box-sizing: border-box;
 }
+
+/* === Inline Prompt (non-blocking) === */
+#inlinePromptHost {
+  position: fixed;
+  left: 0; right: 0; bottom: calc(60px + 12px); /* sit above bottom bar */
+  display: flex;
+  justify-content: center;
+  z-index: 2147483646;
+  pointer-events: none; /* allow clicks through except the prompt itself */
+}
+
+.inline-prompt {
+  pointer-events: auto;
+  background: #222;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 6px 30px rgba(0,0,0,.5);
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 720px);
+}
+
+.inline-prompt .prompt-text {
+  line-height: 1.4;
+}
+
+.inline-prompt .prompt-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.inline-prompt .prompt-btn {
+  border: none;
+  border-radius: 10px;
+  background: #00a7b0;
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 1em;
+  cursor: pointer;
+}
+.inline-prompt .prompt-btn:hover { background: #00bfc9; }
 
 /* =======================
    MISC
@@ -621,6 +666,9 @@ header img {
     top: 15%;
   }
   #popupCloseBtn { font-size: 50px !important; padding: 14px 40px; }
+
+  #inlinePromptHost { bottom: calc(100px + 16px); } /* more room above big mobile bar */
+  .inline-prompt { font-size: 1.1em; }
 }
 
 /* =======================
@@ -804,6 +852,18 @@ header img {
     </div>
   </div>
 
+  <div id="revealMyGenresWrap" style="text-align:center; margin: 10px 0 30px;">
+    <button id="revealMyGenresBtn" type="button" aria-expanded="false"
+            style="background:#00a7b0;color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:1em;cursor:pointer;">
+      Show Genres
+    </button>
+  </div>
+
+  <!-- All Available by Genre -->
+  <div id="myGenresSection">
+    <div id="myGenresWrap" style="display:none;"></div>
+  </div><br><br>
+
   <h2 class="tmdb-title">Explore</h2>
 
   <div id="tmdbDetailsPreview" 
@@ -928,6 +988,8 @@ let _recentlyCache = { items: [], stamp: 0 };
 let _exploreCache = new Map();
 let _nextAvailableSample = null;
 let _hadSavedProfileAtLoad = false;
+let _myGenresRevealed = false;
+
 const _exploreNextSample = new Map();
 
 let _cwPollTimer = null;
@@ -1034,6 +1096,68 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+(function initInlinePromptHost(){
+  if (!document.getElementById('inlinePromptHost')) {
+    const host = document.createElement('div');
+    host.id = 'inlinePromptHost';
+    document.body.appendChild(host);
+  }
+})();
+
+/**
+ * showPrompt({ text, actions: [{label, onClick(close)}], timeoutMs })
+ * - Returns a controller { close() } in case you want to close it manually.
+ */
+function showPrompt(opts) {
+  const { text = '', actions = [], timeoutMs = 5000 } = opts || {};
+  const host = document.getElementById('inlinePromptHost');
+  if (!host) return { close(){} };
+
+  // Replace any existing prompt (singleton UX)
+  host.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'inline-prompt';
+  wrap.setAttribute('role', 'status');
+  wrap.setAttribute('aria-live', 'polite');
+
+  const msg = document.createElement('div');
+  msg.className = 'prompt-text';
+  msg.textContent = text;
+
+  const btns = document.createElement('div');
+  btns.className = 'prompt-actions';
+
+  const close = () => {
+    if (wrap && wrap.parentNode) {
+      wrap.parentNode.removeChild(wrap);
+    }
+  };
+
+  // Build action buttons
+  (actions.length ? actions : [{ label: 'OK' }]).forEach(a => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'prompt-btn';
+    b.textContent = a.label || 'OK';
+    b.addEventListener('click', () => {
+      try { a.onClick && a.onClick(close); } finally { if (!a.onClick) close(); }
+    });
+    btns.appendChild(b);
+  });
+
+  wrap.appendChild(msg);
+  wrap.appendChild(btns);
+  host.appendChild(wrap);
+
+  // Auto-dismiss
+  if (timeoutMs > 0) {
+    setTimeout(() => { close(); }, timeoutMs);
+  }
+
+  return { close };
+}
+
 // Remove an item from Continue Watching for this profile
 function markComplete(profile, title, cardEl, episode = "") {
   if (!profile || !title) return;
@@ -1044,26 +1168,69 @@ function markComplete(profile, title, cardEl, episode = "") {
   cardEl.style.opacity = '0.6';
 
   google.script.run
-    .withSuccessHandler(res => {
-      // Remove the card from the UI
-      cardEl.remove();
+  .withSuccessHandler(res => {
+    // Keep info to allow undo
+    const removedTitle   = title;
+    const removedEpisode = episode || "";
 
-      // If the row goes empty, show the empty state
-      const container = document.getElementById("continueWatchingGrid");
-      if (container && container.children.length === 0) {
-        container.innerHTML = "<p>No titles to continue watching yet.</p>";
-      }
+    // Remove the card from the UI
+    cardEl.remove();
 
-      // (Optional) toast
-      showPopup(`<b>${title}</b><br><span style="color:limegreen;">Removed from Continue Watching.</span>`);
-    })
-    .withFailureHandler(err => {
-      // Roll back UI on error
-      if (btn) btn.disabled = false;
-      cardEl.style.opacity = '1';
-      showPopup(`❌ Couldn't remove <b>${title}</b>.<br>${err?.message || 'Please try again.'}`);
-    })
-    .clearProfileProgress(profile, title);
+    // If the row goes empty, show the empty state
+    const container = document.getElementById("continueWatchingGrid");
+    if (container && container.children.length === 0) {
+      container.innerHTML = "<p>No titles to continue watching yet.</p>";
+    }
+
+    // 🔔 Non-blocking prompt with Undo
+    showPrompt({
+      text: `Removed “${removedTitle}” from Continue Watching.`,
+      actions: [
+        {
+          label: "Undo",
+          onClick: async (close) => {
+            // Put the card back at the top immediately
+            upsertContinueWatchingCard(removedTitle, removedEpisode);
+
+            // Persist progress back (best-effort)
+            try {
+              await new Promise(resolve => {
+                google.script.run
+                  .withSuccessHandler(resolve)
+                  .withFailureHandler(resolve) // don't block UI on failure
+                  .saveProfileProgress(currentProfile, removedTitle, removedEpisode);
+              });
+            } catch (_) {}
+
+            // Let other tabs know
+            try {
+              localStorage.setItem(`cwSync:${currentProfile}`, JSON.stringify({
+                t: Date.now(), action: "upsert", title: removedTitle, episode: removedEpisode
+              }));
+            } catch (_) {}
+
+            // Close the prompt
+            close();
+          }
+        }
+      ],
+      // auto-hide after 6s if user ignores it
+      timeoutMs: 6000
+    });
+  })
+  .withFailureHandler(err => {
+    // Roll back UI on error
+    if (btn) btn.disabled = false;
+    cardEl.style.opacity = '1';
+
+    // Use the same prompt style for errors (no modal)
+    showPrompt({
+      text: `Couldn't remove “${title}”. ${err?.message || "Please try again."}`,
+      actions: [{ label: "Dismiss" }],
+      timeoutMs: 6000
+    });
+  })
+  .clearProfileProgress(profile, title);
 }
 
 // Normalize for CW keys / lookups
@@ -1202,6 +1369,21 @@ function withSeamlessOverlay(el, fn) {
     .finally(() => el.classList.remove('is-refreshing'));
 }
 
+function keepViewportStable(anchorEl, fn) {
+  // Capture the element’s distance from the viewport top before we mutate the DOM
+  const before = anchorEl ? anchorEl.getBoundingClientRect().top : null;
+
+  return Promise.resolve(fn()).finally(() => {
+    if (before == null || !anchorEl) return;
+    const after = anchorEl.getBoundingClientRect().top;
+    const delta = after - before;
+    // Counter-scroll by the same delta so the element (and the user's viewport) doesn’t “jump”
+    if (Math.abs(delta) > 1) {
+      window.scrollBy({ top: delta, left: 0, behavior: 'auto' });
+    }
+  });
+}
+
 function replaceChildrenFast(el, newChildrenFragment) {
   while (el.firstChild) el.removeChild(el.firstChild);
   el.appendChild(newChildrenFragment);
@@ -1258,6 +1440,204 @@ async function renderExploreRowNoBlink(rowEl, rowId, count = 10) {
   document.body.removeChild(off);
 }
 
+let _titleGenres = new Map();
+let _myGenresCurrent = null;
+
+// Build a genre index: name -> [items]
+function _buildLocalGenreIndex() {
+  const idx = new Map();
+  const libItems = [...(window.library?.movies||[]), ...(window.library?.tv||[])];
+  libItems.forEach(item => {
+    const key = _norm(item.title);
+    const meta = _titleGenres.get(key);
+    const genres = (meta?.genres)||[];
+    genres.forEach(g => {
+      const arr = idx.get(g.name) || [];
+      arr.push(item);
+      idx.set(g.name, arr);
+    });
+  });
+  return idx;
+}
+
+function _slug(s='') {
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+function revealMyGenres() {
+  // already revealed? just scroll into view and bail
+  if (_myGenresRevealed) {
+    const section = document.getElementById('myGenresSection');
+    section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  _myGenresRevealed = true;
+
+  // hide the button wrapper
+  const btnWrap = document.getElementById('revealMyGenresWrap');
+  if (btnWrap) btnWrap.style.display = 'none';
+
+  // show the section wrapper
+  const wrap = document.getElementById('myGenresWrap');
+  if (wrap) wrap.style.display = 'block';
+
+  // render now if we already have annotations; otherwise annotate then render
+  const haveAnnotations = _titleGenres && typeof _titleGenres.size === 'number' && _titleGenres.size > 0;
+  const doRender = () => {
+    try { renderMyGenres(); } 
+    catch (e) { console.warn('renderMyGenres failed:', e); }
+  };
+
+  if (haveAnnotations) {
+    doRender();
+  } else {
+    annotateLibraryWithGenres()
+      .then(doRender)
+      .catch(e => console.warn('annotateLibraryWithGenres failed:', e));
+  }
+
+  // accessibility + nudge into view
+  setMyGenresExpanded(true);
+  const section = document.getElementById('myGenresSection');
+  setTimeout(() => section?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+
+function setMyGenresExpanded(expanded) {
+  const btn = document.getElementById('revealMyGenresBtn');
+  if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
+// Render rows for each genre we actually have
+function renderMyGenres() {
+  const wrap = document.getElementById('myGenresWrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = '';
+
+  const idx = _buildLocalGenreIndex();
+  if (idx.size === 0) {
+    wrap.innerHTML = '<p style="color:#aaa; font-size:24px; text-align:center;">No genres detected yet.</p>';
+    return;
+  }
+
+  // Sort by count desc
+  const entries = Array.from(idx.entries()).sort((a,b) => b[1].length - a[1].length);
+
+  entries.forEach(([genreName]) => {
+    const gid = _slug(genreName);
+
+    // Build block with empty row (we populate only on "Show")
+    const section = document.createElement('div');
+    section.className = 'my-genre-block';
+    section.innerHTML = `
+      <h3 class="subsection-title">${genreName}</h3>
+      <div class="scroll-container" id="myGenreRow_${gid}"></div>
+    `;
+    wrap.appendChild(section);
+
+    // Attach a sidebar with a SHOW button
+    const btn = addSidebarRefresh(
+      `myGenreRow_${gid}`,
+      async () => { await myGenresShowOnly(genreName); }, // first click = SHOW
+      'Show',
+      `Show myGenreRow_${gid}`
+    );
+    if (btn) setSidebarBtnState(btn, 'show', 'Show', `myGenreRow_${gid}`);
+  });
+
+  // Optional: auto-show the biggest genre first
+  // const first = entries[0]?.[0];
+  // if (first) myGenresShowOnly(first);
+}
+
+async function myGenresShowOnly(genreName) {
+  const idx = _buildLocalGenreIndex();
+  const selRowId = `myGenreRow_${_slug(genreName)}`;
+  const selRow   = document.getElementById(selRowId);
+  const sec      = selRow?.closest('.my-genre-block');
+
+  await keepViewportStable(sec, async () => {
+    // 1) Clear all other rows (titles/headers remain), set all buttons → "Show"
+    Array.from(idx.keys()).forEach(name => {
+      const otherRowId = `myGenreRow_${_slug(name)}`;
+      const otherRow   = document.getElementById(otherRowId);
+      if (otherRow) otherRow.innerHTML = '';
+      const btn = otherRow?._sidebarBtn;
+      if (btn) {
+        setSidebarBtnState(btn, 'show', 'Show', otherRowId);
+        btn._dynamicHandler = async () => { await myGenresShowOnly(name); };
+      }
+    });
+
+    // 2) Render the selected row
+    await _renderMyGenreRow(genreName);
+
+    // 3) Switch the selected row’s button → "Refresh"
+    const selBtn = selRow?._sidebarBtn ?? null;
+    if (selBtn) {
+      setSidebarBtnState(selBtn, 'refresh', 'Refresh', selRowId);
+      selBtn._dynamicHandler = async () => { await myGenresRefresh(genreName); };
+    }
+
+    _myGenresCurrent = genreName;
+  });
+}
+
+// REFRESH behavior: re-render the currently shown genre
+async function myGenresRefresh(genreName) {
+  await _renderMyGenreRow(genreName);
+}
+
+async function _renderMyGenreRow(genreName) {
+  const rowId = `myGenreRow_${_slug(genreName)}`;
+  const rowEl = document.getElementById(rowId);
+  if (!rowEl) return;
+
+  const idx = _buildLocalGenreIndex();
+  const items = idx.get(genreName) || [];
+
+  // Freeze current height
+  const prevMinHeight = rowEl.style.minHeight;
+  rowEl.style.minHeight = rowEl.offsetHeight + 'px';
+
+  await withSeamlessOverlay(rowEl, async () => {
+    const frag = document.createDocumentFragment();
+    if (!items.length) {
+      const p = document.createElement('p');
+      p.style.cssText = 'color:#aaa; font-size:24px; text-align:center; width:100%;';
+      p.textContent = 'No titles in this genre.';
+      frag.appendChild(p);
+    } else {
+      const shuffled = items.slice();
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      shuffled.forEach(it => frag.appendChild(createCard(it)));
+    }
+    replaceChildrenFast(rowEl, frag);
+  });
+
+  // Release freeze
+  rowEl.style.minHeight = prevMinHeight || '';
+}
+
+// Ask server for all genres for our library and fill _titleGenres
+function annotateLibraryWithGenres() {
+  return new Promise(resolve => {
+    const lib = window.library || {movies:[], tv:[]};
+    google.script.run
+      .withSuccessHandler(map => {
+        _titleGenres = new Map();
+        Object.keys(map || {}).forEach(k => { _titleGenres.set(k, map[k]); });
+        resolve();
+      })
+      .withFailureHandler(() => resolve())
+      .getGenresForLibrary(lib);
+  });
+}
+
 // Create card
 function createCard(item, isTMDb = false, wishlistTitles = []) {
   const displayTitle = item.title || item.name || "No Title";
@@ -1277,6 +1657,20 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
   titleDiv.classList.add("movie-title");
   titleDiv.textContent = displayTitle;
   card.appendChild(titleDiv);
+
+  // ▼ Genres: tag local (Drive) cards for filtering/styling later
+  if (!isTMDb && item && item.title) {
+    try {
+      const meta = _titleGenres.get(_norm(item.title));
+      const names = (meta?.genres || []).map(g => g.name).filter(Boolean);
+      if (names.length) {
+        // e.g. data-genres="Action|Drama"
+        card.dataset.genres = names.join('|');
+      }
+    } catch (e) {
+      console.warn('genre tag failed for', item?.title, e);
+    }
+  }
 
   // Wishlist button for TMDb items
   if (isTMDb) {
@@ -1616,6 +2010,22 @@ function loadLibrary({ force = false, showSkeletons = true } = {}) {
           console.error("❌ Error in initAvailableToWatch:", err);
           showPopup("Error rendering Available to Watch.");
         }
+
+        // 🔽 New: annotate local library with genres,
+        // but only render the lists after the user clicks “Show My Genres”
+        try {
+          annotateLibraryWithGenres()
+            .then(() => {
+              if (_myGenresRevealed) {                        // ← gate render
+                try { renderMyGenres(); } 
+                catch (e) { console.warn("renderMyGenres failed:", e); }
+              }
+            })
+            .catch(e => console.warn("annotateLibraryWithGenres failed:", e));
+        } catch (e) {
+          console.warn("annotateLibraryWithGenres scheduling failed:", e);
+        }
+
         resolve();
       })
       .withFailureHandler(err => {
@@ -1801,6 +2211,12 @@ window.addEventListener("load", () => {
   const revealBtn = document.getElementById('revealGenresBtn');
   if (revealBtn) {
     revealBtn.addEventListener('click', revealAndLoadAllGenres);
+  }
+
+  // NEW: “Show My Genres” button  ← ADD THESE LINES
+  const myGenresBtn = document.getElementById('revealMyGenresBtn');
+  if (myGenresBtn) {
+    myGenresBtn.addEventListener('click', revealMyGenres);
   }
 
   // == Attach sidebar refresh buttons for all visible lists
@@ -2465,10 +2881,6 @@ function callScript(fn, ...args) {
   });
 }
 
-// Helpers for randomness
-function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-function randPage(max = 500) { return randInt(1, max); }
-
 async function fetchMixedTopRated(genreId, count = 12) {
   const ATTEMPTS = 3;         // how many random-page attempts per step
   const REGION   = 'US';
@@ -2643,31 +3055,6 @@ function addSidebarRefresh(gridId, onClick, label = 'Refresh', ariaLabel) {
   return btn;
 }
 
-// Explore — All (sidebar button should REFRESH like the others)
-addSidebarRefresh(
-  'tmdbExploreAllRow',
-  async () => {
-    if (_currentShownGenre) {
-      const prev = document.getElementById(_currentShownGenre.sectionId);
-      if (prev) prev.style.display = 'none';
-      _currentShownGenre = null;
-    }
-    const sec = document.getElementById('tmdbExploreAllSection');
-    if (sec) sec.style.display = 'block';
-
-    const row = document.getElementById('tmdbExploreAllRow');
-    if (row && row.children.length === 0) {
-      row.classList.add('is-refreshing');
-      try { await initExploreRow('', 'tmdbExploreAllRow'); }
-      finally { row.classList.remove('is-refreshing'); }
-    }
-    await refreshExploreRowSmooth('tmdbExploreAllRow', '');
-    sec?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  },
-  'Refresh',
-  'Refresh Explore All'
-);
-
 // Track which genre section is currently shown
 let _currentShownGenre = null;
 
@@ -2780,24 +3167,6 @@ function attachAllListSidebars() {
       'Refresh',
       'Refresh Explore All'
     );
-
-  const _allBtn = document.getElementById('tmdbExploreAllRow')?._sidebarBtn;
-  if (_allBtn) _allBtn._dynamicHandler = async () => {
-    const row = document.getElementById('tmdbExploreAllRow');
-    if (row && row.children.length === 0) await initExploreRow('', 'tmdbExploreAllRow');
-    await refreshExploreRowSmooth('tmdbExploreAllRow', '');
-  };
-
-  // Explore All: set button to "Refresh" and force it to actually refresh
-  const _exploreAllBtn = document.getElementById('tmdbExploreAllRow')?._sidebarBtn;
-  if (_exploreAllBtn) {
-    setSidebarBtnState(_exploreAllBtn, 'refresh', 'Refresh', 'tmdbExploreAllRow');
-    _exploreAllBtn._dynamicHandler = async () => {
-      const row = document.getElementById('tmdbExploreAllRow');
-      if (row && row.children.length === 0) await initExploreRow('', 'tmdbExploreAllRow');
-      await refreshExploreRowSmooth('tmdbExploreAllRow', '');
-    };
-  }
 
   // Explore — per-genre rows: use "Show" first
   GENRE_ROWS.forEach(cfg => {
