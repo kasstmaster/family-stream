@@ -910,8 +910,17 @@ let wishlistRequestedTitles = [];
 let _recentlyCache = { items: [], stamp: 0 };
 let _exploreCache = new Map();
 let _nextAvailableSample = null;
+let _hadSavedProfileAtLoad = false;
 const _exploreNextSample = new Map();
 
+let _cwPollTimer = null;
+function startCWLiveSync() {
+  if (_cwPollTimer) clearInterval(_cwPollTimer);
+  _cwPollTimer = setInterval(() => {
+    if (document.hidden) return; // pause when not visible
+    loadContinueWatching();      // cheap refresh
+  }, 60000); // 60s
+}
 
 let _wishlistAllCachePromise;
 function ensureWishlistAll() {
@@ -936,7 +945,34 @@ const appContent = document.getElementById('appContent');
 
 let _lastFocus = null;
 
+function forgetSelectedProfile() {
+  try {
+    localStorage.removeItem("lastProfileName");
+    localStorage.removeItem("lastProfileIcon");
+    console.log("Profile selection forgotten.");
+  } catch (e) {
+    console.warn("Unable to clear saved profile:", e);
+  }
+
+  currentProfile = null; // reset variable
+
+  // Show profile picker
+  const profileModal = document.getElementById("profileModal");
+  if (profileModal) {
+    profileModal.classList.add("active");
+  }
+
+  // Hide app content
+  const app = document.getElementById("appContent");
+  if (app) {
+    app.style.display = "none";
+  }
+}
+
 function selectProfile(profileName, iconUrl) {
+  // Show loader over the modal first
+  loadingScreen.style.display = "flex"; // overlays modal
+
   // Set current profile
   currentProfile = profileName;
 
@@ -954,28 +990,38 @@ function selectProfile(profileName, iconUrl) {
     console.warn("localStorage unavailable:", e);
   }
 
-  // Proceed just like your existing click handler
+  // Hide modal, keep app visible under loader
   const profileModal = document.getElementById("profileModal");
   const app = document.getElementById("appContent");
   profileModal.classList.remove("active");
   app.style.display = "block";
-  loadingScreen.style.display = "flex"; // show while CW loads
 
-  // 1) Load Continue Watching first; hide loader as soon as it's ready
+  // If no saved profile existed at load, start preloads now
+  if (!_hadSavedProfileAtLoad) {
+    Promise.all([ loadLibrary(), loadRecentlyAdded() ])
+      .catch(err => {
+        console.error("❌ Error during post-select preload:", err);
+        showPopup("Something went wrong while loading content.");
+      });
+  }
+
+  // Load CW first; hide loader as soon as CW is ready
   loadContinueWatching()
     .then(() => {
       const cw = document.getElementById("continueWatchingSection");
       if (cw) cw.style.display = "block";
       hideLoadingScreen(0);
+      startCWLiveSync(); // 60s polling fallback
     })
     .catch(err => {
       console.error("❌ Error loading Continue Watching:", err);
       hideLoadingScreen(0);
+      startCWLiveSync();
     });
 
-  // 2) Ensure wishlist cache once, then load the 3 sections
+  // Ensure wishlist cache once, then load Explore All + Wishlist
   ensureWishlistAll()
-    .then(() => Promise.all([ loadExploreAllRow(), loadWishlist() ])) // only the “All” row
+    .then(() => Promise.all([ loadExploreAllRow(), loadWishlist() ]))
     .then(() => {
       const wl = document.getElementById("wishlistSection");
       const ra = document.getElementById("recentlyAddedSection");
@@ -1042,6 +1088,100 @@ function markComplete(profile, title, cardEl, episode = "") {
       showPopup(`❌ Couldn't remove <b>${title}</b>.<br>${err?.message || 'Please try again.'}`);
     })
     .clearProfileProgress(profile, title);
+}
+
+// Normalize for CW keys / lookups
+const _normCW = s => String(s || "").replace(/\u00A0/g, " ").trim().toLowerCase();
+
+/** Build one CW card (matches renderContinueWatching look & behavior) */
+function makeCWCard(driveItem, episode = "") {
+  const card = document.createElement("div");
+  card.className = "movie-card";
+  card.style.position = "relative";
+  card.dataset.titleNorm = _normCW(driveItem.title);
+  card.innerHTML = `
+    <img src="${driveItem.poster}" alt="${driveItem.title}" loading="lazy" decoding="async">
+    <div class="movie-title">${driveItem.title}</div>
+    <button class="cw-complete-btn" title="Remove from Continue Watching" aria-label="Remove ${driveItem.title} from Continue Watching">−</button>
+  `;
+
+  // open episodes on card click (but not when clicking the minus)
+  card.addEventListener("click", (e) => {
+    if (e.target && typeof e.target.closest === "function" && e.target.closest(".cw-complete-btn")) return;
+    // show the episodes list
+    const local = findLocalByTitle(driveItem.title);
+    if (local) showEpisodesList(local);
+  });
+
+  // minus button wiring
+  const btn = card.querySelector(".cw-complete-btn");
+  if (btn) {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const confirmMsg = episode
+        ? `Mark "${driveItem.title}" — "${episode}" as complete?`
+        : `Mark "${driveItem.title}" as complete?`;
+      if (!window.confirm(confirmMsg)) return;
+      markComplete(currentProfile, driveItem.title, card, episode || "");
+      // 🔔 broadcast removal to other tabs
+      try {
+        localStorage.setItem(`cwSync:${currentProfile}`, JSON.stringify({
+          t: Date.now(), action: "remove", title: driveItem.title
+        }));
+      } catch(_) {}
+    });
+  }
+  return card;
+}
+
+/** Upsert a CW card at the top (instant UI update) */
+function upsertContinueWatchingCard(title, episode = "") {
+  const grid = document.getElementById("continueWatchingGrid");
+  if (!grid || !window.library) return;
+
+  // find matching item in your library
+  const local = findLocalByTitle(title);
+  if (!local) return;
+
+  const key = _normCW(title);
+
+  // if empty state text is there, clear it
+  if (!grid.querySelector(".movie-card") && grid.textContent.includes("No titles to continue watching")) {
+    grid.innerHTML = "";
+  }
+
+  // Look for existing card
+  let card = Array.from(grid.children).find(el => el.dataset?.titleNorm === key);
+
+  if (card) {
+    // move to top and update button episode context
+    grid.insertBefore(card, grid.firstChild);
+    const minus = card.querySelector(".cw-complete-btn");
+    if (minus) {
+      minus.title = episode
+        ? `Remove "${title}" — "${episode}" from Continue Watching`
+        : `Remove "${title}" from Continue Watching`;
+    }
+  } else {
+    // create new card and prepend
+    const newCard = makeCWCard(local, episode);
+    grid.insertBefore(newCard, grid.firstChild);
+  }
+
+  // ensure section visible
+  const section = document.getElementById("continueWatchingSection");
+  if (section) section.style.display = "block";
+
+  // keep the in-memory cache aligned so last-watched highlighting works
+  cwProgressByTitle.set(_norm(title), String(episode || ""));
+  try { localStorage.setItem(`lastWatched_${_norm(title)}`, String(episode || "")); } catch(_) {}
+
+  // 🔔 broadcast upsert to other tabs
+  try {
+    localStorage.setItem(`cwSync:${currentProfile}`, JSON.stringify({
+      t: Date.now(), action: "upsert", title, episode
+    }));
+  } catch(_) {}
 }
 
 function waitForImagesToLoad(container, { timeoutMs = 2500 } = {}) {
@@ -1193,19 +1333,23 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
 }
 
 function openEpisodeInNewTab(url, showTitle, episodeTitle = "") {
-
-  // save progress
+  // 🔹 instant local UI: add/update CW immediately
   if (currentProfile && showTitle) {
+    upsertContinueWatchingCard(showTitle, episodeTitle);
+
+    // persist to server (fire-and-forget)
     google.script.run
       .withFailureHandler(err => console.warn("saveProfileProgress failed:", err))
       .saveProfileProgress(currentProfile, showTitle, episodeTitle);
   }
 
-  // open in a new tab (popup‑blocker safe since it's in a click handler)
+  // also keep Available row feeling fresh
+  try { updateAvailableToWatchRow(); } catch(_) {}
+
+  // open in a new tab (popup-safe)
   try {
     window.open(url, "_blank", "noopener");
   } catch (e) {
-    // fallback
     location.href = url;
   }
 }
@@ -1600,9 +1744,12 @@ window.addEventListener("load", () => {
   }
 
   if (savedName) {
+    _hadSavedProfileAtLoad = true;
+
     // Start profile flow immediately (CW can start sooner)
     profileModal.classList.remove("active");
     selectProfile(savedName, savedIcon);
+
     // Warm above-the-fold rows in parallel
     Promise.all([ loadLibrary(), loadRecentlyAdded() ])
       .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
@@ -1613,16 +1760,11 @@ window.addEventListener("load", () => {
         hideLoadingScreen();
       });
   } else {
-    // No saved profile → preload visible rows before pick
-    Promise.all([ loadLibrary(), loadRecentlyAdded() ])
-      .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
-      .then(() => hideLoadingScreen())
-      .catch(err => {
-        console.error("❌ Error during preload:", err);
-        showPopup("Something went wrong while preloading content.");
-        hideLoadingScreen();
-      });
+    _hadSavedProfileAtLoad = false;
+
+    // No saved profile → show modal, do NOT preload library/recently
     profileModal.classList.add("active");
+    hideLoadingScreen(0); // remove loader right away
   }
 
   // Manual profile selection
@@ -1639,7 +1781,7 @@ window.addEventListener("load", () => {
   const switchBtn = document.getElementById("switchProfileBtn");
   if (switchBtn) {
     switchBtn.addEventListener("click", () => {
-      profileModal.classList.add("active");
+      forgetSelectedProfile(); // clear saved profile & show modal
     });
   }
 
@@ -1743,6 +1885,31 @@ document.getElementById("searchInput").addEventListener("input", function (e) {
       searchGrid.innerHTML = '<p style="text-align:center;color:#aaa;font-size:24px;">No results found.</p>';
     }
   }
+});
+
+// Live sync CW across tabs/windows via localStorage events
+window.addEventListener("storage", (e) => {
+  if (!e || !e.key || !currentProfile) return;
+  const wantKey = `cwSync:${currentProfile}`;
+  if (e.key !== wantKey) return;
+
+  try {
+    const msg = JSON.parse(e.newValue || "{}");
+    if (!msg || !msg.action || !msg.title) return;
+
+    if (msg.action === "upsert") {
+      upsertContinueWatchingCard(msg.title, msg.episode || "");
+    } else if (msg.action === "remove") {
+      const grid = document.getElementById("continueWatchingGrid");
+      if (!grid) return;
+      const key = (s => String(s || "").replace(/\u00A0/g, " ").trim().toLowerCase())(msg.title);
+      const card = Array.from(grid.children).find(el => el.dataset?.titleNorm === key);
+      if (card) card.remove();
+      if (grid.children.length === 0) {
+        grid.innerHTML = "<p>No titles to continue watching yet.</p>";
+      }
+    }
+  } catch(_) {}
 });
 
 function shuffleArray(array) {
@@ -2037,9 +2204,10 @@ function renderContinueWatching(items) {
   if (!library) return;
 
   const normalize = (str) => (str || "").replace(/\u00A0/g, " ").trim().toLowerCase();
+  const normCW   = (s)   => String(s || "").replace(/\u00A0/g, " ").trim().toLowerCase();
 
   items.forEach((item) => {
-    const driveItem = [...library.movies, ...library.tv].find(
+    const driveItem = [...(library.movies || []), ...(library.tv || [])].find(
       (lib) => normalize(lib.title) === normalize(item.title)
     );
     if (!driveItem) return;
@@ -2047,19 +2215,23 @@ function renderContinueWatching(items) {
     const card = document.createElement("div");
     card.className = "movie-card";
     card.style.position = "relative";
+    card.dataset.titleNorm = normCW(driveItem.title); // 👈 enable upsert/reorder
 
     card.innerHTML = `
       <img src="${driveItem.poster}" alt="${driveItem.title}" loading="lazy" decoding="async">
       <div class="movie-title">${driveItem.title}</div>
-      <button class="cw-complete-btn" title="Remove from Continue Watching" aria-label="Remove ${driveItem.title} from Continue Watching">−</button>
+      <button class="cw-complete-btn"
+              title="${item.episode ? `Remove \"${driveItem.title}\" — \"${item.episode}\" from Continue Watching` : `Remove \"${driveItem.title}\" from Continue Watching`}"
+              aria-label="Remove ${driveItem.title} from Continue Watching">−</button>
     `;
 
+    // Open episodes on card click (ignore minus button clicks)
     card.addEventListener("click", (e) => {
-      const el = e.target;
-      if (el && typeof el.closest === "function" && el.closest(".cw-complete-btn")) return;
+      if (e.target && typeof e.target.closest === "function" && e.target.closest(".cw-complete-btn")) return;
       showEpisodesList(driveItem);
     });
 
+    // Minus button removes + broadcasts to other tabs
     const completeBtn = card.querySelector(".cw-complete-btn");
     if (completeBtn) {
       completeBtn.addEventListener("click", (e) => {
@@ -2068,14 +2240,26 @@ function renderContinueWatching(items) {
           ? `Mark "${driveItem.title}" — "${item.episode}" as complete?`
           : `Mark "${driveItem.title}" as complete?`;
         if (!window.confirm(confirmMsg)) return;
+
+        // Optimistic: markComplete will remove this card locally
         markComplete(currentProfile, driveItem.title, card, item.episode || "");
+
+        // 🔔 Broadcast the removal so other tabs update instantly
+        try {
+          localStorage.setItem(`cwSync:${currentProfile}`, JSON.stringify({
+            t: Date.now(),
+            action: "remove",
+            title: driveItem.title
+          }));
+        } catch (_) {}
       });
     }
 
     container.appendChild(card);
   });
 
-  document.getElementById("continueWatchingSection").style.display = "block";
+  const sec = document.getElementById("continueWatchingSection");
+  if (sec) sec.style.display = "block";
 }
 
 // DETAILS & TRAILERS
