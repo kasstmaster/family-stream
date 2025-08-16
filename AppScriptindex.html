@@ -1979,27 +1979,111 @@ function scrollCardIntoViewHorizontally(container, card, { smooth = true } = {})
 }
 
 // WISHLIST
+// === helpers (lightweight) ===
+const _normTitle = s => String(s || '').replace(/\u00A0/g, ' ').trim().toLowerCase();
+
+function upsertWishlistCard({ title, poster }) {
+  const grid = document.getElementById('wishlistGrid');
+  if (!grid || !title) return null;
+
+  // Clear placeholder if present
+  if (!grid.querySelector('.movie-card') && grid.textContent.includes('No requested items')) {
+    grid.innerHTML = '';
+  }
+
+  // Avoid duplicates
+  const exists = Array.from(grid.children).some(el => {
+    const t = el.querySelector('.movie-title')?.textContent || '';
+    return _normTitle(t) === _normTitle(title);
+  });
+  if (exists) return null;
+
+  // Build card at top
+  const card = document.createElement('div');
+  card.className = 'movie-card';
+  card.innerHTML = `
+    <img src="${poster || ''}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
+    <div class="movie-title">${title}</div>
+  `;
+  grid.insertBefore(card, grid.firstChild);
+
+  // Ensure section visible
+  const section = document.getElementById('wishlistSection');
+  if (section) section.style.display = 'block';
+
+  return card;
+}
+
+function broadcastWishlist(action, payload) {
+  try {
+    localStorage.setItem('wishlistSync', JSON.stringify({ t: Date.now(), action, payload }));
+  } catch (_) {}
+}
+
+function _wishlistCacheUpsert({ title, poster }) {
+  // keep your in-memory caches aligned so + buttons disable correctly
+  try {
+    const norm = s => String(s || '').trim().toLowerCase();
+    if (!Array.isArray(wishlistRequestedTitles)) wishlistRequestedTitles = [];
+    const has = wishlistRequestedTitles.some(x => norm(x.title) === norm(title));
+    if (!has) wishlistRequestedTitles.push({ title, poster, status: 'Wishlist' });
+
+    // force ensureWishlistAll() to re-fetch later if needed
+    _wishlistAllCachePromise = null;
+  } catch (_) {}
+}
+
 function addToWishlist(title, poster, btn) {
-  // Immediately update UI
+  // Optimistic UI on TMDb "+" button
   if (btn) {
     btn.textContent = "✔";
     btn.style.backgroundColor = "green";
     btn.disabled = true;
   }
 
-  google.script.run.withSuccessHandler(response => {
-    if (!response) return;
-    showPopup(`<b>${response.title}</b><br><span style="color:green;">Added to your wishlist!</span>`);
-  }).withFailureHandler(err => {
-    showPopup(`❌ Failed to add <b>${title}</b>. Error: ${err.message}`);
-    // On failure, revert button UI back
-    if (btn) {
-      btn.textContent = "+";
-      btn.style.backgroundColor = "#e50914";
-      btn.disabled = false;
-    }
-  }).addToWishlistSheet(title, poster);
+  // Optimistic: show in Wishlist immediately + update caches + broadcast
+  const optimisticCard = upsertWishlistCard({ title, poster });
+  _wishlistCacheUpsert({ title, poster });
+  broadcastWishlist('add', { title, poster });
+
+  // Persist to server
+  google.script.run
+    .withSuccessHandler(() => {
+      // ✅ Success: do nothing (no popup). Button state + card are already updated.
+    })
+    .withFailureHandler(err => {
+      // Roll back button
+      if (btn) {
+        btn.textContent = "+";
+        btn.style.backgroundColor = "#e50914";
+        btn.disabled = false;
+      }
+      // Roll back optimistic card
+      if (optimisticCard && optimisticCard.parentNode) optimisticCard.parentNode.removeChild(optimisticCard);
+      // Roll back caches
+      try {
+        const k = (s => String(s || '').replace(/\u00A0/g, ' ').trim().toLowerCase())(title);
+        wishlistRequestedTitles = (wishlistRequestedTitles || []).filter(x => (String(x.title).trim().toLowerCase()) !== k);
+      } catch(_) {}
+      // ❌ Keep error popup (so users know it failed)
+      showPopup(`❌ Failed to add <b>${title}</b>.<br>${err?.message || 'Please try again.'}`);
+    })
+    .addToWishlistSheet(title, poster);
 }
+
+// === Cross-tab live sync for Wishlist ===
+window.addEventListener('storage', (e) => {
+  if (!e || e.key !== 'wishlistSync' || !e.newValue) return;
+  try {
+    const msg = JSON.parse(e.newValue);
+    if (msg?.action === 'add' && msg.payload?.title) {
+      upsertWishlistCard({ title: msg.payload.title, poster: msg.payload.poster || '' });
+      _wishlistCacheUpsert({ title: msg.payload.title, poster: msg.payload.poster || '' });
+    }
+    // If you later add “remove from wishlist”, handle msg.action === 'remove' here.
+  } catch (_) {}
+});
+
 function renderWishlist(items) {
   const grid = document.getElementById('wishlistGrid');
   grid.innerHTML = '';
