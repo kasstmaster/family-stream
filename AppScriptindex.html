@@ -982,28 +982,11 @@ function selectProfile(profileName, iconUrl) {
   if (nameEl) nameEl.textContent = currentProfile || "Profile";
   if (iconEl) iconEl.src = iconUrl || "https://via.placeholder.com/50";
 
-  // Persist for next visit
-  try {
-    localStorage.setItem("lastProfileName", currentProfile);
-    if (iconEl && iconEl.src) localStorage.setItem("lastProfileIcon", iconEl.src);
-  } catch (e) {
-    console.warn("localStorage unavailable:", e);
-  }
-
   // Hide modal, keep app visible under loader
   const profileModal = document.getElementById("profileModal");
   const app = document.getElementById("appContent");
   profileModal.classList.remove("active");
   app.style.display = "block";
-
-  // If no saved profile existed at load, start preloads now
-  if (!_hadSavedProfileAtLoad) {
-    Promise.all([ loadLibrary(), loadRecentlyAdded() ])
-      .catch(err => {
-        console.error("❌ Error during post-select preload:", err);
-        showPopup("Something went wrong while loading content.");
-      });
-  }
 
   // Load CW first; hide loader as soon as CW is ready
   loadContinueWatching()
@@ -1732,40 +1715,18 @@ window.addEventListener("load", () => {
   const app = document.getElementById("appContent");
   const profileModal = document.getElementById("profileModal");
 
-  app.style.display = "block";
-  loadingScreen.style.display = "flex";
+    // Show the app under the loader
+    app.style.display = "block";
+    loadingScreen.style.display = "flex"; // loader visible during preloads
 
-  let savedName = null, savedIcon = null;
-  try {
-    savedName = localStorage.getItem("lastProfileName");
-    savedIcon = localStorage.getItem("lastProfileIcon") || "https://via.placeholder.com/50";
-  } catch (e) {
-    console.warn("localStorage unavailable:", e);
-  }
-
-  if (savedName) {
-    _hadSavedProfileAtLoad = true;
-
-    // Start profile flow immediately (CW can start sooner)
-    profileModal.classList.remove("active");
-    selectProfile(savedName, savedIcon);
-
-    // Warm above-the-fold rows in parallel
+    // Preload Library + Recently Added while the loader is up
     Promise.all([ loadLibrary(), loadRecentlyAdded() ])
       .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
-      .then(() => hideLoadingScreen())
-      .catch(err => {
-        console.error("❌ Error during preload:", err);
-        showPopup("Something went wrong while preloading content.");
-        hideLoadingScreen();
+      .finally(() => {
+        // Preloads done → show profile picker and drop the loader
+        profileModal.classList.add("active");
+        hideLoadingScreen(0);
       });
-  } else {
-    _hadSavedProfileAtLoad = false;
-
-    // No saved profile → show modal, do NOT preload library/recently
-    profileModal.classList.add("active");
-    hideLoadingScreen(0); // remove loader right away
-  }
 
   // Manual profile selection
   document.querySelectorAll(".profile-btn").forEach(btn => {
@@ -1777,13 +1738,12 @@ window.addEventListener("load", () => {
     });
   });
 
-  // Switch profile from bottom bar
-  const switchBtn = document.getElementById("switchProfileBtn");
-  if (switchBtn) {
-    switchBtn.addEventListener("click", () => {
-      forgetSelectedProfile(); // clear saved profile & show modal
-    });
-  }
+    const switchBtn = document.getElementById("switchProfileBtn");
+    if (switchBtn) {
+      switchBtn.addEventListener("click", () => {
+        forgetSelectedProfile(); // clears currentProfile & opens the picker
+      });
+    }
 
   // NEW: “Explore genres” button
   const revealBtn = document.getElementById('revealGenresBtn');
