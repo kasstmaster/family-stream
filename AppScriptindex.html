@@ -247,7 +247,13 @@ header img {
   flex: 0 0 auto;
   position: relative;
   transition: none !important;
+
+  /* 🔒 keep card height stable while images load */
+  aspect-ratio: 2 / 3; 
+  display: flex;
+  flex-direction: column;
 }
+
 .movie-card:hover { transition: none !important; }
 
 .movie-card img,
@@ -255,12 +261,23 @@ header img {
   width: 100%;
   display: block;
   border-radius: 12px;
+
+  /* 🔒 preserve poster box size */
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  flex: 1 1 auto;
 }
 
 .movie-title {
   padding: 24px;
   text-align: center;
   font-size: 60px;
+
+  /* 🔒 reserve vertical space for the title so row height doesn’t jump */
+  min-height: 1.6em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Add / Request button on TMDb cards */
@@ -1190,6 +1207,57 @@ function replaceChildrenFast(el, newChildrenFragment) {
   el.appendChild(newChildrenFragment);
 }
 
+async function renderExploreRowNoBlink(rowEl, rowId, count = 10) {
+  if (!rowEl) return;
+
+  // Ensure we have a buffer of items
+  const st0 = exploreState.get(rowId) || {};
+  await ensureExploreBuffer(rowId, st0.genre || '', count);
+
+  const st = exploreState.get(rowId);
+  if (!st || !Array.isArray(st.items) || st.items.length === 0) return;
+
+  // 🔒 Freeze current height & scroll to avoid “jump”
+  const prevMinHeight = rowEl.style.minHeight;
+  const prevScrollLeft = rowEl.scrollLeft;
+  const frozenHeight = rowEl.offsetHeight;            // current visual height
+  rowEl.style.minHeight = frozenHeight + 'px';        // keep layout stable
+
+  // Build off-screen
+  const off = document.createElement('div');
+  off.style.cssText = 'position:absolute; left:-9999px; top:-9999px; visibility:hidden;';
+  document.body.appendChild(off);
+
+  // Build cards off-DOM
+  const limit = Math.min(count, st.items.length);
+  for (let i = 0; i < limit; i++) {
+    off.appendChild(createCard(st.items[i], true, wishlistRequestedTitles));
+  }
+
+  // Wait for key images (short cap)
+  await waitForImagesToLoad(off, { timeoutMs: 900 });
+
+  // Move children into a fragment and swap atomically
+  const frag = document.createDocumentFragment();
+  while (off.firstChild) frag.appendChild(off.firstChild);
+
+  // Prevent browser from trying to auto-scroll during DOM ops
+  const prevScrollBehavior = rowEl.style.scrollBehavior;
+  rowEl.style.scrollBehavior = 'auto';
+
+  replaceChildrenFast(rowEl, frag);
+
+  // Restore scroll position and clean up freezes
+  rowEl.scrollLeft = prevScrollLeft;
+  rowEl.style.scrollBehavior = prevScrollBehavior || '';
+  rowEl.style.minHeight = prevMinHeight || '';
+
+  // Update state so appendExploreItems() continues from here
+  st.loaded = limit;
+
+  document.body.removeChild(off);
+}
+
 // Create card
 function createCard(item, isTMDb = false, wishlistTitles = []) {
   const displayTitle = item.title || item.name || "No Title";
@@ -2063,8 +2131,9 @@ function _exploreSetState(rowId, genre, items) {
 }
 
 function _exploreRenderFirstBatch(rowEl, rowId, count = 10) {
-  rowEl.innerHTML = '';
-  appendExploreItems(rowEl, rowId, count);
+  const frag = document.createDocumentFragment();
+  appendExploreItems(frag, rowId, count);
+  replaceChildrenFast(rowEl, frag);
 }
 
 function _arraysDifferById(a = [], b = []) {
@@ -2090,12 +2159,10 @@ function refreshExploreRowSmooth(rowId, genreId) {
     if (Array.isArray(items) && items.length) {
       _exploreCache.set(rowId, { genre: genreId || '', items: items.slice(), stamp: Date.now() });
       _exploreSetState(rowId, genreId || '', items);
-      _exploreRenderFirstBatch(rowEl, rowId, 10);
 
-      // Keep overlay a touch longer until first posters paint (matches Available feel)
-      await waitForImagesToLoad(rowEl, { timeoutMs: 900 });
+      // ⤵️ build off-screen, wait images, then atomic swap
+      await renderExploreRowNoBlink(rowEl, rowId, 10);
 
-      // 3) Prewarm the *next* batch in the background
       prewarmExploreRow(rowId, genreId || '', 16);
     }
   });
@@ -2279,27 +2346,26 @@ async function initExploreRow(genre, rowId) {
   const rowEl = document.getElementById(rowId);
   if (!rowEl) return;
 
-  // reset state for this row
+  // reset state
   exploreState.set(rowId, { genre, items: [], loaded: 0, loading: false });
 
-  // show skeletons (optional)
-  rowEl.innerHTML = `
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-  `;
+  // show skeletons ONLY if the row is truly empty
+  if (rowEl.children.length === 0) {
+    rowEl.innerHTML = `
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    `;
+  }
 
-  // prime ~12 items, then render first 10
   const st = await ensureExploreBuffer(rowId, genre, 12);
-  rowEl.innerHTML = '';
-  appendExploreItems(rowEl, rowId, 10);
-  // ❌ no infinite scroll
-
-  // Save the initialized set into cache for instant reshuffles later
   if (st && Array.isArray(st.items) && st.items.length) {
     _exploreCache.set(rowId, { genre, items: st.items.slice(), stamp: Date.now() });
   }
+
+  // ⤵️ render off-screen, wait images, then swap (no empty frame)
+  await renderExploreRowNoBlink(rowEl, rowId, 10);
 }
 
 // Helper to call Apps Script; returns [] on failure
