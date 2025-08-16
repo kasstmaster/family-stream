@@ -270,6 +270,115 @@ function _wantedProviderPred(name) {
   return WANTED_PROVIDER_NAMES.some(w => n === _normalizeProviderNameForMatch(w));
 }
 
+/*** === TMDb Genres Cache (Apps Script) === ***/
+
+/** Sheet: GenresCache
+ *  Cols: [A] key  [B] genres_json  [C] updatedAt ISO
+ *  key = lower(title) + '|' + (type: 'movie'|'tv') + '|' + (year||'')
+ */
+function _genresCacheSheet_() {
+  const ss = SpreadsheetApp.getActive();
+  const name = 'GenresCache';
+  return ss.getSheetByName(name) || ss.insertSheet(name);
+}
+
+function _genresCacheGet_(key) {
+  const sh = _genresCacheSheet_();
+  const values = sh.getDataRange().getValues(); // small sheet expected
+  for (let i = 1; i < values.length; i++) {
+    if ((values[i][0] || '') === key) {
+      try { return JSON.parse(values[i][1] || '[]'); } catch (_) { return []; }
+    }
+  }
+  return null;
+}
+
+function _genresCacheSet_(key, genresArray) {
+  const sh = _genresCacheSheet_();
+  const rng = sh.getDataRange();
+  const lastRow = rng.getNumRows();
+  const now = new Date().toISOString();
+
+  // try update existing
+  const values = rng.getValues();
+  for (let i = 1; i < values.length; i++) {
+    if ((values[i][0] || '') === key) {
+      sh.getRange(i + 1, 2).setValue(JSON.stringify(genresArray || []));
+      sh.getRange(i + 1, 3).setValue(now);
+      return;
+    }
+  }
+  // append new (ensure header)
+  if (lastRow === 1 && !values[0][0]) {
+    sh.getRange(1,1,1,3).setValues([['key','genres_json','updatedAt']]);
+  }
+  sh.appendRow([key, JSON.stringify(genresArray || []), now]);
+}
+
+/** Search TMDb for title → get details → return [{id,name}, ...] */
+function fetchTMDbGenres(title, type, year) {
+  if (!TMDB_API_KEY) return [];
+  const normTitle = String(title || '').trim();
+  if (!normTitle) return [];
+
+  const key = (normTitle.toLowerCase()) + '|' + (type || '') + '|' + (year || '');
+  const cached = _genresCacheGet_(key);
+  if (cached) return cached;
+
+  try {
+    // 1) search
+    const base = 'https://api.themoviedb.org/3';
+    const q = encodeURIComponent(normTitle);
+    const url = `${base}/search/${type === 'tv' ? 'tv' : 'movie'}?api_key=${TMDB_API_KEY}&query=${q}` + (year ? `&${type==='tv'?'first_air_date_year':'year'}=${year}` : '');
+    const res = UrlFetchApp.fetch(url, { muteHttpExceptions:true });
+    const data = JSON.parse(res.getContentText() || '{}');
+    const first = (data && data.results && data.results[0]) || null;
+    if (!first) { _genresCacheSet_(key, []); return []; }
+
+    // 2) details (for stable genre objects)
+    const id = first.id;
+    const detUrl = `${base}/${type === 'tv' ? 'tv' : 'movie'}/${id}?api_key=${TMDB_API_KEY}`;
+    const detRes = UrlFetchApp.fetch(detUrl, { muteHttpExceptions:true });
+    const det = JSON.parse(detRes.getContentText() || '{}');
+    const genres = Array.isArray(det.genres) ? det.genres.map(g => ({ id: g.id, name: g.name })) : [];
+
+    _genresCacheSet_(key, genres);
+    return genres;
+  } catch (e) {
+    _genresCacheSet_(key, []);
+    return [];
+  }
+}
+
+/** Batch: input = [{title, type:'movie'|'tv', year?}] → returns map { idx: {genres:[{id,name}]}} */
+function fetchGenresBatch(items) {
+  items = Array.isArray(items) ? items : [];
+  const out = {};
+  items.forEach((it, idx) => {
+    const genres = fetchTMDbGenres(it.title, it.type, it.year);
+    out[idx] = { genres: genres || [] };
+  });
+  return out;
+}
+
+/** Convenience for client: from your library shape {movies:[], tv:[]} → returns {titleKey:{genres}} */
+function getGenresForLibrary(library) {
+  const map = {};
+  if (!library) return map;
+  const pack = (arr, type) => (Array.isArray(arr)?arr:[]).map(x => ({
+    title: x.title || x.name || '',
+    type,
+    year: (x.year || x.releaseYear || '') // if you store it
+  }));
+  const batch = [...pack(library.movies,'movie'), ...pack(library.tv,'tv')];
+  const res = fetchGenresBatch(batch);
+  batch.forEach((it, i) => {
+    const key = (String(it.title).trim().toLowerCase());
+    map[key] = { genres: (res[i]?.genres)||[], type: it.type };
+  });
+  return map;
+}
+
 function getTrendingNow(mediaType = "all", timeWindow = "day", page = 1) {
   const type = encodeURIComponent(mediaType);
   const window = encodeURIComponent(timeWindow);
