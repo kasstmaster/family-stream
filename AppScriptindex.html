@@ -945,30 +945,6 @@ const appContent = document.getElementById('appContent');
 
 let _lastFocus = null;
 
-function forgetSelectedProfile() {
-  try {
-    localStorage.removeItem("lastProfileName");
-    localStorage.removeItem("lastProfileIcon");
-    console.log("Profile selection forgotten.");
-  } catch (e) {
-    console.warn("Unable to clear saved profile:", e);
-  }
-
-  currentProfile = null; // reset variable
-
-  // Show profile picker
-  const profileModal = document.getElementById("profileModal");
-  if (profileModal) {
-    profileModal.classList.add("active");
-  }
-
-  // Hide app content
-  const app = document.getElementById("appContent");
-  if (app) {
-    app.style.display = "none";
-  }
-}
-
 function selectProfile(profileName, iconUrl) {
   // Show loader over the modal first
   loadingScreen.style.display = "flex"; // overlays modal
@@ -1740,8 +1716,16 @@ window.addEventListener("load", () => {
 
     const switchBtn = document.getElementById("switchProfileBtn");
     if (switchBtn) {
-      switchBtn.addEventListener("click", () => {
-        forgetSelectedProfile(); // clears currentProfile & opens the picker
+      const openPicker = () => {
+        const profileModal = document.getElementById("profileModal");
+        const app = document.getElementById("appContent");
+        if (profileModal) profileModal.classList.add("active"); // show picker
+        if (app) app.style.display = "block";                   // keep app visible
+        // no clearing of localStorage or UI
+      };
+      switchBtn.addEventListener("click", openPicker);
+      switchBtn.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(); }
       });
     }
 
