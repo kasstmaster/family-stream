@@ -1,6 +1,6 @@
 {
-  "name": "Aiden App",
-  "short_name": "Aiden",
+  "name": "LYMMD+ App",
+  "short_name": "LYMMD+",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#111111",
