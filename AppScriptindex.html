@@ -881,17 +881,28 @@ header img {
     <!-- App Content -->
     <header><br><br><img src="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" alt="ILYMMD+ Logo"><br><br></header>
     <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
+    <!-- Watch Header -->
+    <h2 class="section-title">Available to Watch</h2>
+    <h2 class="tmdb-title">Explore</h2>
   <!-- ========= END: Top Nav Bar ========= -->
 
   <!-- ========= START: Available-to-Watch Group ========= -->
-    <!-- Watch Header -->
-    <h2 class="section-title">Available to Watch</h2>
     <!-- TMDb Details Preview -->
     <div id="tmdbDetailsPreview" style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white; display:none;">
       <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
       <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
       <p id="tmdbDetailsReleaseDate"></p>
       <p class="movie-overview" id="tmdbDetailsOverview"></p>
+
+      <!-- NEW: Context-aware action button (Watch Now / Add to Wishlist) -->
+      <div style="display:flex; justify-content:center; margin-top: 20px;">
+        <button id="tmdbWatchNowBtn"
+                type="button"
+                aria-label="Watch Now"
+                style="background:#00a7b0;border:none;border-radius:12px;padding:14px 22px;color:#fff;font-size:1em;cursor:pointer;">
+          Watch Now
+        </button>
+      </div>
     </div>
     <!-- Episodes -->
     <div id="episodesSection" style="display:none;">
@@ -941,7 +952,6 @@ header img {
   <!-- ========= END: Available-to-Watch Group ========= -->
 
   <!-- ========= START: Explore Group ========= -->
-    <h2 class="tmdb-title">Explore</h2>
     <!-- Explore Lists -->
     <div id="tmdbExploreAllSection">
       <h2 class="subsection-title">Explore All</h2>
@@ -1054,7 +1064,6 @@ function startCWLiveSync() {
 
 /* ===== Group visibility helpers (updated) ===== */
 const AVAILABLE_SECTIONS = [
-  "tmdbDetailsPreview",        // 🔹 now part of Available
   "continueWatchingSection",
   "recentlyAddedSection",
   "availableToWatchSection",
@@ -1070,7 +1079,7 @@ const EXPLORE_SECTIONS = [
   "tmdbExploreDramaSection",
   "tmdbExploreAnimationSection",
   "tmdbExploreHistorySection",
-  "tmdbExploreScfiSection", // (keep correct id spelling if needed)
+  "tmdbExploreScifiSection", // (keep correct id spelling if needed)
   "wishlistSection"
 ];
 
@@ -1106,6 +1115,12 @@ function showExploreGroup() {
   const tmdbHeader  = document.querySelector(".tmdb-title");    // "Explore"
   if (availHeader) availHeader.style.display = "none";
   if (tmdbHeader)  tmdbHeader.style.display  = "block";
+
+  // NEW: hide Episodes if it’s open
+  const epSec  = document.getElementById("episodesSection");
+  const epGrid = document.getElementById("episodesGrid");
+  if (epSec)  epSec.style.display = "none";
+  if (epGrid) epGrid.innerHTML = "";
 }
 
 let _wishlistAllCachePromise;
@@ -1701,7 +1716,9 @@ function annotateLibraryWithGenres() {
     google.script.run
       .withSuccessHandler(map => {
         _titleGenres = new Map();
-        Object.keys(map || {}).forEach(k => { _titleGenres.set(k, map[k]); });
+        Object.keys(map || {}).forEach(k => {
+          _titleGenres.set(_norm(k), map[k]);  // ✅ store by normalized title
+        });
         resolve();
       })
       .withFailureHandler(() => resolve())
@@ -1774,37 +1791,15 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
 
   card.addEventListener("click", async () => {
     if (isTMDb) {
-      // TMDb items: populate the TMDb Details Preview
-      const preview = document.getElementById("tmdbDetailsPreview");
-      const trailerContainer = document.getElementById("tmdbTrailerContainer");
-      const titleEl = document.getElementById("tmdbDetailsTitle");
-      const dateEl = document.getElementById("tmdbDetailsReleaseDate");
-      const ovEl = document.getElementById("tmdbDetailsOverview");
+      // Route TMDb clicks through the centralized preview (auto-sets button)
+      const guessYear =
+        (item.release_date && item.release_date.split?.("-")?.[0]) ||
+        (item.first_air_date && item.first_air_date.split?.("-")?.[0]) || "";
 
-      const data = await fetchTMDbDetails(item, item.media_type === "tv");
-      if (!data) return;
+      showTMDbPreviewByTitle(displayTitle, guessYear);
 
-      const trailer = data.videos?.results.find(v => v.type === "Trailer" && v.site === "YouTube");
-      if (trailerContainer) {
-        trailerContainer.innerHTML = trailer
-          ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}"
-               sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
-               allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
-          : `<p><em>No trailer available.</em></p>`;
-      }
-
-      const titleText = data.name || data.title || displayTitle;
-      if (titleEl) titleEl.textContent = titleText;
-      if (dateEl) dateEl.innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || "N/A"}`;
-      if (ovEl) ovEl.textContent = data.overview || "No overview available.";
-
-      if (preview) {
-        preview.style.display = "block";
-        setTimeout(() => preview.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-      }
-
-      // If there’s a matching local item with episodes, also show the episodes list beneath sections
-      const local = findLocalByTitle(titleText);
+      // Episodes panel logic stays the same: only open if we truly have local episodes
+      const local = findLocalByTitle(displayTitle);
       if (local?.episodes?.length) {
         showEpisodesList(local);
       } else {
@@ -1813,13 +1808,13 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
         if (epSec) epSec.style.display = "none";
         if (epGrid) epGrid.innerHTML = "";
       }
-
     } else {
       // Local items: In Available/Recently, fill the TMDb preview only (no episodes list)
       const inAvailable = card.closest('#availableToWatchSection');
       const inRecently  = card.closest('#recentlyAddedSection');
 
       if (inAvailable || inRecently) {
+        // Centralized function will auto-detect local and set “Watch Now”
         showTMDbPreviewByTitle(displayTitle, item.year || "");
         // do NOT open episodes list here
       } else {
@@ -2471,6 +2466,13 @@ function scrollCardIntoViewHorizontally(container, card, { smooth = true } = {})
   container.scrollTo({ left: target, top: 0, behavior: smooth ? 'smooth' : 'auto' });
 }
 
+// Smooth vertical scroll helper (accounts for sticky headers)
+function scrollSectionIntoView(el, { offset = -80, behavior = 'smooth' } = {}) {
+  if (!el) return;
+  const y = el.getBoundingClientRect().top + window.scrollY + offset;
+  window.scrollTo({ top: y, behavior });
+}
+
 // WISHLIST
 // === helpers (lightweight) ===
 const _normTitle = s => String(s || '').replace(/\u00A0/g, ' ').trim().toLowerCase();
@@ -2900,37 +2902,112 @@ function showTMDbPreviewByTitle(title, year) {
   if (dateEl) dateEl.innerHTML = "";
   if (ovEl) ovEl.textContent = "";
 
-  google.script.run
-    .withSuccessHandler((data) => {
-      if (!data || data.error) {
-        if (trailerContainer) trailerContainer.innerHTML = `<p><em>No trailer available.</em></p>`;
-        if (titleEl) titleEl.textContent = title || "Unknown";
-        if (dateEl) dateEl.innerHTML = "";
-        if (ovEl) ovEl.textContent = "We could not load details from TMDb.";
-        return;
-      }
+  // 👇 NEW: once visible, scroll the preview into view (sticky header aware)
+  // double RAF to ensure layout is settled on mobile
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      scrollSectionIntoView(preview, { offset: -80, behavior: 'smooth' });
+    });
+  });
 
-      const trailer = (data.videos?.results || []).find(v => v.type === "Trailer" && v.site === "YouTube");
-      if (trailerContainer) {
-        trailerContainer.innerHTML = trailer
-          ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}"
-               sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
-               allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
-          : `<p><em>No trailer available.</em></p>`;
-      }
-
-      const titleText = data.name || data.title || (title || "Unknown");
-      if (titleEl) titleEl.textContent = titleText;
-      if (dateEl) dateEl.innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || "N/A"}`;
-      if (ovEl) ovEl.textContent = data.overview || "No overview available.";
-    })
-    .withFailureHandler(() => {
+google.script.run
+  .withSuccessHandler((data) => {
+    if (!data || data.error) {
       if (trailerContainer) trailerContainer.innerHTML = `<p><em>No trailer available.</em></p>`;
       if (titleEl) titleEl.textContent = title || "Unknown";
       if (dateEl) dateEl.innerHTML = "";
       if (ovEl) ovEl.textContent = "We could not load details from TMDb.";
-    })
-    .getTMDbDetailsByTitle(title, year || "");
+      // Also reset button to a neutral disabled state
+      const btn = document.getElementById("tmdbWatchNowBtn");
+      if (btn) { btn.textContent = "Watch Now"; btn.style.background = "#00a7b0"; btn.onclick = null; }
+      return;
+    }
+
+    const trailer = (data.videos?.results || []).find(v => v.type === "Trailer" && v.site === "YouTube");
+    if (trailerContainer) {
+      trailerContainer.innerHTML = trailer
+        ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}"
+              sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
+              allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+        : `<p><em>No trailer available.</em></p>`;
+
+      // 👇 NEW: Scroll preview into view again after the iframe finishes loading.
+      // Works even if the helper isn't defined anywhere yet.
+      const frame = document.getElementById("tmdbTrailerFrame");
+      if (frame) {
+        const doScrollPreview = () => {
+          const yOffset = -80; // adjust if your sticky header height changes
+          const y = preview.getBoundingClientRect().top + window.scrollY + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        };
+        frame.addEventListener("load", () => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              // Prefer global helper if you added it; otherwise use the local fallback.
+              if (typeof scrollSectionIntoView === "function") {
+                scrollSectionIntoView(preview, { offset: -80, behavior: 'smooth' });
+              } else {
+                doScrollPreview();
+              }
+            });
+          });
+        });
+      }
+    }
+
+    const titleText = data.name || data.title || (title || "Unknown");
+    if (titleEl) titleEl.textContent = titleText;
+    if (dateEl) dateEl.innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || "N/A"}`;
+    if (ovEl) ovEl.textContent = data.overview || "No overview available.";
+
+
+    // 👇 NEW: remember what’s in preview and configure the button
+    _previewCurrentTitle = titleText;
+    _previewLocalItem = findLocalByTitle(titleText);
+
+    const btn = document.getElementById("tmdbWatchNowBtn");
+    if (btn) {
+      if (_previewLocalItem) {
+        // Local (Recently Added / Available): WATCH NOW
+        btn.textContent = "Watch Now";
+        btn.style.background = "#00a7b0";
+        btn.onclick = () => {
+          showEpisodesList(_previewLocalItem);
+        };
+      } else {
+        // Explore (TMDb only): ADD TO WISHLIST
+        btn.textContent = "Add to Wishlist";
+        btn.style.background = "#e50914";
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          addToWishlist(
+            titleText,
+            data.poster_path ? ('https://image.tmdb.org/t/p/w300' + data.poster_path) : '',
+            btn
+          );
+        };
+      }
+    }
+  })
+  .withFailureHandler(() => {
+    if (trailerContainer) trailerContainer.innerHTML = `<p><em>No trailer available.</em></p>`;
+    if (titleEl) titleEl.textContent = title || "Unknown";
+    if (dateEl) dateEl.innerHTML = "";
+    if (ovEl) ovEl.textContent = "We could not load details from TMDb.";
+    // Reset button to safe default
+    const btn = document.getElementById("tmdbWatchNowBtn");
+    if (btn) { btn.textContent = "Watch Now"; btn.style.background = "#00a7b0"; btn.onclick = null; }
+  })
+  .getTMDbDetailsByTitle(title, year || "");
+}
+
+const btn = document.getElementById("tmdbWatchNowBtn");
+if (btn) {
+  btn.textContent = "Watch Now";
+  btn.style.background = "#00a7b0";
+  btn.onclick = () => {
+    showEpisodesList(item);
+  };
 }
 
 const GENRES = { 
@@ -3323,6 +3400,16 @@ function checkStickyShadow() {
       el.classList.remove('sticky-shadow');
     }
   });
+}
+
+function revealMyGenres() {
+  try {
+    renderMyGenres();
+    const sec = document.getElementById("myGenresSection");
+    if (sec) sec.style.display = "block";
+  } catch (e) {
+    console.warn("revealMyGenres failed:", e);
+  }
 }
 
 window.addEventListener('scroll', checkStickyShadow);
