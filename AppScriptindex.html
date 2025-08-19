@@ -1014,7 +1014,7 @@ header img {
           <i class="fa-solid fa-rotate"></i><span>Available</span>
         </div>
         <div class="nav-item" id="switchProfileBtn" role="button" tabindex="0" aria-label="Switch Profile">
-          <img id="currentProfileIcon" src="https://via.placeholder.com/50" alt="Profile" style="width:50px;height:50px;object-fit:cover;border-radius:50%;margin-bottom:5px;">
+          <img id="currentProfileIcon" alt="Profile" style="display:none;width:50px;height:50px;object-fit:cover;border-radius:50%;margin-bottom:5px;">
           <span id="currentProfileName">Profile</span>
         </div>
         <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
@@ -2611,12 +2611,6 @@ function renderWishlist(items) {
 }
 function loadWishlist() {
   return new Promise(resolve => {
-    // Ping (optional but useful to confirm we’re on the right deployment)
-    google.script.run
-      .withSuccessHandler(v => console.log('PING (server version):', v))
-      .withFailureHandler(err => console.warn('PING failed:', err))
-      .pingWishlistVersion();
-
     // Fetch wishlist from the server
     google.script.run
       .withSuccessHandler(items => {
