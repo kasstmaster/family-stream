@@ -6,6 +6,11 @@ Specify the function a new code should go directly under
 Give only one step at a time, confirming the change hasnt broken any codes for the app
 */
 
+function testKey() {
+  return PropertiesService.getScriptProperties().getProperty('TMDB_API_KEY');
+}
+
+
 // ---- TMDB KEY (single source of truth)
 const TMDB_API_KEY = (function () {
   const k = PropertiesService.getScriptProperties().getProperty('TMDB_API_KEY');
@@ -284,6 +289,22 @@ function tmdbFetch(path, params = {}, opts = {}) {
   throw lastErr || new Error(`TMDb unknown error for ${path}`);
 }
 
+// Place directly under function tmdbFetch(...) { ... } in code.gs
+function testTmdbKey() {
+  const key = PropertiesService.getScriptProperties().getProperty('TMDB_API_KEY') || '';
+  const looksV4 = key.startsWith('eyJ');
+  try {
+    const ok = tmdbFetch('/configuration'); // simple, lightweight endpoint
+    return {
+      ok: !!ok && !!ok.images,
+      looksV4,
+      hint: looksV4 ? 'You saved the v4 token. Use the v3 API Key instead.' : 'Key format looks fine.',
+    };
+  } catch (e) {
+    return { ok: false, looksV4, error: String(e) };
+  }
+}
+
 // ---- Caching helpers for TMDb
 function _tmdbDigestHex_(str) {
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, str);
@@ -305,7 +326,7 @@ function _tmdbCacheVersion_() {
  * Bump TMDB_CACHE_VERSION in Script Properties (or call bumpTmdbCacheVersion)
  * to “flush” old cached entries.
  */
-function tmdbCachedFetch(path, params = {}, opts = {}, ttlSeconds = 600) {
+function tmdbCachedFetch(path, params = {}, opts = {}, ttlSeconds = 21600) { // default 6h
   const ver = _tmdbCacheVersion_();
   const stable = _tmdbStableParams_(params);
   const keyRaw = `tmdb:v${ver}:${path}?${JSON.stringify(stable)}`;
@@ -318,13 +339,161 @@ function tmdbCachedFetch(path, params = {}, opts = {}, ttlSeconds = 600) {
     try { return JSON.parse(cached); } catch (_) { /* ignore & refetch */ }
   }
 
-  // Fetch live and cache if small enough for Apps Script limits (~100KB)
   const data = tmdbFetch(path, params, opts);
   const payload = JSON.stringify(data);
   if (payload.length < 95000) {
     cache.put(key, payload, Math.max(5, Math.min(21600, Math.floor(ttlSeconds)))); // 5s..6h
   }
   return data;
+}
+
+/** ====== TMDb Daily Cache (Sheet-backed, single-cell JSON per list) ====== **/
+function _tmdbDailyCacheSheet_() {
+  const ss = SpreadsheetApp.getActive();
+  const name = 'TMDbDailyCache';
+  return ss.getSheetByName(name) || ss.insertSheet(name);
+}
+
+/** Store JSON into a named list row (A=listKey, B=json, C=updatedAt) */
+function _writeTmdbDaily_(listKey, arr) {
+  const sh = _tmdbDailyCacheSheet_();
+  // ensure header
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1,1,1,3).setValues([['list','json','updatedAt']]);
+  }
+  const vals = sh.getDataRange().getValues();
+  const now  = new Date().toISOString();
+  const json = JSON.stringify({ items: arr || [], updatedAt: now });
+
+  // find existing row
+  let row = 0;
+  for (let i = 1; i < vals.length; i++) {
+    if (String(vals[i][0]) === listKey) { row = i + 1; break; }
+  }
+  if (row) {
+    sh.getRange(row, 2).setValue(json);
+    sh.getRange(row, 3).setValue(now);
+  } else {
+    sh.appendRow([listKey, json, now]);
+  }
+}
+
+/** Read JSON blob for a named list; returns {items:[], updatedAt} */
+function _readTmdbDaily_(listKey) {
+  const sh = _tmdbDailyCacheSheet_();
+  const vals = sh.getDataRange().getValues();
+  for (let i = 1; i < vals.length; i++) {
+    if (String(vals[i][0]) === listKey) {
+      try { return JSON.parse(String(vals[i][1] || '{}')) || { items:[], updatedAt:null }; }
+      catch (_) { return { items:[], updatedAt:null }; }
+    }
+  }
+  return { items:[], updatedAt:null };
+}
+
+/**
+ * Nightly job: fetch several pages for movies & TV and cache them.
+ * Tweak pagesPerType/maxItems to fit your taste & quotas.
+ */
+function refreshTmdbDailyCache(pagesPerType = 6, maxItemsPerList = 900) {
+  bumpTmdbCacheVersion();
+  // Helper to fetch N pages for one type using your existing discover wrapper
+  function _fetchPages(type, pages) {
+    const all = [];
+    // Use popularity-desc discover (broadest catalog browse)
+    for (let p = 1; p <= pages; p++) {
+      try {
+        const data = tmdbDiscover({
+          __type: type, language: 'en-US', include_adult: 'false',
+          sort_by: 'popularity.desc', page: p, 'vote_count.gte': (type === 'tv') ? 50 : 100
+        });
+        const rows = Array.isArray(data.results) ? data.results : [];
+        rows.forEach(r => r.media_type = type);
+        all.push(...rows);
+      } catch (e) {
+        // swallow and continue; we’ll still cache what we have
+      }
+    }
+    // Normalize posters + apply your regional filter
+    const items = addPosterBasePath(filterOutAsian(all));
+    // Deduplicate by id+type
+    const seen = new Set();
+    const dedup = [];
+    for (const it of items) {
+      const key = (it.media_type || '') + ':' + (it.id || '');
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      dedup.push(it);
+      if (dedup.length >= maxItemsPerList) break;
+    }
+    return dedup;
+  }
+
+  // Build lists
+  const movies = _fetchPages('movie', Math.max(1, pagesPerType|0));
+  const tv     = _fetchPages('tv',    Math.max(1, pagesPerType|0));
+
+  // Write to cache rows (single cell JSON each)
+  _writeTmdbDaily_('browse_movie_popular', movies);
+  _writeTmdbDaily_('browse_tv_popular',    tv);
+
+  // Optional: trending snapshots (one page each) – cheap and nice to have
+  try { _writeTmdbDaily_('trending_movie_day', getTrendingByType('movie', 1, 'day')); } catch(_) {}
+  try { _writeTmdbDaily_('trending_tv_day',    getTrendingByType('tv',    1, 'day')); } catch(_) {}
+
+  return {
+    ok: true,
+    counts: { movies: movies.length, tv: tv.length }
+  };
+}
+
+/** Read slices for the UI (shuffle-friendly client will call this) */
+function getTmdbDailySlice(listKey, offset, limit) {
+  const data = _readTmdbDaily_(listKey);
+  const items = Array.isArray(data.items) ? data.items : [];
+  const start = Math.max(0, Math.min(Number(offset)||0, Math.max(0, items.length - 1)));
+  const end   = Math.max(start, Math.min(start + Math.max(1, Math.min(Number(limit)||20, 50)), items.length));
+  return {
+    updatedAt: data.updatedAt || null,
+    total: items.length,
+    items: items.slice(start, end)
+  };
+}
+
+/**
+ * Seed the TMDbDailyCache sheet with a tiny mock dataset so the client
+ * can render Explore from cache without doing any UrlFetch calls.
+ * Safe to run anytime; nightly refreshTmdbDailyCache() will overwrite later.
+ */
+function seedTmdbDailyCacheMock() {
+  const makeItems = (type, titles) => titles.map((t, i) => ({
+    id: 100000 + i,
+    media_type: type,              // 'movie' or 'tv'
+    title: type === 'movie' ? t : undefined,
+    name:  type === 'tv'    ? t : undefined,
+    poster: 'https://via.placeholder.com/185x278?text=' + encodeURIComponent(t),
+    vote_average: 7.8,
+    overview: 'Mock item for wiring test only.',
+    original_language: 'en',
+    origin_country: ['US']
+  }));
+
+  const movies = makeItems('movie', [
+    'Mock Movie One', 'Mock Movie Two', 'Mock Movie Three',
+    'Mock Movie Four', 'Mock Movie Five', 'Mock Movie Six'
+  ]);
+  const tv = makeItems('tv', [
+    'Mock Show One', 'Mock Show Two', 'Mock Show Three',
+    'Mock Show Four', 'Mock Show Five', 'Mock Show Six'
+  ]);
+
+  // Write to the same keys your client reads
+  _writeTmdbDaily_('browse_movie_popular', movies);
+  _writeTmdbDaily_('browse_tv_popular',    tv);
+  _writeTmdbDaily_('trending_movie_day',   movies.slice(0, 4));
+  _writeTmdbDaily_('trending_tv_day',      tv.slice(0, 4));
+
+  return { ok: true, movies: movies.length, tv: tv.length };
 }
 
 function bumpTmdbCacheVersion() {
@@ -491,30 +660,32 @@ function getGenresForLibrary(library) {
   return map;
 }
 
-function getTrendingNow(mediaType = "all", timeWindow = "day", page = 1) {
-  const type = (mediaType || 'all');
-  const window = (timeWindow || 'day');
+function getTrendingByType(type /* 'movie' | 'tv' */, page = 1, timeWindow = 'day') {
+  type = (type === 'tv') ? 'tv' : 'movie';
   const pg = Math.max(1, Math.min(Number(page) || 1, 500));
+  const win = (timeWindow === 'week') ? 'week' : 'day';
 
-  const data = tmdbCachedFetch(`/trending/${type}/${window}`, {
+  const data = tmdbCachedFetch(`/trending/${type}/${win}`, {
     language: 'en-US',
     include_adult: 'false',
     page: pg
   }, {}, 600); // cache for 10 minutes
 
-  return addPosterBasePath(filterOutAsian(data.results || []));
+  const rows = Array.isArray(data.results) ? data.results : [];
+  rows.forEach(r => r.media_type = type);
+  return addPosterBasePath(filterOutAsian(rows));
 }
 
 function getTMDbDetails(id, isTV) {
   const type = isTV ? 'tv' : 'movie';
+  const DETAILS_TTL = 21600; // 6 hours
   try {
-    const data = tmdbFetch(`/${type}/${id}`, {
+    const data = tmdbCachedFetch(`/${type}/${id}`, {
       language: 'en-US',
       append_to_response: 'videos,keywords'
-    });
+    }, {}, DETAILS_TTL);
     return data;
   } catch (err) {
-    // Try to extract HTTP status from the error message for parity with old behavior
     const m = String(err).match(/\b(\d{3})\b/);
     return { error: true, status: m ? Number(m[1]) : 500 };
   }
@@ -526,11 +697,15 @@ function getTMDbDetailsByTitle(title, year) {
   const yr = String(year || '').trim();
   if (!q) return { error: true, message: 'Title is required' };
 
+  // cache ~6h to slash UrlFetchApp calls during active use
+  var SEARCH_TTL = 21600; // seconds (6 hours)
+  var DETAILS_TTL = 21600;
+
   function searchOnce(type) {
     const params = { language: 'en-US', query: q };
     if (yr) params[type === 'tv' ? 'first_air_date_year' : 'year'] = yr;
     try {
-      const data = tmdbFetch(`/search/${type}`, params);
+      const data = tmdbCachedFetch(`/search/${type}`, params, {}, SEARCH_TTL);
       const first = Array.isArray(data.results) && data.results.length ? data.results[0] : null;
       return first;
     } catch (err) {
@@ -538,19 +713,19 @@ function getTMDbDetailsByTitle(title, year) {
     }
   }
 
-  // Try movie first, then TV
+  // Try movie first, then TV (both cached)
   let hit = searchOnce('movie');
   let isTV = false;
   if (!hit) { hit = searchOnce('tv'); isTV = !!hit; }
   if (!hit) return { error: true, message: 'No TMDb match' };
 
-  // Fetch details + videos for the match
+  // Fetch details + videos for the match (cached)
   const type = isTV ? 'tv' : 'movie';
   try {
-    const det = tmdbFetch(`/${type}/${hit.id}`, {
+    const det = tmdbCachedFetch(`/${type}/${hit.id}`, {
       language: 'en-US',
       append_to_response: 'videos'
-    });
+    }, {}, DETAILS_TTL);
     det.media_type = type;
     return det;
   } catch (err) {
