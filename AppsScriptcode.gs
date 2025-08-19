@@ -7,7 +7,19 @@ Give only one step at a time, confirming the change hasnt broken any codes for t
 */
 
 // ---- TMDB KEY (single source of truth)
-const TMDB_API_KEY = '48f719a14913f9d4ee92c684c2187625';
+const TMDB_API_KEY = (function () {
+  const k = PropertiesService.getScriptProperties().getProperty('TMDB_API_KEY');
+  if (!k) {
+    throw new Error('TMDB_API_KEY is missing. In the Apps Script editor, open Project Settings → Script properties and add TMDB_API_KEY.');
+  }
+  return k;
+})();
+
+function getScriptPropertyOrThrow(key) {
+  const val = PropertiesService.getScriptProperties().getProperty(key);
+  if (!val) throw new Error(`Missing ${key} in Script Properties`);
+  return val;
+}
 
 function doGet(e) {
   return HtmlService.createHtmlOutputFromFile('index')
@@ -160,7 +172,7 @@ function normTitle(s) {
 }
 
 function getEpisodesByTitle(title) {
-  const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1'; // your root
+  const rootFolderId = getScriptPropertyOrThrow('ROOT_FOLDER_ID');
   const root = DriveApp.getFolderById(rootFolderId);
   const categories = ['Movies', 'TV Shows'];
 
@@ -205,10 +217,9 @@ function getEpisodesByTitle(title) {
 
 // New function: Build and return your entire library JSON
 function getLibraryData() {
-  const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1'; // Replace with your Drive root folder ID
+  const rootFolderId = getScriptPropertyOrThrow('ROOT_FOLDER_ID');
   const rootFolder = DriveApp.getFolderById(rootFolderId);
 
-  // Assuming folders named 'Movies' and 'TV' inside root folder
   const moviesFolder = rootFolder.getFoldersByName('Movies').hasNext()
     ? rootFolder.getFoldersByName('Movies').next()
     : null;
@@ -223,6 +234,108 @@ function getLibraryData() {
 }
 
 // TMDB
+function tmdbFetch(path, params = {}, opts = {}) {
+  const apiKey = getScriptPropertyOrThrow('TMDB_API_KEY');
+
+  const base = 'https://api.themoviedb.org/3';
+  const q = Object.entries(params || {})
+    .filter(([,v]) => v !== undefined && v !== null && v !== '')
+    .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
+
+  const url = `${base}${path}?api_key=${encodeURIComponent(apiKey)}${q ? '&' + q : ''}`;
+
+  const fetchOpts = Object.assign({ muteHttpExceptions: true }, opts || {});
+  const maxAttempts = 4; // 1 try + up to 3 retries
+  let attempt = 0, lastErr;
+
+  while (attempt < maxAttempts) {
+    try {
+      const resp = UrlFetchApp.fetch(url, fetchOpts);
+      const code = resp.getResponseCode();
+      if (code >= 200 && code < 300) {
+        const text = resp.getContentText() || '{}';
+        // TMDb can occasionally return HTML for errors; guard parse
+        try { return JSON.parse(text); }
+        catch (e) { throw new Error(`TMDb parse error for ${path}`); }
+      }
+
+      // Retry on 429 and 5xx
+      if (code === 429 || (code >= 500 && code <= 599)) {
+        lastErr = new Error(`TMDb retryable error ${code} for ${path}`);
+      } else {
+        throw new Error(`TMDb error ${code} for ${path}`);
+      }
+    } catch (err) {
+      lastErr = err;
+    }
+
+    attempt++;
+    if (attempt < maxAttempts) {
+      // Exponential backoff with jitter: 500ms, 1s, 2s (+random up to 250ms)
+      const baseMs = Math.pow(2, attempt - 1) * 500;
+      const jitter = Math.floor(Math.random() * 250);
+      Utilities.sleep(baseMs + jitter);
+      continue;
+    }
+    break;
+  }
+
+  throw lastErr || new Error(`TMDb unknown error for ${path}`);
+}
+
+// ---- Caching helpers for TMDb
+function _tmdbDigestHex_(str) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, str);
+  return bytes.map(b => (b + 256 & 255).toString(16).padStart(2, '0')).join('');
+}
+function _tmdbStableParams_(params) {
+  const entries = Object.entries(params || {})
+    .filter(([,v]) => v !== undefined && v !== null && v !== '');
+  entries.sort(([a],[b]) => a.localeCompare(b));
+  return entries;
+}
+function _tmdbCacheVersion_() {
+  // Read from Script Properties so a single bump invalidates all keys.
+  var p = PropertiesService.getScriptProperties().getProperty('TMDB_CACHE_VERSION');
+  return String(p || '1'); // default "1"
+}
+/**
+ * Cached wrapper around tmdbFetch, namespaced by a cache version.
+ * Bump TMDB_CACHE_VERSION in Script Properties (or call bumpTmdbCacheVersion)
+ * to “flush” old cached entries.
+ */
+function tmdbCachedFetch(path, params = {}, opts = {}, ttlSeconds = 600) {
+  const ver = _tmdbCacheVersion_();
+  const stable = _tmdbStableParams_(params);
+  const keyRaw = `tmdb:v${ver}:${path}?${JSON.stringify(stable)}`;
+  const key = _tmdbDigestHex_(keyRaw);
+  const cache = CacheService.getScriptCache();
+
+  // Try cache
+  const cached = cache.get(key);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (_) { /* ignore & refetch */ }
+  }
+
+  // Fetch live and cache if small enough for Apps Script limits (~100KB)
+  const data = tmdbFetch(path, params, opts);
+  const payload = JSON.stringify(data);
+  if (payload.length < 95000) {
+    cache.put(key, payload, Math.max(5, Math.min(21600, Math.floor(ttlSeconds)))); // 5s..6h
+  }
+  return data;
+}
+
+function bumpTmdbCacheVersion() {
+  const props = PropertiesService.getScriptProperties();
+  let cur = parseInt(props.getProperty('TMDB_CACHE_VERSION') || '1', 10);
+  if (isNaN(cur)) cur = 1;
+  cur += 1;
+  props.setProperty('TMDB_CACHE_VERSION', String(cur));
+  return 'TMDB_CACHE_VERSION bumped to ' + cur;
+}
+
 // ---- Provider filtering (US) ----
 function _normalizeProviderNameForMatch(s) {
   return String(s || '')
@@ -245,30 +358,27 @@ const WANTED_PROVIDER_NAMES = [
 ];
 
 function _getProviderIdsPipe(type /* 'movie' | 'tv' */, region /* 'US' */) {
-  const apiKey = PropertiesService.getScriptProperties().getProperty('TMDB_API_KEY');
   const cache  = CacheService.getScriptCache();
   const key    = `wp:${type}:${region}`;
   const cached = cache.get(key);
   if (cached) return cached;
 
-  const url = `https://api.themoviedb.org/3/watch/providers/${type}` +
-              `?api_key=${encodeURIComponent(apiKey)}` +
-              `&watch_region=${encodeURIComponent(region)}`;
+  // Use the centralized fetcher (handles api_key, retries, errors)
+  try {
+    const data = tmdbFetch(`/watch/providers/${type}`, { watch_region: region });
+    const results = Array.isArray(data.results) ? data.results : [];
 
-  const resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  if (resp.getResponseCode() < 200 || resp.getResponseCode() >= 300) return '';
+    const ids = results
+      .filter(r => _wantedProviderPred(r.provider_name))
+      .map(r => String(r.provider_id))
+      .filter(Boolean);
 
-  const data = JSON.parse(resp.getContentText() || '{}');
-  const results = Array.isArray(data.results) ? data.results : [];
-
-  const ids = results
-  .filter(r => _wantedProviderPred(r.provider_name))
-  .map(r => String(r.provider_id))
-  .filter(Boolean);
-
-  const pipe = ids.join('|');          // e.g. "8|9|15"
-  if (pipe) cache.put(key, pipe, 3600); // cache 1 hour
-  return pipe;
+    const pipe = ids.join('|'); // e.g. "8|9|15"
+    if (pipe) cache.put(key, pipe, 3600); // cache 1 hour
+    return pipe;
+  } catch (_) {
+    return '';
+  }
 }
 
 function _wantedProviderPred(name) {
@@ -323,7 +433,6 @@ function _genresCacheSet_(key, genresArray) {
 
 /** Search TMDb for title → get details → return [{id,name}, ...] */
 function fetchTMDbGenres(title, type, year) {
-  if (!TMDB_API_KEY) return [];
   const normTitle = String(title || '').trim();
   if (!normTitle) return [];
 
@@ -332,21 +441,18 @@ function fetchTMDbGenres(title, type, year) {
   if (cached) return cached;
 
   try {
-    // 1) search
-    const base = 'https://api.themoviedb.org/3';
-    const q = encodeURIComponent(normTitle);
-    const url = `${base}/search/${type === 'tv' ? 'tv' : 'movie'}?api_key=${TMDB_API_KEY}&query=${q}` + (year ? `&${type==='tv'?'first_air_date_year':'year'}=${year}` : '');
-    const res = UrlFetchApp.fetch(url, { muteHttpExceptions:true });
-    const data = JSON.parse(res.getContentText() || '{}');
-    const first = (data && data.results && data.results[0]) || null;
+    // 1) search (via tmdbFetch)
+    const params = { query: normTitle };
+    if (year) params[type === 'tv' ? 'first_air_date_year' : 'year'] = year;
+    const searchData = tmdbFetch(`/search/${type === 'tv' ? 'tv' : 'movie'}`, params);
+    const first = (searchData && searchData.results && searchData.results[0]) || null;
     if (!first) { _genresCacheSet_(key, []); return []; }
 
-    // 2) details (for stable genre objects)
-    const id = first.id;
-    const detUrl = `${base}/${type === 'tv' ? 'tv' : 'movie'}/${id}?api_key=${TMDB_API_KEY}`;
-    const detRes = UrlFetchApp.fetch(detUrl, { muteHttpExceptions:true });
-    const det = JSON.parse(detRes.getContentText() || '{}');
-    const genres = Array.isArray(det.genres) ? det.genres.map(g => ({ id: g.id, name: g.name })) : [];
+    // 2) details (via tmdbFetch)
+    const det = tmdbFetch(`/${type === 'tv' ? 'tv' : 'movie'}/${first.id}`);
+    const genres = Array.isArray(det.genres)
+      ? det.genres.map(g => ({ id: g.id, name: g.name }))
+      : [];
 
     _genresCacheSet_(key, genres);
     return genres;
@@ -386,42 +492,53 @@ function getGenresForLibrary(library) {
 }
 
 function getTrendingNow(mediaType = "all", timeWindow = "day", page = 1) {
-  const type = encodeURIComponent(mediaType);
-  const window = encodeURIComponent(timeWindow);
+  const type = (mediaType || 'all');
+  const window = (timeWindow || 'day');
   const pg = Math.max(1, Math.min(Number(page) || 1, 500));
-  const url = `https://api.themoviedb.org/3/trending/${type}/${window}?api_key=${encodeURIComponent(TMDB_API_KEY)}&language=en-US&page=${pg}&include_adult=false`;
-  const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  const code = response.getResponseCode();
-  if (code < 200 || code >= 300) throw new Error(`TMDb Trending error: ${code}`);
-  const data = JSON.parse(response.getContentText());
+
+  const data = tmdbCachedFetch(`/trending/${type}/${window}`, {
+    language: 'en-US',
+    include_adult: 'false',
+    page: pg
+  }, {}, 600); // cache for 10 minutes
+
   return addPosterBasePath(filterOutAsian(data.results || []));
 }
 
 function getTMDbDetails(id, isTV) {
   const type = isTV ? 'tv' : 'movie';
-  const url = `https://api.themoviedb.org/3/${type}/${id}?api_key=${encodeURIComponent(TMDB_API_KEY)}&language=en-US&append_to_response=videos,keywords`;
-  const resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  const code = resp.getResponseCode();
-  if (code < 200 || code >= 300) return { error: true, status: code };
-  return JSON.parse(resp.getContentText());
+  try {
+    const data = tmdbFetch(`/${type}/${id}`, {
+      language: 'en-US',
+      append_to_response: 'videos,keywords'
+    });
+    return data;
+  } catch (err) {
+    // Try to extract HTTP status from the error message for parity with old behavior
+    const m = String(err).match(/\b(\d{3})\b/);
+    return { error: true, status: m ? Number(m[1]) : 500 };
+  }
 }
 
 /** Lookup TMDb by title → return details with videos (tries movie, then TV) */
 function getTMDbDetailsByTitle(title, year) {
-  if (!TMDB_API_KEY) return { error: true, message: 'Missing TMDB key' };
-  const base = 'https://api.themoviedb.org/3';
-  const q = encodeURIComponent(String(title || '').trim());
+  const q = String(title || '').trim();
   const yr = String(year || '').trim();
+  if (!q) return { error: true, message: 'Title is required' };
 
   function searchOnce(type) {
-    const url = `${base}/search/${type}?api_key=${TMDB_API_KEY}&language=en-US&query=${q}` + (yr ? `&${type==='tv'?'first_air_date_year':'year'}=${yr}` : '');
-    const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-    const data = JSON.parse(res.getContentText() || '{}');
-    const first = Array.isArray(data.results) && data.results.length ? data.results[0] : null;
-    return first;
+    const params = { language: 'en-US', query: q };
+    if (yr) params[type === 'tv' ? 'first_air_date_year' : 'year'] = yr;
+    try {
+      const data = tmdbFetch(`/search/${type}`, params);
+      const first = Array.isArray(data.results) && data.results.length ? data.results[0] : null;
+      return first;
+    } catch (err) {
+      return null;
+    }
   }
 
-  // Try movie first, then tv
+  // Try movie first, then TV
   let hit = searchOnce('movie');
   let isTV = false;
   if (!hit) { hit = searchOnce('tv'); isTV = !!hit; }
@@ -429,11 +546,17 @@ function getTMDbDetailsByTitle(title, year) {
 
   // Fetch details + videos for the match
   const type = isTV ? 'tv' : 'movie';
-  const detUrl = `${base}/${type}/${hit.id}?api_key=${TMDB_API_KEY}&language=en-US&append_to_response=videos`;
-  const detRes = UrlFetchApp.fetch(detUrl, { muteHttpExceptions: true });
-  const det = JSON.parse(detRes.getContentText() || '{}');
-  det.media_type = type;
-  return det;
+  try {
+    const det = tmdbFetch(`/${type}/${hit.id}`, {
+      language: 'en-US',
+      append_to_response: 'videos'
+    });
+    det.media_type = type;
+    return det;
+  } catch (err) {
+    const m = String(err).match(/\b(\d{3})\b/);
+    return { error: true, status: m ? Number(m[1]) : 500 };
+  }
 }
 
 function addPosterBasePath(items) {
@@ -464,16 +587,11 @@ function _normalizeProviderName(s) {
 }
 
 function tmdbDiscover(params) {
-  // use the constant
-  const q = Object.entries(params)
-    .filter(([,v]) => v !== undefined && v !== null && v !== '')
-    .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-    .join('&');
-  const url = `https://api.themoviedb.org/3/discover/${params.__type}?api_key=${encodeURIComponent(TMDB_API_KEY)}&${q}`;
-  const resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  const code = resp.getResponseCode();
-  if (code < 200 || code >= 300) throw new Error(`TMDb discover ${params.__type} ${code}`);
-  return JSON.parse(resp.getContentText());
+  const { __type, ...rest } = (params || {});
+  if (!__type) throw new Error('tmdbDiscover: params.__type is required');
+
+  // Cached ~15 minutes to reduce API load
+  return tmdbCachedFetch(`/discover/${__type}`, rest, {}, 900);
 }
 
 // Genre-aware, provider-filtered discover
@@ -544,8 +662,7 @@ function getProviderDiscoverByGenreType(type /* 'movie' | 'tv' */, page, region,
   region = region || 'US';
   const gid = String(genreId || '').trim();
 
-  const apiKey = PropertiesService.getScriptProperties().getProperty('TMDB_API_KEY');
-  if (!apiKey) throw new Error('TMDB_API_KEY missing');
+  const apiKey = getScriptPropertyOrThrow('TMDB_API_KEY');
 
   // start stricter, then loosen to avoid empty lists
   const STEPS = (type === 'tv')
@@ -599,7 +716,8 @@ function getCombinedPopular(page = 1) {
 }
 function addToWishlistSheet(title, poster) {
   try {
-    const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+    const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID');
+    const ss = SpreadsheetApp.openById(sheetId);
     const sheet = ss.getSheetByName('Titles');
     if (!sheet) throw new Error("Wishlist sheet not found");
 
@@ -632,11 +750,10 @@ function addToWishlistSheet(title, poster) {
   }
 }
 function getRequestedWishlist() {
-  // Reads headers to find: Title / Status / Poster (order doesn’t matter)
-  const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
+  const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID');
   const SHEET_NAME = 'Titles';
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById(sheetId);
   const sh = ss.getSheetByName(SHEET_NAME);
   if (!sh) return [];
 
@@ -669,8 +786,8 @@ function getRequestedWishlist() {
     .filter(r => r.title && wanted.has(r.status))
     .map(({ title, poster }) => ({ title, poster }));
 }
-function getRecentVideos(days = 14) { // <-- changed default to 14
-  const rootFolderId = '1fX26oP26OtJ0aO_q3wl3u1CYrR4t6JO1';
+function getRecentVideos(days = 14) {
+  const rootFolderId = getScriptPropertyOrThrow('ROOT_FOLDER_ID');
   const rootFolder = DriveApp.getFolderById(rootFolderId);
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
@@ -735,7 +852,8 @@ function getRecentVideos(days = 14) { // <-- changed default to 14
 }
 
 function getWishlistAllWithStatus() {
-  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID');
+  const ss = SpreadsheetApp.openById(sheetId);
   const sheet = ss.getSheetByName('Titles');
   if (!sheet) throw new Error("Wishlist sheet not found");
 
@@ -752,7 +870,8 @@ function getWishlistAllWithStatus() {
 }
 
 function syncWishlistStatusWithDrive() {
-  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID');
+  const ss = SpreadsheetApp.openById(sheetId);
   const sheet = ss.getSheetByName('Titles');
   if (!sheet) throw new Error("Titles sheet not found");
 
@@ -924,12 +1043,14 @@ function getRandomLibrarySample(limit) {
   limit = Math.max(1, Math.min(Number(limit) || 10, 50));
 
   var cache = CacheService.getScriptCache();
-  var raw = cache.get('LIBRARY_SNAPSHOT_V1');
+  var ver = PropertiesService.getScriptProperties().getProperty('LIBRARY_CACHE_VERSION') || '1';
+  var cacheKey = 'LIBRARY_SNAPSHOT_v' + ver;
+  var raw = cache.get(cacheKey);
 
   if (!raw) {
     var lib = getLibraryAndSyncWishlist(); // heavy once if cache cold
     raw = JSON.stringify(lib || { movies:[], tv:[] });
-    cache.put('LIBRARY_SNAPSHOT_V1', raw, 600); // 600s = 10 min
+    cache.put(cacheKey, raw, 600);
   }
 
   var libObj = JSON.parse(raw);
@@ -954,8 +1075,18 @@ function warmLibraryCacheNow() {
   return { ok: true, count: (lib.movies||[]).length + (lib.tv||[]).length };
 }
 
+function bumpLibraryCacheVersion() {
+  const props = PropertiesService.getScriptProperties();
+  let cur = parseInt(props.getProperty('LIBRARY_CACHE_VERSION') || '1', 10);
+  if (isNaN(cur)) cur = 1;
+  cur += 1;
+  props.setProperty('LIBRARY_CACHE_VERSION', String(cur));
+  return 'LIBRARY_CACHE_VERSION bumped to ' + cur;
+}
+
 function getContinueWatching(profileName) {
-  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID');
+  const ss = SpreadsheetApp.openById(sheetId);
   const sheet = ss.getSheetByName('Profiles');
   if (!sheet) throw new Error("Profiles sheet not found");
 
@@ -1003,8 +1134,8 @@ function getContinueWatching(profileName) {
 }
 
 function saveProfileProgress(profile, fullTitle, episode /* , time */) {
-  const SPREADSHEET_ID = '17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM';
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID');
+  const ss = SpreadsheetApp.openById(sheetId);
   const sheet = ss.getSheetByName('Profiles');
   if (!sheet) throw new Error("'Profiles' sheet not found");
 
@@ -1081,7 +1212,8 @@ function saveProfileProgress(profile, fullTitle, episode /* , time */) {
 function clearProfileProgress(profile, title) {
   if (!profile || !title) throw new Error('Missing profile or title');
 
-  const ss = SpreadsheetApp.openById('17AAXIsNI2HACunSc1lJ46azCPIqzLwnadnEB2UzFwIM');
+  const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID');
+  const ss = SpreadsheetApp.openById(sheetId);
   const sh = ss.getSheetByName('Profiles');
   if (!sh) throw new Error('Sheet "Profiles" not found');
 
