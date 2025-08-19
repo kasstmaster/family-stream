@@ -1,5 +1,11 @@
 // !DOCTYPE Code.gs
 
+/* Rules for ChatGPT chat:
+Show before and after snippets for replacement codes
+Specify the function a new code should go directly under
+Give only one step at a time, confirming the change hasnt broken any codes for the app
+*/
+
 // ---- TMDB KEY (single source of truth)
 const TMDB_API_KEY = '48f719a14913f9d4ee92c684c2187625';
 
@@ -398,6 +404,36 @@ function getTMDbDetails(id, isTV) {
   const code = resp.getResponseCode();
   if (code < 200 || code >= 300) return { error: true, status: code };
   return JSON.parse(resp.getContentText());
+}
+
+/** Lookup TMDb by title → return details with videos (tries movie, then TV) */
+function getTMDbDetailsByTitle(title, year) {
+  if (!TMDB_API_KEY) return { error: true, message: 'Missing TMDB key' };
+  const base = 'https://api.themoviedb.org/3';
+  const q = encodeURIComponent(String(title || '').trim());
+  const yr = String(year || '').trim();
+
+  function searchOnce(type) {
+    const url = `${base}/search/${type}?api_key=${TMDB_API_KEY}&language=en-US&query=${q}` + (yr ? `&${type==='tv'?'first_air_date_year':'year'}=${yr}` : '');
+    const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(res.getContentText() || '{}');
+    const first = Array.isArray(data.results) && data.results.length ? data.results[0] : null;
+    return first;
+  }
+
+  // Try movie first, then tv
+  let hit = searchOnce('movie');
+  let isTV = false;
+  if (!hit) { hit = searchOnce('tv'); isTV = !!hit; }
+  if (!hit) return { error: true, message: 'No TMDb match' };
+
+  // Fetch details + videos for the match
+  const type = isTV ? 'tv' : 'movie';
+  const detUrl = `${base}/${type}/${hit.id}?api_key=${TMDB_API_KEY}&language=en-US&append_to_response=videos`;
+  const detRes = UrlFetchApp.fetch(detUrl, { muteHttpExceptions: true });
+  const det = JSON.parse(detRes.getContentText() || '{}');
+  det.media_type = type;
+  return det;
 }
 
 function addPosterBasePath(items) {
