@@ -1,5 +1,12 @@
 <!DOCTYPE html>
 
+<!--
+Rules for ChatGPT chat:
+Show before and after snippets for replacement codes
+Specify the function a new code should go directly under
+Give only one step at a time, confirming the change hasnt broken any codes for the app
+-->
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -209,32 +216,6 @@ header img {
 }
 
 /* =======================
-   LIST SIDEBAR REFRESH BUTTONS
-   ======================= */
-.list-row {
-  display: grid;
-  grid-template-columns: 70px 1fr; /* sidebar | list */
-  align-items: start;
-  gap: 10px;
-}
-
-.list-sidebar {
-  display: flex;
-  justify-content: center;
-  padding-top: 6px;
-}
-
-/* Match the visual language of your bottom-bar .nav-item */
-.list-sidebar .nav-item {
-  width: 56px;
-  text-align: center;
-  user-select: none;
-  cursor: pointer;
-}
-.list-sidebar .nav-item i { margin-bottom: 6px; }
-.list-sidebar .nav-item span { font-size: 0.8em; }
-
-/* =======================
    CARDS & ITEMS
    ======================= */
 .movie-card,
@@ -298,6 +279,63 @@ header img {
   transition: background 0.3s ease;
 }
 .add-btn:hover { background: #ff4c4c; }
+
+/* === Highlight: Recently Added === */
+#recentlyAddedSection .subsection-title {
+  position: relative;
+}
+#recentlyAddedSection .subsection-title::after {
+  content: "★ fresh drops";
+  font-size: 0.6em;
+  font-weight: 700;
+  color: #00e5ff;
+  margin-left: 12px;
+  letter-spacing: .04em;
+  vertical-align: middle;
+}
+
+#recentlyAddedGrid .movie-card {
+  border: 2px solid rgba(0, 229, 255, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(0, 229, 255, 0.15) inset,
+    0 0 24px rgba(0, 229, 255, 0.2);
+}
+
+#recentlyAddedGrid .movie-card::before {
+  content: "NEW";
+  position: absolute;
+  top: 8px;
+  left: -36px;
+  transform: rotate(-45deg);
+  background: linear-gradient(90deg, #00a7b0, #00e5ff);
+  color: #0b0b0b;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 48px;
+  letter-spacing: .08em;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  z-index: 3;
+  border-radius: 2px;
+}
+
+/* Hover lift only on Recently Added */
+@media (hover: hover) and (pointer: fine) {
+  #recentlyAddedGrid .movie-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 2px rgba(0, 229, 255, 0.25) inset,
+      0 8px 26px rgba(0, 229, 255, 0.28);
+  }
+}
+
+/* Ribbon text scaling */
+@media (max-width: 999px) {
+  #recentlyAddedGrid .movie-card::before { font-size: 24px; padding: 10px 70px; left: -60px; top: 12px; }
+}
+@media (min-width: 1000px) {
+  #recentlyAddedGrid .movie-card::before { font-size: 10px; padding: 5px 42px; left: -32px; top: 6px; }
+}
+
 
 /* =======================
    SKELETON LOADER
@@ -713,36 +751,6 @@ header img {
 
   #inlinePromptHost { bottom: calc(100px + 16px); } /* more room above big mobile bar */
   .inline-prompt { font-size: 1.1em; }
-
-  /* Sidebar Refresh + Show buttons */
-  .list-row {
-    grid-template-columns: 100px 1fr !important; /* widen sidebar column */
-    gap: 25px !important;                        /* space between button + cards */
-  }
-
-  .list-sidebar {
-    justify-content: flex-start !important;
-    padding-left: 35px !important;  /* move button in from edge */
-  }
-
-  .list-sidebar .nav-item {
-    font-size: 0 !important;     /* no text */
-    width: auto !important;         /* no forced narrow width */
-    text-align: center;
-  }
-
-  .list-sidebar .nav-item i {
-    font-size: 70px !important;     /* bigger refresh/show icon */
-    margin-bottom: 12px;
-  }
-
-  /* "Show Genres" + "Explore Genres" buttons */
-  #revealMyGenresBtn,
-  #revealGenresBtn {
-    font-size: 45px !important;      /* bigger text */
-    padding: 28px 40px !important;   /* taller + wider */
-    border-radius: 20px !important;
-  }
 }
 
 /* =======================
@@ -815,11 +823,6 @@ header img {
   .scroll-container::-webkit-scrollbar-track { background: #1f1f1f; border-radius: 6px; }
   .scroll-container::-webkit-scrollbar-thumb { background: #888; border-radius: 6px; }
   .scroll-container::-webkit-scrollbar-thumb:hover { background: #aaa; }
-
-    /* list sidebar — desktop tweaks */
-  .list-row { grid-template-columns: 44px 1fr; gap: 10px !important; }
-  .list-sidebar .nav-item { width: 36px !important; }
-  .list-sidebar .nav-item span { display: none; } /* icon-only on desktop */
 }
 
 /* Disable hover scaling on touch devices */
@@ -874,168 +877,143 @@ header img {
 
 <div id="appContent" style="display: none;">
 
-  <!-- App Content -->
-  <header><br><br><img src="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" alt="ILYMMD+ Logo"><br><br></header>
-  <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
+  <!-- ========= START: Top Nav Bar ========= -->
+    <!-- App Content -->
+    <header><br><br><img src="https://i.postimg.cc/HkMtCdMK/ILYMMD-8-4-2025.png" alt="ILYMMD+ Logo"><br><br></header>
+    <div class="search-bar"><input type="text" id="searchInput" placeholder="Search movies or shows..."></div>
+  <!-- ========= END: Top Nav Bar ========= -->
 
-  <!-- Watch Header -->
-  <h2 class="section-title">Available to Watch</h2>
-
-  <!-- Episodes -->
-  <div id="episodesSection" style="display:none;">
-    <h2 class="subsection-title" id="episodesTitle"></h2>
-    <div class="scroll-container" id="episodesGrid">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
+  <!-- ========= START: Available-to-Watch Group ========= -->
+    <!-- Watch Header -->
+    <h2 class="section-title">Available to Watch</h2>
+    <!-- TMDb Details Preview -->
+    <div id="tmdbDetailsPreview" style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white; display:none;">
+      <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
+      <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
+      <p id="tmdbDetailsReleaseDate"></p>
+      <p class="movie-overview" id="tmdbDetailsOverview"></p>
     </div>
-  </div>
-
-  <!-- Continue Watching Section -->
-  <div id="continueWatchingSection">
-    <h2 class="subsection-title">Continue Watching</h2>
-    <div class="scroll-container" id="continueWatchingGrid">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-    </div>
-  </div>
-
-  <!-- Recently Available Section -->
-  <div id="recentlyAddedSection">
-    <h2 class="subsection-title">Recently Added & Available</h2>
-    <div class="scroll-container" id="recentlyAddedGrid">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-    </div>
-  </div>
-
-  <!-- All Available Section -->
-  <div id="availableToWatchSection">
-    <h2 class="subsection-title">All Available Movies & TV Shows</h2>
-    <!-- Placeholders while loading -->
-    <div class="scroll-container" id="availableToWatchGrid">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-    </div>
-  </div>
-
-  <div id="revealMyGenresWrap" style="text-align:center; margin: 10px 0 30px;">
-    <button id="revealMyGenresBtn" type="button" aria-expanded="false"
-            style="background:#00a7b0;color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:1em;cursor:pointer;">
-      Show Genres
-    </button>
-  </div>
-
-  <!-- All Available by Genre -->
-  <div id="myGenresSection">
-    <div id="myGenresWrap" style="display:none;"></div>
-  </div><br><br>
-
-  <h2 class="tmdb-title">Explore</h2>
-
-  <div id="tmdbDetailsPreview" 
-      style="max-width: 900px; margin: 20px auto; background: #1f1f1f; border-radius: 12px; padding: 20px; color: white; display:none;">
-    <div id="tmdbTrailerContainer" style="width: 100%; height: 450px; margin-bottom: 20px;"></div>
-    <h2 class="movie-title-text" id="tmdbDetailsTitle"></h2>
-    <p id="tmdbDetailsReleaseDate"></p>
-    <p class="movie-overview" id="tmdbDetailsOverview"></p>
-  </div>
-
-  <div id="tmdbExploreAllSection">
-    <h2 class="subsection-title">Explore All</h2>
-    <div class="scroll-container" id="tmdbExploreAllRow"></div>
-  </div>
-
-  <!-- NEW: reveal button -->
-  <div id="revealGenresWrap" style="text-align:center; margin: 10px 0 40px;">
-    <button id="revealGenresBtn" type="button" aria-expanded="false"
-            style="background:#00a7b0;color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:1em;cursor:pointer;">
-      Explore Genres
-    </button>
-  </div>
-
-  <!-- Make these hidden initially -->
-  <div id="tmdbExploreComedySection" style="display:none;">
-    <h2 class="subsection-title">Explore Comedy</h2>
-    <div class="scroll-container" id="tmdbExploreComedyRow"></div>
-  </div>
-
-  <div id="tmdbExploreWesternSection" style="display:none;">
-    <h2 class="subsection-title">Explore Western</h2>
-    <div class="scroll-container" id="tmdbExploreWesternRow"></div>
-  </div>
-
-  <div id="tmdbExploreActionSection" style="display:none;">
-    <h2 class="subsection-title">Explore Action</h2>
-    <div class="scroll-container" id="tmdbExploreActionRow"></div>
-  </div>
-
-  <div id="tmdbExploreDramaSection" style="display:none;">
-    <h2 class="subsection-title">Explore Drama</h2>
-    <div class="scroll-container" id="tmdbExploreDramaRow"></div>
-  </div>
-
-  <div id="tmdbExploreAnimationSection" style="display:none;">
-    <h2 class="subsection-title">Explore Animation</h2>
-    <div class="scroll-container" id="tmdbExploreAnimationRow"></div>
-  </div>
-
-  <div id="tmdbExploreHistorySection" style="display:none;">
-    <h2 class="subsection-title">Explore History</h2>
-    <div class="scroll-container" id="tmdbExploreHistoryRow"></div>
-  </div>
-
-  <div id="tmdbExploreScifiSection" style="display:none;">
-    <h2 class="subsection-title">Explore Sci‑Fi</h2>
-    <div class="scroll-container" id="tmdbExploreScifiRow"></div>
-  </div>
-
-  <!-- Wishlist Section -->
-  <div id="wishlistSection">
-    <h2 class="subsection-title">Wishlist</h2>
-    <div class="scroll-container" id="wishlistGrid">
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-    </div>
-  </div>
-
-  <!-- Search Results -->
-  <div id="searchResultsSection" style="display:none;">
-    <h2 class="subsection-title">Search Results</h2>
-    <div class="scroll-container" id="searchResultsGrid"></div>
-  </div>
-
-  <!-- Custom Popup -->
-  <div id="customPopup" role="status" aria-live="polite" aria-atomic="true" style="display:none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 30px 50px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.8); font-size: 28px; z-index: 3000; max-width: 90vw; text-align: center;">
-    <span id="popupMessage"></span>
-    <button id="popupCloseBtn" style="display:block; margin: 20px auto 0 auto; padding: 10px 30px; font-size: 24px; border: none; border-radius: 8px; background: #e50914; color: white; cursor: pointer;">Close</button>
-  </div>
-
-  <div class="bottom-bar">
-    <div id="mobileRefreshButtonsContainer" style="display:none; width: 100%; justify-content: space-around;">
-      <div class="nav-item" id="mobileAvailableRefresh" role="button" tabindex="0" aria-label="Refresh Available to Watch">
-        <i class="fa-solid fa-rotate"></i><span>Available</span>
-      </div>
-      <div class="nav-item" id="switchProfileBtn" role="button" tabindex="0" aria-label="Switch Profile">
-        <img id="currentProfileIcon" src="https://via.placeholder.com/50" alt="Profile" style="width:50px;height:50px;object-fit:cover;border-radius:50%;margin-bottom:5px;">
-        <span id="currentProfileName">Profile</span>
-      </div>
-      <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
-        <i class="fa-solid fa-rotate"></i><span>Explore</span>
+    <!-- Episodes -->
+    <div id="episodesSection" style="display:none;">
+      <h2 class="subsection-title" id="episodesTitle"></h2>
+      <div class="scroll-container" id="episodesGrid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
       </div>
     </div>
-  </div>
+    <!-- Recently Added Section -->
+    <div id="recentlyAddedSection">
+      <h2 class="subsection-title">Recently Added!</h2>
+      <div class="scroll-container" id="recentlyAddedGrid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+    </div>
+    <!-- Continue Watching Section -->
+    <div id="continueWatchingSection">
+      <h2 class="subsection-title">Continue Watching</h2>
+      <div class="scroll-container" id="continueWatchingGrid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+    </div>
+    <!-- All Available Section -->
+    <div id="availableToWatchSection">
+      <h2 class="subsection-title">All Available Movies & TV Shows</h2>
+      <!-- Placeholders while loading -->
+      <div class="scroll-container" id="availableToWatchGrid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+    </div>
+    <!-- All Available by Genre -->
+    <div id="myGenresSection">
+      <div id="myGenresWrap"></div>
+    </div><br><br>
+  <!-- ========= END: Available-to-Watch Group ========= -->
 
-<br><br>
+  <!-- ========= START: Explore Group ========= -->
+    <h2 class="tmdb-title">Explore</h2>
+    <!-- Explore Lists -->
+    <div id="tmdbExploreAllSection">
+      <h2 class="subsection-title">Explore All</h2>
+      <div class="scroll-container" id="tmdbExploreAllRow"></div>
+    </div>
+    <div id="tmdbExploreComedySection">
+      <h2 class="subsection-title">Explore Comedy</h2>
+      <div class="scroll-container" id="tmdbExploreComedyRow"></div>
+    </div>
+    <div id="tmdbExploreWesternSection">
+      <h2 class="subsection-title">Explore Western</h2>
+      <div class="scroll-container" id="tmdbExploreWesternRow"></div>
+    </div>
+    <div id="tmdbExploreActionSection">
+      <h2 class="subsection-title">Explore Action</h2>
+      <div class="scroll-container" id="tmdbExploreActionRow"></div>
+    </div>
+    <div id="tmdbExploreDramaSection">
+      <h2 class="subsection-title">Explore Drama</h2>
+      <div class="scroll-container" id="tmdbExploreDramaRow"></div>
+    </div>
+    <div id="tmdbExploreAnimationSection">
+      <h2 class="subsection-title">Explore Animation</h2>
+      <div class="scroll-container" id="tmdbExploreAnimationRow"></div>
+    </div>
+    <div id="tmdbExploreHistorySection">
+      <h2 class="subsection-title">Explore History</h2>
+      <div class="scroll-container" id="tmdbExploreHistoryRow"></div>
+    </div>
+    <div id="tmdbExploreScifiSection">
+      <h2 class="subsection-title">Explore Sci‑Fi</h2>
+      <div class="scroll-container" id="tmdbExploreScifiRow"></div>
+    </div>
+    <div id="wishlistSection">
+      <h2 class="subsection-title">Wishlist</h2>
+      <div class="scroll-container" id="wishlistGrid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+    </div>
+  <!-- ========= END: Explore Group ========= -->
+
+  <!-- ========= START: Misc Group ========= -->
+    <!-- Search Results -->
+    <div id="searchResultsSection" style="display:none;">
+      <h2 class="subsection-title">Search Results</h2>
+      <div class="scroll-container" id="searchResultsGrid"></div>
+    </div>
+    <!-- Custom Popup -->
+    <div id="customPopup" role="status" aria-live="polite" aria-atomic="true" style="display:none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 30px 50px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.8); font-size: 28px; z-index: 3000; max-width: 90vw; text-align: center;">
+      <span id="popupMessage"></span>
+      <button id="popupCloseBtn" style="display:block; margin: 20px auto 0 auto; padding: 10px 30px; font-size: 24px; border: none; border-radius: 8px; background: #e50914; color: white; cursor: pointer;">Close</button>
+    </div>
+    <!-- Bottom navigation Bar -->
+    <div class="bottom-bar">
+      <div id="mobileRefreshButtonsContainer" style="display:none; width: 100%; justify-content: space-around;">
+        <div class="nav-item" id="mobileAvailableRefresh" role="button" tabindex="0" aria-label="Refresh Available to Watch">
+          <i class="fa-solid fa-rotate"></i><span>Available</span>
+        </div>
+        <div class="nav-item" id="switchProfileBtn" role="button" tabindex="0" aria-label="Switch Profile">
+          <img id="currentProfileIcon" src="https://via.placeholder.com/50" alt="Profile" style="width:50px;height:50px;object-fit:cover;border-radius:50%;margin-bottom:5px;">
+          <span id="currentProfileName">Profile</span>
+        </div>
+        <div class="nav-item" id="mobileExploreRefresh" role="button" tabindex="0" aria-label="Refresh Explore">
+          <i class="fa-solid fa-rotate"></i><span>Explore</span>
+        </div>
+      </div>
+    </div><br><br>
+  <!-- ========= END: Misc Group ========= -->
+
 </div>
 
 <div id="loadingScreen" style="
@@ -1063,8 +1041,6 @@ let _recentlyCache = { items: [], stamp: 0 };
 let _exploreCache = new Map();
 let _nextAvailableSample = null;
 let _hadSavedProfileAtLoad = false;
-let _myGenresRevealed = false;
-
 const _exploreNextSample = new Map();
 
 let _cwPollTimer = null;
@@ -1074,6 +1050,62 @@ function startCWLiveSync() {
     if (document.hidden) return; // pause when not visible
     loadContinueWatching();      // cheap refresh
   }, 60000); // 60s
+}
+
+/* ===== Group visibility helpers (updated) ===== */
+const AVAILABLE_SECTIONS = [
+  "tmdbDetailsPreview",        // 🔹 now part of Available
+  "continueWatchingSection",
+  "recentlyAddedSection",
+  "availableToWatchSection",
+  "myGenresSection"
+];
+
+const EXPLORE_SECTIONS = [
+  // "tmdbDetailsPreview",      // 🔸 removed from Explore
+  "tmdbExploreAllSection",
+  "tmdbExploreComedySection",
+  "tmdbExploreWesternSection",
+  "tmdbExploreActionSection",
+  "tmdbExploreDramaSection",
+  "tmdbExploreAnimationSection",
+  "tmdbExploreHistorySection",
+  "tmdbExploreScfiSection", // (keep correct id spelling if needed)
+  "wishlistSection"
+];
+
+function _setDisplay(ids = [], value = "block") {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = value;
+  });
+}
+
+// ⬇️ add this once near your group arrays
+let _activeGroup = "available"; // "available" | "explore"
+
+function showAvailableGroup() {
+  _activeGroup = "available";
+  _setDisplay(AVAILABLE_SECTIONS, "block");
+  _setDisplay(EXPLORE_SECTIONS, "none");
+
+  // ⬇️ Explicitly toggle headers
+  const availHeader = document.querySelector(".section-title"); // "Available to Watch"
+  const tmdbHeader  = document.querySelector(".tmdb-title");    // "Explore"
+  if (availHeader) availHeader.style.display = "block";
+  if (tmdbHeader)  tmdbHeader.style.display  = "none";
+}
+
+function showExploreGroup() {
+  _activeGroup = "explore";
+  _setDisplay(AVAILABLE_SECTIONS, "none");
+  _setDisplay(EXPLORE_SECTIONS, "block");
+
+  // ⬇️ Explicitly toggle headers
+  const availHeader = document.querySelector(".section-title"); // "Available to Watch"
+  const tmdbHeader  = document.querySelector(".tmdb-title");    // "Explore"
+  if (availHeader) availHeader.style.display = "none";
+  if (tmdbHeader)  tmdbHeader.style.display  = "block";
 }
 
 let _wishlistAllCachePromise;
@@ -1125,6 +1157,12 @@ function selectProfile(profileName, iconUrl) {
       if (cw) cw.style.display = "block";
       hideLoadingScreen(0);
       startCWLiveSync(); // 60s polling fallback
+
+      // ✅ Make Available visible and keep Explore hidden
+      showAvailableGroup();
+
+      // 🔧 Build Explore in the background (sections remain hidden)
+      buildExploreInBackground();
     })
     .catch(err => {
       console.error("❌ Error loading Continue Watching:", err);
@@ -1132,20 +1170,19 @@ function selectProfile(profileName, iconUrl) {
       startCWLiveSync();
     });
 
-  // Ensure wishlist cache once, then load Explore All + Wishlist
+  // Ensure wishlist cache once, then load Wishlist
   ensureWishlistAll()
-    .then(() => Promise.all([ loadExploreAllRow(), loadWishlist() ]))
-    .then(() => {
-      const wl = document.getElementById("wishlistSection");
-      const ra = document.getElementById("recentlyAddedSection");
-      if (wl) wl.style.display = "block";
-      if (ra) ra.style.display = "block";
-      return waitForImagesToLoad(app, { timeoutMs: 2500 });
-    })
-    .catch(err => {
-      console.error("❌ Error during background loads:", err);
-      showPopup("Some items are still loading. Try again if they don't appear.");
-    });
+  .then(() => Promise.all([ loadWishlist() ]))
+  .then(() => {
+    // Do NOT force wishlist visible here — group toggles control it.
+    const ra = document.getElementById("recentlyAddedSection");
+    if (ra) ra.style.display = "block";
+    return waitForImagesToLoad(app, { timeoutMs: 2500 });
+  })
+  .catch(err => {
+    console.error("❌ Error during background loads:", err);
+    showPopup("Some items are still loading. Try again if they don't appear.");
+  });
 }
 
 function showPopup(messageHtml) {
@@ -1539,50 +1576,6 @@ function _slug(s='') {
   return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 }
 
-function revealMyGenres() {
-  // already revealed? just scroll into view and bail
-  if (_myGenresRevealed) {
-    const section = document.getElementById('myGenresSection');
-    section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    return;
-  }
-
-  _myGenresRevealed = true;
-
-  // hide the button wrapper
-  const btnWrap = document.getElementById('revealMyGenresWrap');
-  if (btnWrap) btnWrap.style.display = 'none';
-
-  // show the section wrapper
-  const wrap = document.getElementById('myGenresWrap');
-  if (wrap) wrap.style.display = 'block';
-
-  // render now if we already have annotations; otherwise annotate then render
-  const haveAnnotations = _titleGenres && typeof _titleGenres.size === 'number' && _titleGenres.size > 0;
-  const doRender = () => {
-    try { renderMyGenres(); } 
-    catch (e) { console.warn('renderMyGenres failed:', e); }
-  };
-
-  if (haveAnnotations) {
-    doRender();
-  } else {
-    annotateLibraryWithGenres()
-      .then(doRender)
-      .catch(e => console.warn('annotateLibraryWithGenres failed:', e));
-  }
-
-  // accessibility + nudge into view
-  setMyGenresExpanded(true);
-  const section = document.getElementById('myGenresSection');
-  setTimeout(() => section?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-}
-
-function setMyGenresExpanded(expanded) {
-  const btn = document.getElementById('revealMyGenresBtn');
-  if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-}
-
 // Render rows for each genre we actually have
 function renderMyGenres() {
   const wrap = document.getElementById('myGenresWrap');
@@ -1602,7 +1595,7 @@ function renderMyGenres() {
   entries.forEach(([genreName]) => {
     const gid = _slug(genreName);
 
-    // Build block with empty row (we populate only on "Show")
+    // Build block with an empty row (we'll populate immediately)
     const section = document.createElement('div');
     section.className = 'my-genre-block';
     section.innerHTML = `
@@ -1611,14 +1604,17 @@ function renderMyGenres() {
     `;
     wrap.appendChild(section);
 
-    // Attach a sidebar with a SHOW button
+    // Attach an inline title action as REFRESH (no Show state)
     const btn = addSidebarRefresh(
       `myGenreRow_${gid}`,
-      async () => { await myGenresShowOnly(genreName); }, // first click = SHOW
-      'Show',
-      `Show myGenreRow_${gid}`
+      async () => { await myGenresRefresh(genreName); },
+      'Refresh',
+      `Refresh myGenreRow_${gid}`
     );
-    if (btn) setSidebarBtnState(btn, 'show', 'Show', `myGenreRow_${gid}`);
+    if (btn) setSidebarBtnState(btn, 'refresh', 'Refresh', `myGenreRow_${gid}`);
+
+    // Populate the row immediately (like Explore does)
+    _renderMyGenreRow(genreName).catch(e => console.warn('render genre failed:', genreName, e));
   });
 
   // Optional: auto-show the biggest genre first
@@ -1819,9 +1815,17 @@ function createCard(item, isTMDb = false, wishlistTitles = []) {
       }
 
     } else {
-      // Local items: do NOT touch the TMDb Details Preview at all
-      // Just open the episodes list
-      showEpisodesList(item);
+      // Local items: In Available/Recently, fill the TMDb preview only (no episodes list)
+      const inAvailable = card.closest('#availableToWatchSection');
+      const inRecently  = card.closest('#recentlyAddedSection');
+
+      if (inAvailable || inRecently) {
+        showTMDbPreviewByTitle(displayTitle, item.year || "");
+        // do NOT open episodes list here
+      } else {
+        // Other lists keep the original behavior
+        showEpisodesList(item);
+      }
     }
   });
 
@@ -2090,13 +2094,11 @@ function loadLibrary({ force = false, showSkeletons = true } = {}) {
         // but only render the lists after the user clicks “Show My Genres”
         try {
           annotateLibraryWithGenres()
-            .then(() => {
-              if (_myGenresRevealed) {                        // ← gate render
-                try { renderMyGenres(); } 
-                catch (e) { console.warn("renderMyGenres failed:", e); }
-              }
-            })
-            .catch(e => console.warn("annotateLibraryWithGenres failed:", e));
+          .then(() => {
+            try { renderMyGenres(); } 
+            catch (e) { console.warn("renderMyGenres failed:", e); }
+          })
+          .catch(e => console.warn("annotateLibraryWithGenres failed:", e));
         } catch (e) {
           console.warn("annotateLibraryWithGenres scheduling failed:", e);
         }
@@ -2244,18 +2246,18 @@ window.addEventListener("load", () => {
   const app = document.getElementById("appContent");
   const profileModal = document.getElementById("profileModal");
 
-    // Show the app under the loader
-    app.style.display = "block";
-    loadingScreen.style.display = "flex"; // loader visible during preloads
+  // Show the app under the loader
+  app.style.display = "block";
+  loadingScreen.style.display = "flex"; // loader visible during preloads
 
-    // Preload Library + Recently Added while the loader is up
-    Promise.all([ loadLibrary(), loadRecentlyAdded() ])
-      .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
-      .finally(() => {
-        // Preloads done → show profile picker and drop the loader
-        profileModal.classList.add("active");
-        hideLoadingScreen(0);
-      });
+  // Preload Library + Recently Added while the loader is up
+  Promise.all([ loadLibrary(), loadRecentlyAdded() ])
+    .then(() => waitForImagesToLoad(app, { timeoutMs: 2500 }))
+    .finally(() => {
+      // Preloads done → show profile picker and drop the loader
+      profileModal.classList.add("active");
+      hideLoadingScreen(0);
+    });
 
   // Manual profile selection
   document.querySelectorAll(".profile-btn").forEach(btn => {
@@ -2267,50 +2269,52 @@ window.addEventListener("load", () => {
     });
   });
 
-    const switchBtn = document.getElementById("switchProfileBtn");
-    if (switchBtn) {
-      const openPicker = () => {
-        const profileModal = document.getElementById("profileModal");
-        const app = document.getElementById("appContent");
-        if (profileModal) profileModal.classList.add("active"); // show picker
-        if (app) app.style.display = "block";                   // keep app visible
-        // no clearing of localStorage or UI
-      };
-      switchBtn.addEventListener("click", openPicker);
-      switchBtn.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(); }
-      });
-    }
-
-  // NEW: “Explore genres” button
-  const revealBtn = document.getElementById('revealGenresBtn');
-  if (revealBtn) {
-    revealBtn.addEventListener('click', revealAndLoadAllGenres);
+  const switchBtn = document.getElementById("switchProfileBtn");
+  if (switchBtn) {
+    const openPicker = () => {
+      const profileModal = document.getElementById("profileModal");
+      const app = document.getElementById("appContent");
+      if (profileModal) profileModal.classList.add("active"); // show picker
+      if (app) app.style.display = "block";                   // keep app visible
+      // no clearing of localStorage or UI
+    };
+    switchBtn.addEventListener("click", openPicker);
+    switchBtn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(); }
+    });
   }
 
-  // NEW: “Show My Genres” button  ← ADD THESE LINES
-  const myGenresBtn = document.getElementById('revealMyGenresBtn');
-  if (myGenresBtn) {
-    myGenresBtn.addEventListener('click', revealMyGenres);
-  }
+  // My Genres are always visible; reveal + render immediately (part of Available)
+  revealMyGenres();
 
   // == Attach sidebar refresh buttons for all visible lists
   attachAllListSidebars();
 
-  // == Ensure sidebars appear after user reveals hidden genre rows
-  const _origReveal = revealAndLoadAllGenres;
-  window.revealAndLoadAllGenres = async function(...args) {
-    const res = await _origReveal.apply(this, args);
-    attachAllListSidebars(); // rows now exist & are visible
-    return res;
-  };
-
   // 🔥 Prewarm the first Available-to-Watch batch for instant refresh
   prewarmAvailableSample(10);
-
-  // 🔥 Prewarm Explore All so its first refresh is instant
-  prewarmExploreRow('tmdbExploreAllRow', '', 16);
 });
+
+// ✅ Hide Explore group (including Wishlist) by default
+(function hideExploreAtStart() {
+  const EXPLORE_SECTIONS = [
+    // "tmdbDetailsPreview",    // 🔸 no longer hidden with Explore
+    "tmdbExploreAllSection",
+    "tmdbExploreComedySection",
+    "tmdbExploreWesternSection",
+    "tmdbExploreActionSection",
+    "tmdbExploreDramaSection",
+    "tmdbExploreAnimationSection",
+    "tmdbExploreHistorySection",
+    "tmdbExploreScifiSection",
+    "wishlistSection" // 👈 ensure wishlist hides with Explore
+  ];
+  EXPLORE_SECTIONS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+  const tmdbHeader = document.querySelector(".tmdb-title");
+  if (tmdbHeader) tmdbHeader.style.display = "none";
+})();
 
 document.getElementById("searchInput").addEventListener("input", function (e) {
   const query = (e.target.value || "").toLowerCase().trim();
@@ -2340,20 +2344,18 @@ document.getElementById("searchInput").addEventListener("input", function (e) {
 
   if (query === "") {
     // Always restore these
-    ["continueWatchingSection","recentlyAddedSection","availableToWatchSection",
-    "wishlistSection","tmdbDetailsPreview","episodesSection","tmdbExploreAllSection"]
+    ["recentlyAddedSection","availableToWatchSection",
+    "tmdbDetailsPreview","episodesSection","tmdbExploreAllSection"]
       .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "block"; });
 
-    // Only show per-genre sections if user revealed them
-    const genreSections = [
+    // Always show per-genre sections (genres are permanently revealed)
+    [
       "tmdbExploreComedySection","tmdbExploreWesternSection","tmdbExploreActionSection",
       "tmdbExploreDramaSection","tmdbExploreAnimationSection","tmdbExploreHistorySection",
       "tmdbExploreScifiSection"
-    ];
-    genreSections.forEach(id => {
+    ].forEach(id => {
       const el = document.getElementById(id);
-      if (!el) return;
-      el.style.display = _genresRevealed ? "block" : "none";
+      if (el) el.style.display = "block";
     });
 
     // Show the Explore header
@@ -2498,9 +2500,9 @@ function upsertWishlistCard({ title, poster }) {
   `;
   grid.insertBefore(card, grid.firstChild);
 
-  // Ensure section visible
+  // Ensure section visible ONLY when Explore group is active
   const section = document.getElementById('wishlistSection');
-  if (section) section.style.display = 'block';
+  if (section && _activeGroup === 'explore') section.style.display = 'block';
 
   return card;
 }
@@ -2601,9 +2603,9 @@ function renderWishlist(items) {
     grid.appendChild(card);
   });
 
-  // Make sure the section is visible (harmless if already visible)
+  // Only show if Explore group is currently active
   const section = document.getElementById('wishlistSection');
-  if (section) section.style.display = 'block';
+  if (section && _activeGroup === 'explore') section.style.display = 'block';
 }
 function loadWishlist() {
   return new Promise(resolve => {
@@ -2646,7 +2648,9 @@ function renderRecentlyAdded(items) {
       <div class="movie-title">${item.title}</div>
     `;
     card.addEventListener('click', () => {
-      showEpisodesList(item);
+      // Populate TMDb details preview (trailer + overview) only
+      showTMDbPreviewByTitle(item.title || item.name || "", item.year || "");
+      // No episodes list for Recently Added
     });
     grid.appendChild(card);
   });
@@ -2668,7 +2672,9 @@ function buildRecentlyAddedFragment(items) {
       <img src="${item.poster}" alt="${item.title}" loading="lazy" decoding="async">
       <div class="movie-title">${item.title}</div>
     `;
-    card.addEventListener('click', () => showEpisodesList(item));
+    card.addEventListener('click', () => {
+      showTMDbPreviewByTitle(item.title || item.name || "", item.year || "");
+    });
     frag.appendChild(card);
   });
   return frag;
@@ -2877,12 +2883,59 @@ async function fetchTMDbDetails(item, isTV = false) {
   });
 }
 
+/** Given a plain title (and optional year), fetch TMDb details with trailer and fill the preview box */
+function showTMDbPreviewByTitle(title, year) {
+  const preview = document.getElementById("tmdbDetailsPreview");
+  const trailerContainer = document.getElementById("tmdbTrailerContainer");
+  const titleEl = document.getElementById("tmdbDetailsTitle");
+  const dateEl = document.getElementById("tmdbDetailsReleaseDate");
+  const ovEl = document.getElementById("tmdbDetailsOverview");
+
+  if (!preview) return;
+
+  // Optimistic: show box immediately with loading stub
+  preview.style.display = "block";
+  if (trailerContainer) trailerContainer.innerHTML = `<p style="opacity:.8;">Loading trailer…</p>`;
+  if (titleEl) titleEl.textContent = title || "Loading…";
+  if (dateEl) dateEl.innerHTML = "";
+  if (ovEl) ovEl.textContent = "";
+
+  google.script.run
+    .withSuccessHandler((data) => {
+      if (!data || data.error) {
+        if (trailerContainer) trailerContainer.innerHTML = `<p><em>No trailer available.</em></p>`;
+        if (titleEl) titleEl.textContent = title || "Unknown";
+        if (dateEl) dateEl.innerHTML = "";
+        if (ovEl) ovEl.textContent = "We could not load details from TMDb.";
+        return;
+      }
+
+      const trailer = (data.videos?.results || []).find(v => v.type === "Trailer" && v.site === "YouTube");
+      if (trailerContainer) {
+        trailerContainer.innerHTML = trailer
+          ? `<iframe id="tmdbTrailerFrame" src="https://www.youtube.com/embed/${trailer.key}"
+               sandbox="allow-same-origin allow-scripts allow-presentation allow-popups allow-forms"
+               allowfullscreen style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`
+          : `<p><em>No trailer available.</em></p>`;
+      }
+
+      const titleText = data.name || data.title || (title || "Unknown");
+      if (titleEl) titleEl.textContent = titleText;
+      if (dateEl) dateEl.innerHTML = `<strong>Release Date:</strong> ${data.first_air_date || data.release_date || "N/A"}`;
+      if (ovEl) ovEl.textContent = data.overview || "No overview available.";
+    })
+    .withFailureHandler(() => {
+      if (trailerContainer) trailerContainer.innerHTML = `<p><em>No trailer available.</em></p>`;
+      if (titleEl) titleEl.textContent = title || "Unknown";
+      if (dateEl) dateEl.innerHTML = "";
+      if (ovEl) ovEl.textContent = "We could not load details from TMDb.";
+    })
+    .getTMDbDetailsByTitle(title, year || "");
+}
+
 const GENRES = { 
   comedy:'35', western:'37', action:'28', drama:'18', animation:'16', history:'36', scifi:'878' 
 };
-
-// NEW: track if user has revealed the per-genre lists
-let _genresRevealed = false;
 
 // NEW: load only the "Explore All" row
 async function loadExploreAllRow() {
@@ -2998,38 +3051,6 @@ async function fetchMixedTopRated(genreId, count = 12) {
   return shuffleArray(merged).slice(0, count);
 }
 
-async function revealAndLoadAllGenres() {
-  if (_genresRevealed) return;
-  _genresRevealed = true;
-
-  const btnWrap = document.getElementById('revealGenresWrap');
-  if (btnWrap) btnWrap.style.display = 'none';
-
-  // Show each genre section title, but keep the row empty
-  GENRE_ROWS.forEach(({ sectionId, rowId }) => {
-    const sectionEl = document.getElementById(sectionId);
-    if (sectionEl) sectionEl.style.display = 'block';
-
-    const rowEl = document.getElementById(rowId);
-    if (rowEl) {
-      rowEl.classList.remove('is-refreshing');
-      rowEl.innerHTML = ''; // ← titles hidden until user clicks "Show"
-    }
-  });
-
-  // 🔥 Prewarm each genre once so the first refresh after "Show" is instant
-  prewarmExploreRow('tmdbExploreComedyRow',    GENRES.comedy,    16);
-  prewarmExploreRow('tmdbExploreWesternRow',   GENRES.western,   16);
-  prewarmExploreRow('tmdbExploreActionRow',    GENRES.action,    16);
-  prewarmExploreRow('tmdbExploreDramaRow',     GENRES.drama,     16);
-  prewarmExploreRow('tmdbExploreAnimationRow', GENRES.animation, 16);
-  prewarmExploreRow('tmdbExploreHistoryRow',   GENRES.history,   16);
-  prewarmExploreRow('tmdbExploreScifiRow',     GENRES.scifi,     16);
-
-  // Ensure “Show” sidebars exist
-  attachAllListSidebars();
-}
-
 // Make sure we have at least `need` items cached for this row
 async function ensureExploreBuffer(rowId, genre, need = 10) {
   let st = exploreState.get(rowId);
@@ -3071,68 +3092,6 @@ function appendExploreItems(rowEl, rowId, count = 5) {
   st.loaded = end;
 }
 
-/* ---- LIST SIDEBAR REFRESH (helpers) ---- */
-/**
- * Wrap a scroll container in a two‑column layout and attach a sidebar refresh button.
- * @param {string} gridId  - the list’s scroll container id
- * @param {Function} onClick - handler to refresh just this list
- * @param {string} [label='Refresh']
- * @param {string} [ariaLabel]
- */
-function addSidebarRefresh(gridId, onClick, label = 'Refresh', ariaLabel) {
-  const grid = document.getElementById(gridId);
-  if (!grid) return null;
-  if (grid._sidebarAttached) return grid._sidebarBtn || null;
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'list-row';
-  grid.parentNode.insertBefore(wrapper, grid);
-
-  const side = document.createElement('div');
-  side.className = 'list-sidebar';
-  wrapper.appendChild(side);
-
-  wrapper.appendChild(grid);
-
-  const btn = document.createElement('div');
-  btn.className = 'nav-item';
-  btn.role = 'button';
-  btn.tabIndex = 0;
-  btn.setAttribute('aria-label', ariaLabel || `Refresh ${gridId}`);
-  btn.innerHTML = `<i class="fa-solid fa-rotate"></i><span>${label}</span>`;
-  side.appendChild(btn);
-
-  // dynamic handler we can swap later
-  btn._dynamicHandler = onClick;
-
-  let busy = false;
-  const doClick = async () => {
-    if (busy) return;
-    busy = true;
-    btn.setAttribute('aria-busy','true');
-    try {
-      if (typeof btn._dynamicHandler === 'function') {
-        await btn._dynamicHandler();
-      }
-    } finally {
-      busy = false;
-      btn.removeAttribute('aria-busy');
-    }
-  };
-
-  btn.addEventListener('click', doClick);
-  btn.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doClick(); }
-  });
-
-  grid._sidebarAttached = true;
-  grid._sidebarBtn = btn;
-  return btn;
-}
-
-// Track which genre section is currently shown
-let _currentShownGenre = null;
-
 // SINGLE SOURCE OF TRUTH: genre sections/rows
 const GENRE_ROWS = [
   { sectionId:'tmdbExploreComedySection',    rowId:'tmdbExploreComedyRow',    genre: GENRES.comedy,    label:'Comedy' },
@@ -3143,6 +3102,42 @@ const GENRE_ROWS = [
   { sectionId:'tmdbExploreHistorySection',   rowId:'tmdbExploreHistoryRow',   genre: GENRES.history,   label:'History' },
   { sectionId:'tmdbExploreScifiSection',     rowId:'tmdbExploreScifiRow',     genre: GENRES.scifi,     label:'Sci-Fi' }
 ];
+
+/* Build Explore data/rows in the background WITHOUT changing visibility */
+async function buildExploreInBackground() {
+  // Fill “Explore All” first (mixed)
+  try { await initExploreRow('', 'tmdbExploreAllRow'); } catch(e) { console.warn(e); }
+
+  // Then prebuild each genre row (sections remain hidden by showAvailableGroup)
+  await Promise.all(GENRE_ROWS.map(cfg => initExploreRow(cfg.genre, cfg.rowId).catch(() => {})));
+
+  // Optionally prewarm next batches so showing Explore later is instant
+  prewarmExploreRow('tmdbExploreAllRow', '', 16);
+  GENRE_ROWS.forEach(cfg => prewarmExploreRow(cfg.rowId, cfg.genre, 16));
+}
+
+async function showAllGenresAlways() {
+  // Ensure every genre section is visible
+  GENRE_ROWS.forEach(({ sectionId }) => {
+    const sec = document.getElementById(sectionId);
+    if (sec) sec.style.display = 'block';
+  });
+
+  // Prime each row with its first batch of titles
+  await Promise.all(
+    GENRE_ROWS.map(cfg => initExploreRow(cfg.genre, cfg.rowId))
+  );
+
+  // Prewarm next batches so refresh feels instant
+  prewarmExploreRow('tmdbExploreAllRow',       '',               16);
+  prewarmExploreRow('tmdbExploreComedyRow',    GENRES.comedy,    16);
+  prewarmExploreRow('tmdbExploreWesternRow',   GENRES.western,   16);
+  prewarmExploreRow('tmdbExploreActionRow',    GENRES.action,    16);
+  prewarmExploreRow('tmdbExploreDramaRow',     GENRES.drama,     16);
+  prewarmExploreRow('tmdbExploreAnimationRow', GENRES.animation, 16);
+  prewarmExploreRow('tmdbExploreHistoryRow',   GENRES.history,   16);
+  prewarmExploreRow('tmdbExploreScifiRow',     GENRES.scifi,     16);
+}
 
 // Button visual modes
 function setSidebarBtnState(btn, mode = 'show', labelText = 'Show', rowId = '') {
@@ -3156,46 +3151,10 @@ function setSidebarBtnState(btn, mode = 'show', labelText = 'Show', rowId = '') 
   }
 }
 
-// Makes only the chosen genre list populated (others keep their headings but no titles)
-async function showOnlyGenre(cfg) {
-  // 1) Clear titles (not the headers) for all other genre rows + set their buttons to "Show"
-  GENRE_ROWS.forEach(other => {
-    if (other.rowId === cfg.rowId) return;
-    const grid = document.getElementById(other.rowId);
-    if (grid) grid.innerHTML = ''; // hide titles only
-    const otherBtn = grid? grid._sidebarBtn : null;
-    if (otherBtn) {
-      setSidebarBtnState(otherBtn, 'show', 'Show', other.rowId);
-      // When in SHOW mode: clicking loads only that list
-      otherBtn._dynamicHandler = async () => { await showOnlyGenre(other); };
-    }
-  });
-
-  // 2) Ensure the chosen row is populated; if empty, load it; if cached, render from cache
-  const grid = document.getElementById(cfg.rowId);
-  if (!grid) return;
-
-  if (grid.children.length === 0) {
-    // First time: init row (fills exploreState + cache)
-    await initExploreRow(cfg.genre, cfg.rowId);
-  } else {
-    // Already has cards; no-op (you wanted it to just be the active one)
-  }
-
-  // 3) Switch the chosen button to "Refresh" behavior
-  const btn = grid._sidebarBtn;
-  if (btn) {
-    setSidebarBtnState(btn, 'refresh', 'Refresh', cfg.rowId);
-    // When in REFRESH mode: clicking refreshes the active list (smooth)
-    btn._dynamicHandler = async () => { await refreshExploreRowSmooth(cfg.rowId, cfg.genre); };
-  }
-}
-
 /* === Inline title actions (replace the old sidebar column) ================= */
 
 function _findTitleForGrid(grid) {
   if (!grid) return null;
-  // common pattern in your markup: <h2/h3.subsection-title> right before the grid
   const prev = grid.previousElementSibling;
   if (prev && (prev.classList?.contains('subsection-title') || prev.classList?.contains('section-title') || prev.classList?.contains('tmdb-title'))) {
     return prev;
@@ -3321,47 +3280,30 @@ function attachAllListSidebars() {
     'Refresh Wishlist'
   );
 
-    // Explore — All (sidebar button should REFRESH like the others)
+    // Explore — All (always available; simple refresh)
     addSidebarRefresh(
       'tmdbExploreAllRow',
       async () => {
-        // Hide any shown per-genre section
-        if (_currentShownGenre) {
-          const prev = document.getElementById(_currentShownGenre.sectionId);
-          if (prev) prev.style.display = 'none';
-          _currentShownGenre = null;
-        }
-
-        // Ensure the section is visible
-        const sec = document.getElementById('tmdbExploreAllSection');
-        if (sec) sec.style.display = 'block';
-
         const row = document.getElementById('tmdbExploreAllRow');
-
-        // Init once if empty
         if (row && row.children.length === 0) {
           row.classList.add('is-refreshing');
           try { await initExploreRow('', 'tmdbExploreAllRow'); }
           finally { row.classList.remove('is-refreshing'); }
         }
-
-        // 🔁 Actual refresh
         await refreshExploreRowSmooth('tmdbExploreAllRow', '');
-        // ❌ removed sec?.scrollIntoView(...) to stop jump
       },
       'Refresh',
       'Refresh Explore All'
     );
 
-  // Explore — per-genre rows: use "Show" first
   GENRE_ROWS.forEach(cfg => {
     const btn = addSidebarRefresh(
       cfg.rowId,
-      async () => { await showOnlyGenre(cfg); },
-      'Show',
-      `Show ${cfg.rowId}`
+      async () => { await refreshExploreRowSmooth(cfg.rowId, cfg.genre); },
+      'Refresh',
+      `Refresh ${cfg.rowId}`
     );
-    if (btn) setSidebarBtnState(btn, 'show', 'Show', cfg.rowId);
+    if (btn) setSidebarBtnState(btn, 'refresh', 'Refresh', cfg.rowId);
   });
 }
 
@@ -3391,39 +3333,30 @@ waitForImagesToLoad(document.getElementById('appContent')).then(() => {
 
 const exploreBtn = document.getElementById("mobileExploreRefresh");
 if (exploreBtn) {
-  exploreBtn.addEventListener("click", async () => {
-    if (exploreBtn.dataset.busy === "1") return; // debounce
-    try {
-      exploreBtn.dataset.busy = "1";
-      exploreBtn.setAttribute("aria-busy", "true");
-      if (_genresRevealed) {
-        // Smooth refresh each visible genre row
-        await refreshExploreRowSmooth('tmdbExploreComedyRow',    GENRES.comedy);
-        await refreshExploreRowSmooth('tmdbExploreWesternRow',   GENRES.western);
-        await refreshExploreRowSmooth('tmdbExploreActionRow',    GENRES.action);
-        await refreshExploreRowSmooth('tmdbExploreDramaRow',     GENRES.drama);
-        await refreshExploreRowSmooth('tmdbExploreAnimationRow', GENRES.animation);
-        await refreshExploreRowSmooth('tmdbExploreHistoryRow',   GENRES.history);
-        await refreshExploreRowSmooth('tmdbExploreScifiRow',     GENRES.scifi);
-      } else {
-        // Only the “All” row is visible
-        await refreshExploreRowSmooth('tmdbExploreAllRow', '');
-      }
-    console.log("Explore lists refreshed (smooth)");
-    } finally {
-      exploreBtn.dataset.busy = "0";
-      exploreBtn.removeAttribute("aria-busy");
-    }
+  const run = () => { showExploreGroup(); };
+  exploreBtn.addEventListener("click", run);
+  exploreBtn.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); run(); }
   });
 }
 
-// --- Refresh: Available to Watch (always pull fresh 10 from Drive) ---
 const availBtn = document.getElementById("mobileAvailableRefresh");
-availBtn.addEventListener("click", async () => {
-  const grid = document.getElementById('availableToWatchGrid');
-  await withSeamlessOverlay(grid, () => refreshAvailableToWatch({ force: true }));
-  console.log("Available to Watch reloaded (fresh 10)");
-});
+if (availBtn) {
+  const run = () => { showAvailableGroup(); };
+  availBtn.addEventListener("click", run);
+  availBtn.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); run(); }
+  });
+}
+
+if (availBtn) {
+  availBtn.setAttribute("aria-label", "Available");
+  availBtn.innerHTML = '<i class="fa-solid fa-eye"></i><span>Available</span>';
+}
+if (exploreBtn) {
+  exploreBtn.setAttribute("aria-label", "Explore");
+  exploreBtn.innerHTML = '<i class="fa-solid fa-eye"></i><span>Explore</span>';
+}
 
 let libraryLoaded = false;
 </script>
