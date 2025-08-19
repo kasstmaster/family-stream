@@ -774,7 +774,8 @@ function syncWishlistStatusWithDrive() {
 
   // Get titles from Drive (both Movies and TV)
   const libraryData = getLibraryData(); // returns { movies: [], tv: [] }
-  const driveTitles = [...libraryData.movies, ...libraryData.tv];
+  // merge both arrays into one list
+  const driveTitles = [...(libraryData.movies || []), ...(libraryData.tv || [])];
 
   // Track updates
   const statusUpdates = [];
