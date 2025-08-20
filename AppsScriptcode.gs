@@ -1044,6 +1044,189 @@ function getWishlistAllWithStatus() {
   }));
 }
 
+// Place directly under function getWishlistAllWithStatus() { ... }
+function getLibraryFromSheet() {
+  const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID'); // uses your helper
+  const ss = SpreadsheetApp.openById(sheetId);
+  const sh = ss.getSheetByName('Titles');
+  if (!sh) throw new Error('Titles sheet not found');
+
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return { movies: [], tv: [] };
+
+  // A: Title | B: Status | C: Poster | D: Type | E: File IDs / Episodes | F: Last Updated
+  const data = sh.getRange(2, 1, lastRow - 1, 6).getValues();
+
+  const makeEpisodes = (csv) => {
+    const ids = String(csv || '').split(',').map(s => s.trim()).filter(Boolean);
+    return ids.map(id => ({ title: '', url: `https://drive.google.com/file/d/${id}/preview` }));
+  };
+
+  const out = { movies: [], tv: [] };
+
+  data.forEach(row => {
+    const [title, status, poster, type, filesCsv] = row;
+    if (String(status || '').trim().toLowerCase() !== 'available') return;
+
+    const entry = {
+      title: String(title || '').trim(),
+      poster: String(poster || ''),
+      type: String(type || '').trim(),        // 'movie' | 'tv' | 'movie-series'
+      episodes: makeEpisodes(filesCsv)
+    };
+
+    const bucket = (entry.type === 'tv') ? 'tv' : 'movies';
+    out[bucket].push(entry);
+  });
+
+  return out;
+}
+
+/**
+ * Poll Drive for items modified since LAST_DRIVE_CHECK_ISO (script property)
+ * and append ONE new row per Title to the "Titles" sheet.
+ *
+ * Requires script properties:
+ *  - ROOT_FOLDER_ID       : the Drive folder you keep your library in
+ *  - WISHLIST_SHEET_ID    : your spreadsheet id (already used elsewhere)
+ *
+ * Columns in "Titles":
+ *  A: Title | B: Status | C: Poster | D: Type | E: File IDs (comma) | F: Last Updated
+ */
+function pollDriveForNewTitles() {
+  const props = PropertiesService.getScriptProperties();
+  const rootId = getScriptPropertyOrThrow('ROOT_FOLDER_ID');      // <-- set this in Project Settings > Script properties
+  const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID');  // you already have this set
+
+  // Default to “24h ago” the first time
+  const fallback = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const sinceIso = props.getProperty('LAST_DRIVE_CHECK_ISO') || fallback;
+  const since = new Date(sinceIso);
+
+  const ss = SpreadsheetApp.openById(sheetId);
+  const sh = ss.getSheetByName('Titles') || ss.insertSheet('Titles');
+
+  // Build a set of existing normalized titles that are already Available
+  const lastRow = sh.getLastRow();
+  const have = new Set();
+  if (lastRow >= 2) {
+    const vals = sh.getRange(2, 1, lastRow - 1, 2).getValues(); // A:Title, B:Status
+    vals.forEach(([title, status]) => {
+      if (String(status || '').toLowerCase().trim() === 'available') {
+        have.add(_norm_(title));
+      }
+    });
+  }
+
+  // Scan only within your root folder, and only for recently modified video-like files
+  const root = DriveApp.getFolderById(rootId);
+  // RFC3339 without trailing Z is accepted; Drive ignores timezone in simple queries here.
+  const ts = since.toISOString().replace('Z', '');
+  const query =
+    "modifiedDate > '" + ts + "' and trashed = false and " +
+    "(" +
+      "mimeType contains 'video/' or " +
+      "mimeType = 'application/vnd.google-apps.folder'" +
+    ")";
+
+  // Group new files by their parent folder name = Title
+  const byTitle = new Map();
+  const it = root.searchFiles(query);
+  while (it.hasNext()) {
+    const f = it.next();
+    if (f.isTrashed()) continue;
+
+    // Determine title from immediate parent folder under root (fallback to file name)
+    let parentTitle = '';
+    let p = f.getParents();
+    let parent = p.hasNext() ? p.next() : null;
+    if (parent) parentTitle = parent.getName();
+
+    const title = (parentTitle || f.getName() || '').trim();
+    if (!title) continue;
+
+    // Skip if already in sheet as Available
+    if (have.has(_norm_(title))) continue;
+
+    // Accumulate file IDs per title
+    const rec = byTitle.get(title) || {
+      title,
+      fileIds: new Set(),
+      type: guessTypeFromTopLevel_(root, parent), // 'movie' or 'tv'
+      poster: '' // optional: can fill later
+    };
+
+    // Only collect real files (ignore folders in the fileId list)
+    if (f.getMimeType() !== MimeType.FOLDER) {
+      rec.fileIds.add(f.getId());
+    }
+
+    byTitle.set(title, rec);
+  }
+
+  // Append ONE row per title not already “Available”
+  const now = new Date();
+  let added = 0;
+  if (byTitle.size) {
+    const rows = [];
+    for (const rec of byTitle.values()) {
+      const idsCsv = Array.from(rec.fileIds).join(',');
+      // Don’t add empty rows (e.g., only a folder changed)
+      if (!idsCsv) continue;
+
+      rows.push([
+        rec.title,
+        'Available',
+        rec.poster,             // can stay blank; UI still renders fine
+        rec.type || 'movie',
+        idsCsv,
+        now
+      ]);
+      added++;
+    }
+    if (rows.length) {
+      // Ensure header exists
+      if (sh.getLastRow() === 0) {
+        sh.appendRow(['Title','Status','Poster','Type','File IDs','Last Updated']);
+      }
+      sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+    }
+  }
+
+  // Move the watermark so the next run only looks forward
+  props.setProperty('LAST_DRIVE_CHECK_ISO', new Date().toISOString());
+
+  return { checkedSince: sinceIso, added };
+}
+
+/** normalize like the client does */
+function _norm_(s) {
+  return String(s || '').replace(/\u00A0/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * Guess type from the top-level folder under ROOT:
+ * if parent is inside a folder named "TV" (case-insensitive) → 'tv', else 'movie'
+ */
+function guessTypeFromTopLevel_(rootFolder, immediateParent) {
+  try {
+    if (!immediateParent) return 'movie';
+    // Walk up until we hit the provided ROOT folder
+    let cur = immediateParent;
+    while (cur && cur.getId() !== rootFolder.getId()) {
+      const parents = cur.getParents();
+      if (!parents.hasNext()) break;
+      const next = parents.next();
+      if (next.getId() === rootFolder.getId()) {
+        const name = String(cur.getName() || '').toLowerCase();
+        return name.includes('tv') ? 'tv' : 'movie';
+      }
+      cur = next;
+    }
+  } catch (_) {}
+  return 'movie';
+}
+
 function syncWishlistStatusWithDrive() {
   const sheetId = getScriptPropertyOrThrow('WISHLIST_SHEET_ID');
   const ss = SpreadsheetApp.openById(sheetId);
@@ -1051,61 +1234,105 @@ function syncWishlistStatusWithDrive() {
   if (!sheet) throw new Error("Titles sheet not found");
 
   const lastRow = sheet.getLastRow();
-  const data = lastRow < 2 ? [] : sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+  const rows = lastRow < 2 ? [] : sheet.getRange(2, 1, lastRow - 1, 6).getValues();
 
-  // Build a map of existing titles in the sheet (lowercased)
-  const sheetMap = new Map();
-  data.forEach((row, i) => {
-    const title = row[0]?.toLowerCase().trim();
-    if (title) {
-      sheetMap.set(title, {
-        row: i + 2,
-        status: row[1],
-        poster: row[2]
-      });
-    }
+  // Build an index of ALL rows per normalized title (to handle duplicates)
+    const titleIndex = new Map(); // key -> [rowNums...]
+  function normalize(s) {
+    return String(s || '')
+      .replace(/\u00A0/g, ' ')          // NBSP → space
+      .replace(/\s*\([^)]*\)\s*/g, ' ') // drop things like " (2002)" or any (...) chunk
+      .replace(/[^a-z0-9 ]+/gi, ' ')    // remove punctuation/symbols
+      .replace(/\s+/g, ' ')             // collapse spaces
+      .trim()
+      .toLowerCase();
+  }
+
+  rows.forEach((r, i) => {
+    const t = normalize(r[0]);
+    if (!t) return;
+    const rowNum = i + 2; // account for header row
+    if (!titleIndex.has(t)) titleIndex.set(t, []);
+    titleIndex.get(t).push(rowNum);
   });
 
-  // Get titles from Drive (both Movies and TV)
-  const libraryData = getLibraryData(); // returns { movies: [], tv: [] }
-  // merge both arrays into one list
-  const driveTitles = [...(libraryData.movies || []), ...(libraryData.tv || [])];
+  // Pick a single "primary" row for updates:
+  // 1) Prefer Status=Available; 2) otherwise first row for that title
+  function pickPrimaryRow(titleKey) {
+    const list = titleIndex.get(titleKey) || [];
+    if (!list.length) return 0;
+    for (const r of list) {
+      const status = String(sheet.getRange(r, 2).getValue() || '').trim().toLowerCase();
+      if (status === 'available') return r;
+    }
+    return list[0];
+  }
 
-  // Track updates
-  const statusUpdates = [];
-  const posterUpdates = [];
+  // Pull current library (Drive scan once)
+  const library = getLibraryData(); // {movies:[], tv:[]}
+  const driveItems = [...(library.movies || []), ...(library.tv || [])];
 
-  driveTitles.forEach(item => {
-    const titleKey = item.title.toLowerCase().trim();
-    const poster = item.poster;
+  // Track which row became the primary for each title so we can delete the others
+  const chosenPrimary = new Map(); // titleKey -> rowNum
 
-    if (sheetMap.has(titleKey)) {
-      const existing = sheetMap.get(titleKey);
+  // Update / insert
+  driveItems.forEach(item => {
+    const title = String(item.title || '').trim();
+    const titleKey = normalize(title);
+    const poster = item.poster || '';
+    const type = String(item.type || '').trim(); // 'movie','tv','movie-series'
+    const filesCsv = (item.episodes || [])
+      .map(ep => String(ep.url || '').replace(/^.*\/d\/(.*?)\/.*$/, '$1'))
+      .filter(Boolean)
+      .join(',');
+    const nowIso = new Date().toISOString();
 
-      // Update status if needed
-      if (existing.status !== "Available") {
-        statusUpdates.push({ row: existing.row, status: "Available" });
-      }
+    // which row should be authoritative?
+    let row = pickPrimaryRow(titleKey);
 
-      // Update poster if different
-      if (existing.poster !== poster) {
-        posterUpdates.push({ row: existing.row, poster });
-      }
+    if (row) {
+      sheet.getRange(row, 1).setValue(title);
+      sheet.getRange(row, 2).setValue('Available');
+      sheet.getRange(row, 3).setValue(poster);
+      sheet.getRange(row, 4).setValue(type);
+      sheet.getRange(row, 5).setValue(filesCsv);
+      sheet.getRange(row, 6).setValue(nowIso);
     } else {
-      // Not in sheet — add it
-      sheet.appendRow([item.title, "Available", poster]);
+      sheet.appendRow([title, 'Available', poster, type, filesCsv, nowIso]);
+      row = sheet.getLastRow();
+      if (!titleIndex.has(titleKey)) titleIndex.set(titleKey, []);
+      titleIndex.get(titleKey).push(row);
     }
+
+    chosenPrimary.set(titleKey, row);
   });
 
-  // Apply status updates
-  statusUpdates.forEach(update => {
-    sheet.getRange(update.row, 2).setValue(update.status);
-  });
+  // --- NEW: also remove rows marked Available that are NOT found in Drive this run
+  // Build the set of titles we actually saw in Drive during this sync
+  const driveSeen = new Set(Array.from(chosenPrimary.keys()));
 
-  // Apply poster updates
-  posterUpdates.forEach(update => {
-    sheet.getRange(update.row, 3).setValue(update.poster);
-  });
+  const toDeleteNotFound = [];
+  for (const [titleKey, rowsArr] of titleIndex.entries()) {
+    if (driveSeen.has(titleKey)) continue; // present in Drive → keep (handled below)
+    // Title not seen in Drive: delete rows only if Status=Available (leave Wishlist alone)
+    for (const r of rowsArr) {
+      const status = String(sheet.getRange(r, 2).getValue() || '').trim().toLowerCase();
+      if (status === 'available') toDeleteNotFound.push(r);
+    }
+  }
+  toDeleteNotFound.sort((a, b) => b - a);
+  toDeleteNotFound.forEach(r => sheet.deleteRow(r));
+
+  // --- Keep one row per title we DID match from Drive (duplicate collapse)
+  const toDeleteDupes = [];
+  for (const [titleKey, rowsArr] of titleIndex.entries()) {
+    if (!rowsArr || rowsArr.length <= 1) continue;
+    const keep = chosenPrimary.get(titleKey);
+    if (!keep) continue; // not matched from Drive → skip duplicate cleanup
+    rowsArr.forEach(r => { if (r !== keep) toDeleteDupes.push(r); });
+  }
+  toDeleteDupes.sort((a, b) => b - a);
+  toDeleteDupes.forEach(r => sheet.deleteRow(r));
 }
 
 function getDiscoverByGenreTypeProviders(type, page, region, genreId) {
