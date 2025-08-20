@@ -19,22 +19,36 @@
 <meta name="theme-color" content="#111111">
 
 <style>
-body {
+  :root{
+    --bg:#111111;
+    --text:#ffffff;
+    --muted:#bbbbbb;
+    --btn:#ffffff;
+    --btnText:#111111;
+    --btnBorder:#2a2a2a;
+    --btnHover:#e6e6e6;
+    --btn2:#1f6feb; /* subtle blue for secondary button */
+    --btn2Text:#ffffff;
+    --btn2Hover:#1a60d0;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
     font-family: Arial, sans-serif;
-    background-color: #111111;
-    color: #fff;
+    background-color: var(--bg);
+    color: var(--text);
     text-align: center;
     margin: 0;
     padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    overflow: hidden; /* ✅ Prevents scroll bar */
-    cursor: pointer;
-}
+    min-height: 100vh;
+    overflow: hidden; /* keeps it centered like before */
+  }
 
-#overlay {
+  #overlay {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -42,80 +56,99 @@ body {
     text-align: center;
     width: 100%;
     max-width: 90%;
+    padding: 0 16px;
     box-sizing: border-box;
-    padding: 0;
-}
+    gap: 16px;
+  }
 
-#overlay img.icon {
+  #overlay img.icon {
     display: block;
-    margin: 16px auto;
-    max-width: 250px;
+    margin: 8px auto 0;
+    max-width: 260px;
     width: 100%;
     height: auto;
-}
+  }
 
-#overlay h1 {
+  /* Optional tagline style (kept in case you add text later) */
+  #overlay h1 {
     font-size: 30px;
-    margin: 0 0 10px;
+    margin: 0 0 6px;
     font-family: 'Playfair Display', serif;
     font-weight: 400;
-}
+  }
 
-#overlay h2 {
-    font-size: 20px;
-    margin: 0;
-    font-weight: normal;
-    animation: blinkText 1.2s infinite;
-}
-
-@keyframes blinkText {
-    0%, 49% { opacity: 1; }
-    50%, 100% { opacity: 0; }
-}
-
-#overlay p {
+  #overlay p {
     font-size: 16px;
-    color: #bbb;
-}
+    color: var(--muted);
+    margin: 0;
+  }
 
-#overlay img.icon {
-    display: block;
-    margin: 16px auto;
-    max-width: 250px;
+  /* Buttons container */
+  .cta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     width: 100%;
-    height: auto;
-}
+    max-width: 340px;
+    margin-top: 6px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--btnBorder);
+    background: var(--btn);
+    color: var(--btnText);
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+    will-change: transform;
+  }
+  .btn:hover { background: var(--btnHover); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn.secondary {
+    background: var(--btn2);
+    color: var(--btn2Text);
+    border-color: transparent;
+  }
+  .btn.secondary:hover { background: var(--btn2Hover); }
+
+  /* Reduce spacing on very small screens */
+  @media (max-width: 360px) {
+    #overlay img.icon { max-width: 220px; }
+    .btn { padding: 12px 14px; font-size: 15px; }
+  }
 </style>
 </head>
-<body style="margin:0; padding:0;">
+<body>
   <div id="overlay">
-    <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="Overlay Image">
-    <h2 id="tap-text">Tap Anywhere</h2>
+    <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
+
+    <div class="cta" role="group" aria-label="Primary actions">
+      <a class="btn" href="https://media.ilymmd.com/" aria-label="Stream Now on media.ilymmd.com">Stream Now</a>
+      <a class="btn secondary" href="https://script.google.com/macros/s/AKfycbxMvTNTrB4yysyF-xzEnpFTnKsrPH8wByLtoNCWVgPJjkp0twAtlUeEF_-AuzACkeYQ/exec" aria-label="Explore More">Explore More</a>
+    </div>
   </div>
 
-<script>
-  document.body.addEventListener('click', function() {
-    // Change text to "Loading..."
-    const tapText = document.getElementById('tap-text');
-    tapText.textContent = 'Loading...';
-    tapText.style.animation = 'none'; // Stop blinking effect
-    // Redirect after small delay
-    setTimeout(() => {
-      window.location.href = 'https://media.ilymmd.com/';
-    }, 300); // 0.3 second delay for feedback
-  });
-</script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(function (registration) {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, function (err) {
-          console.log('ServiceWorker registration failed: ', err);
-        });
-    });
-  }
-</script>
+  <!-- Service worker (unchanged) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function (registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function (err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      });
+    }
+  </script>
 </body>
 </html>
