@@ -1,76 +1,94 @@
-// Versioned cache name (bump this to clear old caches)
-const CACHE_NAME = "fs-v4";
+// ==== ILYMMD+ Service Worker ====
+// Bump this to invalidate all old cached assets
+const CACHE_NAME = "fs-v5";
 
-// Regex patterns for files we do NOT want to cache
+// Files we NEVER cache (always fetch fresh)
 const NO_CACHE_PATTERNS = [
   /\/manifest\.json(\?.*)?$/,
   /\/apple-touch-icon(\.[^?]+)?(\?.*)?$/,
   /\/favicon(\.[^?]+)?(\?.*)?$/,
-  /\/web-app-manifest-\d+x\d+\.png(\?.*)?$/
+  /\/web-app-manifest-\d+x\d+\.png(\?.*)?$/ // 192x192, 512x512, etc.
 ];
 
-// Install step
+// --- Install ---
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate step
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((key) => key !== CACHE_NAME && caches.delete(key)))
-    ).then(() => self.clients.claim())
-  );
-});
-
-// Fetch handler
-self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-
-  // Check if request matches NO_CACHE_PATTERNS
-  const dontCache = NO_CACHE_PATTERNS.some((re) =>
-    re.test(url.pathname + url.search)
-  );
-
-  if (dontCache) {
-    // Always fetch fresh for icons/manifest
-    event.respondWith(fetch(event.request, { cache: "reload" }));
-    return;
-  }
-
-  // Default: cache-first with network fallback
-  event.respondWith(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      const cached = await cache.match(event.request);
-      if (cached) {
-        // Return cached response, update in background
-        event.waitUntil(
-          fetch(event.request).then((res) => {
-            if (res && res.ok && res.type === "basic") {
-              cache.put(event.request, res.clone());
-            }
-          })
-        );
-        return cached;
-      }
-      // Otherwise go to network and cache it
-      return fetch(event.request).then((res) => {
-        if (res && res.ok && res.type === "basic") {
-          cache.put(event.request, res.clone());
-        }
-        return res;
-      });
-    })
-  );
-});
-
-// After activation, nudge all client pages to reload once
+// --- Activate ---
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
+    // Delete old caches
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => key !== CACHE_NAME && caches.delete(key)));
+
+    // Optional: enable navigation preload (faster first hit on Chrome)
+    if ("navigationPreload" in self.registration) {
+      try { await self.registration.navigationPreload.enable(); } catch (_) {}
+    }
+
+    // Take control immediately
+    await self.clients.claim();
+
+    // Tell all pages to reload once (so users pick up new assets)
     const clientsArr = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const client of clientsArr) {
       client.postMessage({ type: "SW_ACTIVATED_RELOAD" });
     }
-    await self.clients.claim();
+  })());
+});
+
+// --- Fetch ---
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+
+  // Only handle GET requests
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+  const sameOrigin = url.origin === self.location.origin;
+
+  // Never cache manifest/icons: always fetch fresh
+  const dontCache = NO_CACHE_PATTERNS.some((re) => re.test(url.pathname + url.search));
+  if (dontCache) {
+    event.respondWith(fetch(req, { cache: "reload" }));
+    return;
+  }
+
+  // For cross-origin (fonts, CDNs, etc.), just go to network
+  if (!sameOrigin) {
+    event.respondWith(fetch(req));
+    return;
+  }
+
+  // Cache-first with background refresh for same-origin GETs
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(req);
+
+    if (cached) {
+      // Update in the background
+      event.waitUntil((async () => {
+        try {
+          const fresh = await fetch(req);
+          if (fresh && fresh.ok && fresh.type === "basic") {
+            await cache.put(req, fresh.clone());
+          }
+        } catch (_) { /* swallow */ }
+      })());
+      return cached;
+    }
+
+    // No cache: fetch and cache
+    try {
+      const resp = await fetch(req);
+      if (resp && resp.ok && resp.type === "basic") {
+        await cache.put(req, resp.clone());
+      }
+      return resp;
+    } catch (err) {
+      // Optional: return a fallback page/asset here if you have one
+      return caches.match("/offline.html") || new Response("Offline", { status: 503 });
+    }
   })());
 });
