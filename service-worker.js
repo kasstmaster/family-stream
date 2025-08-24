@@ -63,3 +63,14 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+// After activation, nudge all client pages to reload once
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const clientsArr = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of clientsArr) {
+      client.postMessage({ type: "SW_ACTIVATED_RELOAD" });
+    }
+    await self.clients.claim();
+  })());
+});
