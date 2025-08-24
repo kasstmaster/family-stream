@@ -1,6 +1,6 @@
 Export new icons as new filenames with the next version (v7).
 
-Duplicate the manifest to a new file: manifest.v7.json and update the icon filenames inside.
+Change manifest name version and update the icon filenames inside.
 
 Update your <head> to point to manifest.v7.json and the new icon filenames.
 
