@@ -162,38 +162,22 @@
     }
 
     
-  if ('serviceWorker' in navigator) {
-    // Register SW
-    navigator.serviceWorker.register('/service-worker.js').then(reg => {
-      // Actively check for updates on load and every so often
-      reg.update();
-      setInterval(() => reg.update(), 60 * 60 * 1000); // hourly
-    });
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js").then((reg) => {
+    // Check for updates immediately + every hour
+    reg.update();
+    setInterval(() => reg.update(), 60 * 60 * 1000);
+  });
 
-    // When SW says “reload”, do a one-time hard refresh
-    let reloadedForSW = false;
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'SW_ACTIVATED_RELOAD' && !reloadedForSW) {
-        reloadedForSW = true;
-        // Avoid reload loops; do a single cache-busting reload
-        location.reload(true);
-      }
-    });
-
-    // Also reload when a new worker installs (Chrome pattern)
-    navigator.serviceWorker.ready.then(reg => {
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              location.reload(true);
-            }
-          });
-        }
-      });
-    });
-  }
+  // Reload page once after new SW activates
+  let reloadedForSW = false;
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "SW_ACTIVATED_RELOAD" && !reloadedForSW) {
+      reloadedForSW = true;
+      location.reload(true);
+    }
+  });
+}
   </script>
 </body>
 </html>
