@@ -21,4 +21,13 @@ Open https://ilymmd.com/manifest.v7.json and https://ilymmd.com/app-icon-512.v7.
 Result: Chrome on Android will pick up the new manifest within its normal refresh window (often much faster than 24h when filenames change) and the installed app’s icon will update on its own—no user action required.
 
 
-<img width="1979" height="480" alt="29c6c1f7-9a03-458e-9f23-17d1e64a6a02" src="https://github.com/user-attachments/assets/d02c95df-435e-4f6f-b991-79a4428d1248" />
+## **TL;DR flow**
+
+Day 0 (you deploy v6):
+New filenames + manifest.v6.json + bump CACHE_NAME in SW.
+
+Minutes–hours later:
+Chrome re-fetches the manifest and sees new icon filenames.
+
+Within ~24h (often sooner):
+Installed app’s tile icon & splash update automatically on Android.
