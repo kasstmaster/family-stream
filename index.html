@@ -1,196 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ILYMMD+</title>
 
+<!-- PWA Manifest -->
 <link rel="manifest" href="manifest.json">
+
+<!-- Icons -->
 <link rel="icon" href="https://kasstmaster.github.io/family-stream/favicon.ico" type="image/x-icon">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- Theme color -->
 <meta name="theme-color" content="#111111">
 
 <style>
   :root{
-    --bg:#111111; --text:#ffffff; --muted:#bbbbbb;
-    --btn:#ffffff; --btnText:#111111; --btnBorder:#2a2a2a; --btnHover:#e6e6e6;
-    --btn2:#1f6feb; --btn2Text:#ffffff; --btn2Hover:#1a60d0;
-    --bar:#0d1117; --barBorder:#1f2328;
+    --bg:#111111;
+    --text:#ffffff;
+    --muted:#bbbbbb;
+    --btn:#ffffff;
+    --btnText:#111111;
+    --btnBorder:#2a2a2a;
+    --btnHover:#e6e6e6;
+    --btn2:#1f6feb; /* subtle blue for secondary button */
+    --btn2Text:#ffffff;
+    --btn2Hover:#1a60d0;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    font-family:Arial, sans-serif; background:var(--bg); color:var(--text);
-    margin:0; display:flex; align-items:center; justify-content:center; overflow:hidden;
-  }
-  /* Landing */
-  #overlay{
-    display:flex; flex-direction:column; align-items:center; gap:16px;
-    width:100%; max-width:90%; padding:0 16px; text-align:center;
-  }
-  #overlay img.icon{display:block; margin:8px auto 0; max-width:260px; width:100%; height:auto}
-  #overlay h1{font-size:30px; margin:0 0 6px; font-family:'Playfair Display', serif; font-weight:400}
-  #overlay p{font-size:16px; color:var(--muted); margin:0}
-  .cta{display:flex; flex-direction:column; gap:12px; width:100%; max-width:340px; margin-top:6px}
-  .btn{
-    display:inline-flex; align-items:center; justify-content:center; width:100%;
-    padding:14px 18px; border-radius:12px; border:1px solid var(--btnBorder);
-    background:var(--btn); color:var(--btnText); font-size:16px; font-weight:600;
-    text-decoration:none; transition:transform .08s, background .15s, box-shadow .15s;
-    box-shadow:0 4px 18px rgba(0,0,0,.35); will-change:transform; cursor:pointer;
-  }
-  .btn:hover{background:var(--btnHover); transform:translateY(-1px)}
-  .btn:active{transform:translateY(0)}
-  .btn.secondary{background:var(--btn2); color:var(--btn2Text); border-color:transparent}
-  .btn.secondary:hover{background:var(--btn2Hover)}
-  @media (max-width:360px){ #overlay img.icon{max-width:220px} .btn{padding:12px 14px; font-size:15px} }
 
-  /* Viewer */
-  #viewer{
-    position:fixed; inset:0; display:none; background:#000; z-index:10;
-    /* keep service-worker background behind; this fully covers the page */
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: Arial, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden; /* keeps it centered like before */
   }
-  #viewer.active{display:block}
-  #topbar{
-    position:absolute; top:0; left:0; right:0; height:56px;
-    background:var(--bar); border-bottom:1px solid var(--barBorder);
-    display:flex; align-items:center; gap:12px; padding:0 12px;
+
+  #overlay {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    max-width: 90%;
+    padding: 0 16px;
+    box-sizing: border-box;
+    gap: 16px;
   }
-  #back{
-    appearance:none; border:1px solid var(--btnBorder); background:var(--btn);
-    color:var(--btnText); border-radius:10px; padding:8px 12px; font-weight:600; cursor:pointer;
+
+  #overlay img.icon {
+    display: block;
+    margin: 8px auto 0;
+    max-width: 260px;
+    width: 100%;
+    height: auto;
   }
-  #title{font-weight:600; font-size:15px}
-  #frame{
-    position:absolute; top:56px; left:0; right:0; bottom:0; width:100%; height:calc(100% - 56px);
-    border:0;
+
+  /* Optional tagline style (kept in case you add text later) */
+  #overlay h1 {
+    font-size: 30px;
+    margin: 0 0 6px;
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
   }
-  #fallback{
-    position:absolute; top:56px; left:0; right:0; bottom:0;
-    display:none; align-items:center; justify-content:center; text-align:center; padding:24px;
+
+  #overlay p {
+    font-size: 16px;
+    color: var(--muted);
+    margin: 0;
   }
-  #fallback a{color:#58a6ff; font-weight:600}
-  #fallback.visible{display:flex}
+
+  /* Buttons container */
+  .cta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 340px;
+    margin-top: 6px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--btnBorder);
+    background: var(--btn);
+    color: var(--btnText);
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+    will-change: transform;
+  }
+  .btn:hover { background: var(--btnHover); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn.secondary {
+    background: var(--btn2);
+    color: var(--btn2Text);
+    border-color: transparent;
+  }
+  .btn.secondary:hover { background: var(--btn2Hover); }
+
+  /* Reduce spacing on very small screens */
+  @media (max-width: 360px) {
+    #overlay img.icon { max-width: 220px; }
+    .btn { padding: 12px 14px; font-size: 15px; }
+  }
 </style>
 </head>
 <body>
-  <!-- Landing -->
-  <div id="overlay" aria-hidden="false">
+  <div id="overlay">
     <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
+
     <div class="cta" role="group" aria-label="Primary actions">
-      <button class="btn" id="btn-tv" aria-label="Stream Now">Stream Now</button>
-      <button class="btn secondary" id="btn-explore" aria-label="Explore More">Explore More</button>
+      <a class="btn" href="https://tv.ilymmd.com" aria-label="Stream Now">Stream Now</a>
+      <a class="btn secondary" href="https://script.google.com/macros/s/AKfycbxMvTNTrB4yysyF-xzEnpFTnKsrPH8wByLtoNCWVgPJjkp0twAtlUeEF_-AuzACkeYQ/exec" aria-label="Explore More">Explore More</a>
     </div>
   </div>
 
-  <!-- Fullscreen iframe viewer -->
-  <div id="viewer" aria-hidden="true">
-    <div id="topbar">
-      <button id="back" aria-label="Back to Home">← Back</button>
-      <div id="title">Loading…</div>
-    </div>
-    <iframe id="frame" allowfullscreen referrerpolicy="no-referrer"></iframe>
-    <div id="fallback">
-      <div>
-        <p>Looks like this page can’t be embedded in an iframe (blocked by its security headers).</p>
-        <p><a id="direct-link" href="#" target="_blank" rel="noopener">Open directly in a new tab</a></p>
-      </div>
-    </div>
-  </div>
-
+  <!-- Service worker (unchanged) -->
   <script>
-    // ---- Config ----
-    const ROUTES = {
-      tv: {
-        url: "https://tv.ilymmd.com/",
-        title: "ILYMMD+ · Stream"
-      },
-      explore: {
-        url: "https://script.google.com/macros/s/AKfycbxMvTNTrB4yysyF-xzEnpFTnKsrPH8wByLtoNCWVgPJjkp0twAtlUeEF_-AuzACkeYQ/exec",
-        title: "ILYMMD+ · Explore"
-      }
-    };
-
-    // ---- Elements ----
-    const overlay = document.getElementById("overlay");
-    const viewer  = document.getElementById("viewer");
-    const frame   = document.getElementById("frame");
-    const titleEl = document.getElementById("title");
-    const back    = document.getElementById("back");
-    const fallback = document.getElementById("fallback");
-    const direct  = document.getElementById("direct-link");
-
-    // Buttons
-    document.getElementById("btn-tv").addEventListener("click", () => openRoute("tv"));
-    document.getElementById("btn-explore").addEventListener("click", () => openRoute("explore"));
-
-    // Hash routing: #tv or #explore
-    window.addEventListener("hashchange", syncFromHash);
-    syncFromHash(); // on load
-
-    function syncFromHash(){
-      const route = (location.hash || "").replace("#","").toLowerCase();
-      if (route in ROUTES) {
-        openRoute(route, {push:false}); // already has hash
-      } else {
-        showLanding();
-      }
-    }
-
-    function openRoute(key, {push=true}={}){
-      const r = ROUTES[key];
-      if (!r) return;
-
-      // Update UI
-      titleEl.textContent = r.title;
-      overlay.setAttribute("aria-hidden","true");
-      overlay.style.display = "none";
-      viewer.classList.add("active");
-      viewer.setAttribute("aria-hidden","false");
-
-      // Manage hash (deep-linkable)
-      if (push) location.hash = key;
-
-      // Load iframe
-      fallback.classList.remove("visible");
-      direct.href = r.url;
-
-      // small trick: show fallback if load fails/blocked
-      let loaded = false;
-      const timer = setTimeout(() => { if (!loaded) showFallback(); }, 2000);
-
-      frame.onload = () => { loaded = true; clearTimeout(timer); };
-      frame.onerror = () => { loaded = false; clearTimeout(timer); showFallback(); };
-
-      // Set URL last to trigger load after handlers
-      frame.src = r.url;
-    }
-
-    function showFallback(){
-      fallback.classList.add("visible");
-    }
-
-    function showLanding(){
-      viewer.classList.remove("active");
-      viewer.setAttribute("aria-hidden","true");
-      overlay.style.display = "flex";
-      overlay.setAttribute("aria-hidden","false");
-      frame.removeAttribute("src");
-      // Clear hash if any
-      if (location.hash) history.replaceState(null, "", location.pathname + location.search);
-    }
-
-    back.addEventListener("click", showLanding);
-
-    // ---- Service Worker (unchanged) ----
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", function () {
-        navigator.serviceWorker.register("/service-worker.js")
-          .then(reg => console.log("SW registered:", reg.scope))
-          .catch(err => console.log("SW registration failed:", err));
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function (registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function (err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
       });
     }
   </script>
