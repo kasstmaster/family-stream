@@ -23,8 +23,8 @@ Result: Chrome on Android will pick up the new manifest within its normal refres
 
 ## **WHAT TO EXPECT**
 1. Day 0 (you deploy v6):
-New filenames + manifest.v6.json + bump CACHE_NAME in SW.
+- New filenames + manifest.v6.json + bump CACHE_NAME in SW.
 2. Minutes–hours later:
-Chrome re-fetches the manifest and sees new icon filenames.
+- Chrome re-fetches the manifest and sees new icon filenames.
 3. Within ~24h (often sooner):
-Installed app’s tile icon & splash update automatically on Android.
+- Installed app’s tile icon & splash update automatically on Android.
