@@ -1,13 +1,13 @@
-// ==== ILYMMD+ Service Worker ====
-// Bump this to invalidate all old cached assets
-const CACHE_NAME = "fs-v5";
+// ==== ILYMMD+ Service Worker (snippet of patterns) ====
+// Bump this on each release
+const CACHE_NAME = "fs-v6";
 
-// Files we NEVER cache (always fetch fresh)
+// Never cache these (always from network)
 const NO_CACHE_PATTERNS = [
-  /\/manifest\.json(\?.*)?$/,
-  /\/apple-touch-icon(\.[^?]+)?(\?.*)?$/,
-  /\/favicon(\.[^?]+)?(\?.*)?$/,
-  /\/web-app-manifest-\d+x\d+\.png(\?.*)?$/ // 192x192, 512x512, etc.
+  /\/manifest(\.v\d+)?\.json(\?.*)?$/i,
+  /\/apple-touch-icon(\.v\d+)?\.(png|jpg|jpeg)(\?.*)?$/i,
+  /\/favicon(\.v\d+)?\.(ico|png|svg)(\?.*)?$/i,
+  /\/app-icon-(192|512)\.v\d+\.png(\?.*)?$/i
 ];
 
 // --- Install ---
