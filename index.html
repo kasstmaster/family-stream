@@ -194,13 +194,12 @@ async function detectRelatedAppsAndMaybeRedirect() {
 
   // Start blank. If installed, bounce immediately. Otherwise reveal UI (with fallback).
   (function boot() {
-    // NEW: redirect if standalone OR we've previously installed (even in a normal tab)
-    if ((isRunningStandalone() || hasInstalledFlag()) && !sameUrl(location.href, TARGET)) {
+    const TARGET = "https://tv.ilymmd.com/web";
+    if (isRunningStandalone() && !sameUrl(location.href, TARGET)) {
       location.replace(TARGET);
       return;
     }
-    showUiFallbackIfNeeded();
-    // NEW: Chrome/Android related-apps check (see section B)
+    // 👇 New: also check related apps on Chrome/Android
     detectRelatedAppsAndMaybeRedirect();
   })();
 
