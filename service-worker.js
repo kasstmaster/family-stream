@@ -30,11 +30,14 @@ self.addEventListener("activate", (event) => {
     // Take control immediately
     await self.clients.claim();
 
-    // Tell all pages to reload once (so users pick up new assets)
+    // Only nudge a reload if we’re upgrading from a prior SW.
+  const hadOldCaches = keys.some((key) => key !== CACHE_NAME);
+  if (hadOldCaches) {
     const clientsArr = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const client of clientsArr) {
       client.postMessage({ type: "SW_ACTIVATED_RELOAD" });
     }
+  }
   })());
 });
 
