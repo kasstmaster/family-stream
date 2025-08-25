@@ -9,11 +9,11 @@
   "background_color": "#111111",
   "theme_color": "#111111",
   "icons": [
-    { "src": "/web-app-manifest-192x192.v6.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/web-app-manifest-512x512.v6.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/favicon-96x96.v6.png", "sizes": "96x96", "type": "image/png" },
-    { "src": "/favicon.v6.ico", "sizes": "48x48", "type": "image/x-icon" },
-    { "src": "/apple-touch-icon.v6.png", "sizes": "180x180", "type": "image/png" }
+    { "src": "/web-app-manifest-192x192.v7.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/web-app-manifest-512x512.v7.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/favicon-96x96.v7.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/favicon.v7.ico", "sizes": "48x48", "type": "image/x-icon" },
+    { "src": "/apple-touch-icon.v7.png", "sizes": "180x180", "type": "image/png" }
   ],
   "prefer_related_applications": false
 }
