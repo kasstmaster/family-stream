@@ -124,7 +124,7 @@
 </style>
 </head>
 <body>
-  <div id="overlay">
+  <div id="overlay" hidden>
     <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
 
     <div class="cta" role="group" aria-label="Primary actions">
@@ -132,17 +132,13 @@
     </div>
   </div>
 
- <!-- Service worker + PWA logic (CLEANED) -->
 <script>
   // ---- Service Worker (single registration) ----
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/service-worker.js").then((reg) => {
-      // check right away + hourly
       reg.update();
       setInterval(() => reg.update(), 60 * 60 * 1000);
     });
-
-    // One-time reload after a new SW activates
     let reloadedForSW = false;
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event.data && event.data.type === "SW_ACTIVATED_RELOAD" && !reloadedForSW) {
@@ -153,69 +149,68 @@
   }
 
   // ---- Helpers ----
+  const TARGET = "https://tv.ilymmd.com/web";
+  const overlay = document.getElementById("overlay");
+  const installBtn = document.getElementById("installBtn");
+
   function isRunningStandalone() {
     const mq =
       window.matchMedia("(display-mode: standalone)").matches ||
       window.matchMedia("(display-mode: minimal-ui)").matches ||
       window.matchMedia("(display-mode: fullscreen)").matches;
-    const iosStandalone = (window.navigator.standalone === true); // iOS Safari legacy
+    const iosStandalone = (window.navigator.standalone === true);
     return mq || iosStandalone;
   }
+  function sameUrl(a, b) { return a.replace(/\/$/, "") === b.replace(/\/$/, ""); }
 
-  function sameUrl(a, b) {
-    return a.replace(/\/$/, "") === b.replace(/\/$/, "");
-  }
-
-  // ---- Redirect ONLY if actually installed ----
-  (function maybeRedirectIfInstalled(){
-    const TARGET = "https://tv.ilymmd.com/web";
+  // Start blank. If installed, bounce immediately. Otherwise reveal UI (with fallback).
+  (function boot() {
     if (isRunningStandalone() && !sameUrl(location.href, TARGET)) {
       location.replace(TARGET);
-    }
-  })();
-
-  // If display-mode flips after load, redirect then
-  const dm = window.matchMedia("(display-mode: standalone)");
-  dm.addEventListener?.("change", (e) => {
-    if (e.matches) {
-      const TARGET = "https://tv.ilymmd.com/web";
-      if (!sameUrl(location.href, TARGET)) location.replace(TARGET);
-    }
-  });
-
-  // ---- Install button logic (single source of truth) ----
-  const installBtn = document.getElementById("installBtn");
-
-  // Start hidden if installed
-  if (installBtn) installBtn.hidden = isRunningStandalone();
-
-  // Only reveal when installable AND not already installed
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    if (!installBtn) return;
-    if (isRunningStandalone()) {
-      installBtn.hidden = true;
       return;
     }
-    window.__deferredPrompt = e;
-    installBtn.hidden = false;
+    showUiFallbackIfNeeded();
+  })();
+
+  // If display-mode flips after load (user opens from home screen), redirect.
+  const dm = window.matchMedia("(display-mode: standalone)");
+  dm.addEventListener?.("change", (e) => {
+    if (e.matches && !sameUrl(location.href, TARGET)) location.replace(TARGET);
   });
 
-  // Clicking the button triggers the Chrome prompt
+  // Install button stays hidden unless the prompt is available
+  if (installBtn) installBtn.hidden = true;
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    if (isRunningStandalone()) return;
+    window.__deferredPrompt = e;
+    if (overlay) overlay.hidden = false;   // show logo
+    if (installBtn) installBtn.hidden = false;  // show button only when prompt exists
+  });
+
   installBtn?.addEventListener("click", async () => {
     const dp = window.__deferredPrompt;
     if (!dp) return;
     dp.prompt();
-    await dp.userChoice; // { outcome: "accepted" | "dismissed" }
+    await dp.userChoice;
     window.__deferredPrompt = null;
     installBtn.hidden = true;
   });
 
-  // After installation, hide the button
   window.addEventListener("appinstalled", () => {
     if (installBtn) installBtn.hidden = true;
     try { localStorage.setItem("pwa:installed", "1"); } catch (_) {}
   });
+
+  // Fallback: if no install prompt (Safari/Firefox), at least show the logo after ~1.2s
+  function showUiFallbackIfNeeded() {
+    setTimeout(() => {
+      if (!isRunningStandalone() && overlay && overlay.hidden) {
+        overlay.hidden = false; // shows logo; button only shows if prompt fired
+      }
+    }, 1200);
+  }
 </script>
 </body>
 </html>
