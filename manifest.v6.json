@@ -16,5 +16,4 @@
     { "src": "/apple-touch-icon.v6.png", "sizes": "180x180", "type": "image/png" }
   ],
   "prefer_related_applications": false
-  // 🚫 remove related_applications completely
 }
