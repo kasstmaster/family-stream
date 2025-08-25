@@ -1,6 +1,6 @@
 // ==== ILYMMD+ Service Worker (snippet of patterns) ====
 // Bump this on each release
-const CACHE_NAME = "fs-v6";
+const CACHE_NAME = "fs-v7";
 
 // Never cache these (always from network)
 const NO_CACHE_PATTERNS = [
