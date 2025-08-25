@@ -248,11 +248,11 @@ async function detectRelatedAppsAndMaybeRedirect() {
 
   (function boot() {
     const TARGET = "https://tv.ilymmd.com/web";
+    // Only redirect if THIS app is running standalone or we truly installed it.
     if ((isRunningStandalone() || hasInstalledFlag()) && !sameUrl(location.href, TARGET)) {
       location.replace(TARGET);
       return;
     }
-    detectRelatedAppsAndMaybeRedirect(); // async OK
   })();
 
 // If no prompt path is available, reveal the logo after ~1.2s
