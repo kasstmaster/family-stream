@@ -168,14 +168,14 @@
   function sameUrl(a, b) { return a.replace(/\/$/, "") === b.replace(/\/$/, ""); }
 
 // ✅ Put it here
-async function detectRelatedAppsAndMaybeRedirect() {
+async function checkRelatedApps() {
   try {
-    if (!("getInstalledRelatedApps" in navigator)) return;
+    if (!("getInstalledRelatedApps" in navigator)) return false;
     const apps = await navigator.getInstalledRelatedApps();
-    if (Array.isArray(apps) && apps.length > 0 && !sameUrl(location.href, TARGET)) {
-      location.replace(TARGET);
-    }
-  } catch (_) { /* ignore */ }
+    return Array.isArray(apps) && apps.some(a => a.platform === "webapp");
+  } catch {
+    return false;
+  }
 }
 
   // NEW: treat users as "installed" if we set the flag on appinstalled
