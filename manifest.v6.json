@@ -12,8 +12,5 @@
     { "src": "/favicon.v6.ico", "sizes": "48x48", "type": "image/x-icon" },
     { "src": "/apple-touch-icon.v6.png", "sizes": "180x180", "type": "image/png" }
   ],
-  "prefer_related_applications": false,
-  "related_applications": [
-    { "platform": "webapp", "url": "https://tv.ilymmd.com/manifest.json" }
-  ]
+  "prefer_related_applications": false
 }
