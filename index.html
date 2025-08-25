@@ -163,6 +163,30 @@
   }
   function sameUrl(a, b) { return a.replace(/\/$/, "") === b.replace(/\/$/, ""); }
   
+  function isRunningStandalone() {
+  const mq =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: minimal-ui)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches;
+  const iosStandalone = (window.navigator.standalone === true); // iOS Safari legacy
+  return mq || iosStandalone;
+}
+
+function sameUrl(a, b) {
+  return a.replace(/\/$/, "") === b.replace(/\/$/, "");
+}
+
+// ✅ Put it here
+async function detectRelatedAppsAndMaybeRedirect() {
+  try {
+    if (!("getInstalledRelatedApps" in navigator)) return;
+    const apps = await navigator.getInstalledRelatedApps();
+    if (Array.isArray(apps) && apps.length > 0 && !sameUrl(location.href, TARGET)) {
+      location.replace(TARGET);
+    }
+  } catch (_) { /* ignore */ }
+}
+
   // NEW: treat users as "installed" if we set the flag on appinstalled
   function hasInstalledFlag() {
     try { return localStorage.getItem("pwa:installed") === "1"; } catch { return false; }
