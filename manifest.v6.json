@@ -33,5 +33,19 @@
       "sizes": "180x180",
       "type": "image/png"
     }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://tv.ilymmd.com/manifest.json"
+    }
+    /*
+    If you ever publish an Android app, add it here:
+    {
+      "platform": "play",
+      "id": "com.yourcompany.ilymmd"
+    }
+    */
   ]
 }
