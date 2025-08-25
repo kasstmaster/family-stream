@@ -10,22 +10,6 @@ const NO_CACHE_PATTERNS = [
   /\/app-icon-(192|512)\.v\d+\.png(\?.*)?$/i
 ];
 
-// ---- Version handshake: reply with current SW version ----
-const SW_VERSION = CACHE_NAME;
-
-self.addEventListener("message", (event) => {
-  const msg = event.data;
-  if (!msg || !msg.type) return;
-
-  if (msg.type === "GET_SW_VERSION") {
-    event.source?.postMessage({ type: "SW_VERSION", version: SW_VERSION });
-  }
-
-  if (msg.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
-});
-
 // --- Install ---
 self.addEventListener("install", (event) => {
   self.skipWaiting();
