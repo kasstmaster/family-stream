@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ILYMMD+</title>
 
-<!-- PWA Manifest -->
-<link rel="manifest" href="manifest.v6.json">
 <link rel="manifest" href="/manifest.v6.json">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.v6.png">
 <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.v6.png">
@@ -136,184 +134,89 @@
     </div>
   </div>
 
-  <!-- Service worker (unchanged) -->
-  <script>
-if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(function (registration) {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }, function (err) {
-            console.log('ServiceWorker registration failed: ', err);
-          });
-      });
-    }
+ <!-- Service worker + PWA logic (CLEANED) -->
+<script>
+  // ---- Service Worker (single registration) ----
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/service-worker.js").then((reg) => {
+      // check right away + hourly
+      reg.update();
+      setInterval(() => reg.update(), 60 * 60 * 1000);
+    });
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/service-worker.js").then((reg) => {
-    // Check for updates immediately + every hour
-    reg.update();
-    setInterval(() => reg.update(), 60 * 60 * 1000);
-  });
-
-  // Reload page once after new SW activates
-  let reloadedForSW = false;
-  navigator.serviceWorker.addEventListener("message", (event) => {
-    if (event.data && event.data.type === "SW_ACTIVATED_RELOAD" && !reloadedForSW) {
-      reloadedForSW = true;
-      location.reload(true);
-    }
-  });
-}
-
-// === PWA detection + auto-redirect ===
-function isRunningStandalone() {
-  const mq = window.matchMedia('(display-mode: standalone)').matches
-          || window.matchMedia('(display-mode: minimal-ui)').matches
-          || window.matchMedia('(display-mode: fullscreen)').matches;
-  const iosStandalone = (window.navigator.standalone === true);
-  return mq || iosStandalone;
-}
-
-if (isRunningStandalone()) {
-  const TARGET = 'https://tv.ilymmd.com/web';
-  const here = location.href.replace(/\/$/, '');
-  const there = TARGET.replace(/\/$/, '');
-  if (here !== there) location.replace(TARGET);
-}
-
-// Also catch runtime changes
-const dm = window.matchMedia('(display-mode: standalone)');
-dm.addEventListener?.('change', (e) => {
-  if (e.matches) {
-    const TARGET = 'https://tv.ilymmd.com/web';
-    const here = location.href.replace(/\/$/, '');
-    const there = TARGET.replace(/\/$/, '');
-    if (here !== there) location.replace(TARGET);
+    // One-time reload after a new SW activates
+    let reloadedForSW = false;
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "SW_ACTIVATED_RELOAD" && !reloadedForSW) {
+        reloadedForSW = true;
+        location.reload(true);
+      }
+    });
   }
-});
 
-// 1) Is the app currently running in standalone / installed mode?
-function isRunningStandalone() {
-    // Works on most modern browsers
-    const mq = window.matchMedia('(display-mode: standalone)').matches
-            || window.matchMedia('(display-mode: minimal-ui)').matches
-            || window.matchMedia('(display-mode: fullscreen)').matches;
-
-    // iOS Safari old-school flag
-    const iosStandalone = (window.navigator.standalone === true);
-
+  // ---- Helpers ----
+  function isRunningStandalone() {
+    const mq =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches;
+    const iosStandalone = (window.navigator.standalone === true); // iOS Safari legacy
     return mq || iosStandalone;
   }
 
-  // Expose a helper for your UI (optional)
-  window.PWAState = {
-    isStandalone: isRunningStandalone(),
-    // will flip to true after 'appinstalled'
-    hasEverInstalled: (localStorage.getItem('pwa:installed') === '1'),
-    // used to trigger the Chrome install prompt on demand
-    deferredPrompt: null
-  };
+  function sameUrl(a, b) {
+    return a.replace(/\/$/, "") === b.replace(/\/$/, "");
+  }
 
-  // 2) Detect install eligibility (Chrome/Edge fires this when installable & not installed)
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();               // keep the event so we can trigger later
-    window.PWAState.deferredPrompt = e;
-    document.documentElement.classList.add('pwa-install-available'); // for showing your Install button
-    // You could also show a toast or unhide an "Install" CTA here
-  });
-
-  // 3) Know when the user actually installed (fires once at install time)
-  window.addEventListener('appinstalled', () => {
-    localStorage.setItem('pwa:installed', '1');   // remember "hasEverInstalled"
-    window.PWAState.hasEverInstalled = true;
-    window.PWAState.deferredPrompt = null;
-    document.documentElement.classList.remove('pwa-install-available');
-    document.documentElement.classList.add('pwa-installed');
-    // Optional: analytics, thank-you toast, etc.
-  });
-
-  // 4) Listen for display-mode changes (e.g., user opened the installed app)
-  window.matchMedia('(display-mode: standalone)').addEventListener?.('change', (e) => {
-    window.PWAState.isStandalone = e.matches || (window.navigator.standalone === true);
-    document.documentElement.classList.toggle('pwa-installed', window.PWAState.isStandalone);
-  });
-
-  // 5) Example: wire up an "Install" button if you add one
-  // <button id="installBtn" hidden>Install</button>
-  window.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('installBtn');
-    if (!btn) return;
-
-    // Show the button only when installable and not already installed
-    const show = () =>
-      btn.hidden = !(window.PWAState.deferredPrompt && !window.PWAState.hasEverInstalled);
-
-    show();
-
-    btn.addEventListener('click', async () => {
-      const dp = window.PWAState.deferredPrompt;
-      if (!dp) return;
-
-      dp.prompt();
-      const { outcome } = await dp.userChoice;    // 'accepted' | 'dismissed'
-      window.PWAState.deferredPrompt = null;
-      show();
-      // Optional: track outcome
-    });
-
-    // If the prompt becomes available later
-    window.addEventListener('beforeinstallprompt', show);
-  });
-
-  // 6) For iOS (Safari doesn’t fire beforeinstallprompt). If not standalone on iOS,
-  // show your own “Add to Home Screen” instruction UI:
-  (function handleIOSBanner(){
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    if (isIOS && !isRunningStandalone()) {
-      document.documentElement.classList.add('pwa-ios-a2hs-needed');
-      // e.g., display a small banner telling: "Share → Add to Home Screen"
+  // ---- Redirect ONLY if actually installed ----
+  (function maybeRedirectIfInstalled(){
+    const TARGET = "https://tv.ilymmd.com/web";
+    if (isRunningStandalone() && !sameUrl(location.href, TARGET)) {
+      location.replace(TARGET);
     }
   })();
 
-function isRunningStandalone() {
-    const mq = window.matchMedia('(display-mode: standalone)').matches
-            || window.matchMedia('(display-mode: minimal-ui)').matches
-            || window.matchMedia('(display-mode: fullscreen)').matches;
-    const iosStandalone = (window.navigator.standalone === true);
-    return mq || iosStandalone;
-  }
+  // If display-mode flips after load, redirect then
+  const dm = window.matchMedia("(display-mode: standalone)");
+  dm.addEventListener?.("change", (e) => {
+    if (e.matches) {
+      const TARGET = "https://tv.ilymmd.com/web";
+      if (!sameUrl(location.href, TARGET)) location.replace(TARGET);
+    }
+  });
 
-  window.PWAState = {
-    isStandalone: isRunningStandalone(),
-    hasEverInstalled: (localStorage.getItem('pwa:installed') === '1'),
-    deferredPrompt: null
-  };
+  // ---- Install button logic (single source of truth) ----
+  const installBtn = document.getElementById("installBtn");
 
-  window.addEventListener('beforeinstallprompt', (e) => {
+  // Start hidden if installed
+  if (installBtn) installBtn.hidden = isRunningStandalone();
+
+  // Only reveal when installable AND not already installed
+  window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
-    window.PWAState.deferredPrompt = e;
-    document.getElementById('installBtn').hidden = false;
+    if (!installBtn) return;
+    if (isRunningStandalone()) {
+      installBtn.hidden = true;
+      return;
+    }
+    window.__deferredPrompt = e;
+    installBtn.hidden = false;
   });
 
-  window.addEventListener('appinstalled', () => {
-    localStorage.setItem('pwa:installed', '1');
-    window.PWAState.hasEverInstalled = true;
-    window.PWAState.deferredPrompt = null;
-    document.getElementById('installBtn').hidden = true;
+  // Clicking the button triggers the Chrome prompt
+  installBtn?.addEventListener("click", async () => {
+    const dp = window.__deferredPrompt;
+    if (!dp) return;
+    dp.prompt();
+    await dp.userChoice; // { outcome: "accepted" | "dismissed" }
+    window.__deferredPrompt = null;
+    installBtn.hidden = true;
   });
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('installBtn');
-    btn.addEventListener('click', async () => {
-      const dp = window.PWAState.deferredPrompt;
-      if (!dp) return;
-      dp.prompt();
-      const { outcome } = await dp.userChoice;
-      window.PWAState.deferredPrompt = null;
-      btn.hidden = true;
-      console.log('Install choice:', outcome);
-    });
+  // After installation, hide the button
+  window.addEventListener("appinstalled", () => {
+    if (installBtn) installBtn.hidden = true;
+    try { localStorage.setItem("pwa:installed", "1"); } catch (_) {}
   });
 </script>
 </body>
