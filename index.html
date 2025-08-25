@@ -16,6 +16,8 @@
 
 <style>
   [hidden]{display:none !important;}
+  /* Ensure nothing ever shows until JS unhides it */
+  [hidden] { display: none !important; }
   
   :root{
     --bg:#111111;
@@ -149,9 +151,6 @@
       }
     });
   }
-
-  /* Ensure nothing ever shows until JS unhides it */
-  [hidden] { display: none !important; }
 
   // ---- Helpers ----
   const TARGET = "https://tv.ilymmd.com/web";
