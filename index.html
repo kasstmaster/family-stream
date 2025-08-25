@@ -126,6 +126,8 @@
     <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
     <div class="cta" role="group" aria-label="Primary actions">
       <button id="installBtn" class="btn" hidden>Install App</button>
+      <!-- Shown only when user runs an outdated SW -->
+      <button id="refreshBtn" class="btn secondary" hidden>Refresh App</button>
     </div>
   </div>
 
@@ -151,42 +153,23 @@
   // ===============================
   // Helpers & constants
   // ===============================
-  const TARGET = "https://tv.ilymmd.com/web";
-  const overlay = document.getElementById("overlay");
-  const installBtn = document.getElementById("installBtn");
-
-  function isRunningStandalone() {
-    const mq =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: minimal-ui)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches;
-    const iosStandalone = (window.navigator.standalone === true);
-    return mq || iosStandalone;
-  }
-
   function sameUrl(a, b) { return a.replace(/\/$/, "") === b.replace(/\/$/, ""); }
 
-  // Related Apps API (best-effort; returns boolean)
-  async function checkRelatedApps() {
-    try {
-      if (!("getInstalledRelatedApps" in navigator)) return false;
-      const apps = await navigator.getInstalledRelatedApps();
-      // We only care whether a related web app is present
-      return Array.isArray(apps) && apps.some(a => a.platform === "webapp");
-    } catch {
-      return false;
+// ---- Hard refresh: closest to uninstall/reinstall ----
+async function hardRefresh() {
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
     }
-  }
-
-  // Definitive "installed" check: standalone OR related app present
-  async function isTrulyInstalled() {
-    if (isRunningStandalone()) return true;
-    try {
-      return await checkRelatedApps();
-    } catch {
-      return false;
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const reg of regs) await reg.unregister();
     }
+  } finally {
+    location.reload(true);
   }
+}
 
   // ---- Heal any old sticky install flag from previous versions ----
   (async () => {
@@ -222,34 +205,63 @@
     if (installBtn) installBtn.hidden = false;
   }, { once: true });
 
-  // Button click → show prompt (must be inside a user gesture)
-  installBtn?.addEventListener("click", async () => {
-    try {
-      if (!deferredPrompt) {
-        console.warn("No deferredPrompt available. Check manifest path/SW reload race.");
-        return;
-      }
-      deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      deferredPrompt = null; // can only be used once
-
-      // Hide after interaction (optional)
-      if (installBtn) installBtn.hidden = true;
-
-      // If they accepted, bounce to the app URL
-      if (choice && choice.outcome === "accepted" && !sameUrl(location.href, TARGET)) {
-        location.replace(TARGET);
-      }
-    } catch (err) {
-      console.error("Install prompt failed:", err);
+  // Refresh button logic
+  const refreshBtn = document.getElementById("refreshBtn");
+  refreshBtn?.addEventListener("click", async () => {
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "SKIP_WAITING" });
+      setTimeout(hardRefresh, 500);
+    } else {
+      hardRefresh();
     }
   });
-
-  // When the app is installed, just tidy UI and optionally redirect
-  window.addEventListener("appinstalled", () => {
-    if (installBtn) installBtn.hidden = true;
-    if (!sameUrl(location.href, TARGET)) location.replace(TARGET);
-  });
+  
+  // Ask the active SW for its version
+  function getActiveSwVersion() {
+    return new Promise((resolve) => {
+      if (!navigator.serviceWorker?.controller) return resolve(null);
+  
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (e) => {
+        const data = e.data || {};
+        resolve(data.type === "SW_VERSION" ? data.version : null);
+      };
+  
+      navigator.serviceWorker.controller.postMessage(
+        { type: "GET_SW_VERSION" },
+        [channel.port2]
+      );
+  
+      setTimeout(() => resolve(null), 1500); // safety timeout
+    });
+  }
+  
+  // Fetch the latest version marker from the server (fresh)
+  async function getLatestVersion() {
+    try {
+      const res = await fetch("/version.json", { cache: "no-store" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.swCacheName || null;
+    } catch {
+      return null;
+    }
+  }
+  
+  // Compare and reveal the button only when outdated
+  async function maybeShowRefresh() {
+    const [active, latest] = await Promise.all([getActiveSwVersion(), getLatestVersion()]);
+    if (active && latest && active !== latest) {
+      refreshBtn?.removeAttribute("hidden");
+      if (overlay) overlay.hidden = false;
+    }
+  }
+  
+  // When SW is ready (or changes), run the check
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready.then(maybeShowRefresh);
+    navigator.serviceWorker.addEventListener("controllerchange", maybeShowRefresh);
+  }
 
   // Fallback: if no install prompt (Safari/Firefox), at least show the logo after ~1.2s
   function showUiFallbackIfNeeded() {
