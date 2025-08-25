@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ILYMMD+</title>
 
 <link rel="manifest" href="/manifest.v7.json">
@@ -13,12 +13,10 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/web-app-manifest-192x192.v7.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/web-app-manifest-512x512.v7.png">
 
-
 <style>
+  /* Keep everything hidden until JS decides what to show */
   [hidden]{display:none !important;}
-  /* Ensure nothing ever shows until JS unhides it */
-  [hidden] { display: none !important; }
-  
+
   :root{
     --bg:#111111;
     --text:#ffffff;
@@ -27,7 +25,7 @@
     --btnText:#111111;
     --btnBorder:#2a2a2a;
     --btnHover:#e6e6e6;
-    --btn2:#1f6feb; /* subtle blue for secondary button */
+    --btn2:#1f6feb;
     --btn2Text:#ffffff;
     --btn2Hover:#1a60d0;
   }
@@ -45,7 +43,7 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    overflow: hidden; /* keeps it centered like before */
+    overflow: hidden;
   }
 
   #overlay {
@@ -57,7 +55,6 @@
     width: 100%;
     max-width: 90%;
     padding: 0 16px;
-    box-sizing: border-box;
     gap: 16px;
   }
 
@@ -69,7 +66,6 @@
     height: auto;
   }
 
-  /* Optional tagline style (kept in case you add text later) */
   #overlay h1 {
     font-size: 30px;
     margin: 0 0 6px;
@@ -83,7 +79,6 @@
     margin: 0;
   }
 
-  /* Buttons container */
   .cta {
     display: flex;
     flex-direction: column;
@@ -120,7 +115,6 @@
   }
   .btn.secondary:hover { background: var(--btn2Hover); }
 
-  /* Reduce spacing on very small screens */
   @media (max-width: 360px) {
     #overlay img.icon { max-width: 220px; }
     .btn { padding: 12px 14px; font-size: 15px; }
@@ -130,17 +124,19 @@
 <body>
   <div id="overlay" hidden>
     <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
-
     <div class="cta" role="group" aria-label="Primary actions">
       <button id="installBtn" class="btn" hidden>Install App</button>
     </div>
   </div>
 
 <script>
-  // ---- Service Worker (single registration) ----
+  // ===============================
+  // Service Worker (single registration)
+  // ===============================
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/service-worker.js").then((reg) => {
-      setTimeout(() => reg.update(), 5000); // wait a beat before checking for updates
+      // Check for updates shortly after load and then hourly
+      setTimeout(() => reg.update(), 5000);
       setInterval(() => reg.update(), 60 * 60 * 1000);
     });
     let reloadedForSW = false;
@@ -152,7 +148,9 @@
     });
   }
 
-  // ---- Helpers ----
+  // ===============================
+  // Helpers & constants
+  // ===============================
   const TARGET = "https://tv.ilymmd.com/web";
   const overlay = document.getElementById("overlay");
   const installBtn = document.getElementById("installBtn");
@@ -165,48 +163,65 @@
     const iosStandalone = (window.navigator.standalone === true);
     return mq || iosStandalone;
   }
+
   function sameUrl(a, b) { return a.replace(/\/$/, "") === b.replace(/\/$/, ""); }
 
-// ✅ Put it here
-async function checkRelatedApps() {
-  try {
-    if (!("getInstalledRelatedApps" in navigator)) return false;
-    const apps = await navigator.getInstalledRelatedApps();
-    return Array.isArray(apps) && apps.some(a => a.platform === "webapp");
-  } catch {
-    return false;
-  }
-}
-
-  // NEW: treat users as "installed" if we set the flag on appinstalled
-  function hasInstalledFlag() {
-    try { return localStorage.getItem("pwa:installed") === "1"; } catch { return false; }
+  // Related Apps API (best-effort; returns boolean)
+  async function checkRelatedApps() {
+    try {
+      if (!("getInstalledRelatedApps" in navigator)) return false;
+      const apps = await navigator.getInstalledRelatedApps();
+      // We only care whether a related web app is present
+      return Array.isArray(apps) && apps.some(a => a.platform === "webapp");
+    } catch {
+      return false;
+    }
   }
 
-  // If display-mode flips after load (user opens from home screen), redirect.
+  // Definitive "installed" check: standalone OR related app present
+  async function isTrulyInstalled() {
+    if (isRunningStandalone()) return true;
+    try {
+      return await checkRelatedApps();
+    } catch {
+      return false;
+    }
+  }
+
+  // ---- Heal any old sticky install flag from previous versions ----
+  (async () => {
+    try {
+      if (localStorage.getItem("pwa:installed") === "1") {
+        const actuallyInstalled = isRunningStandalone() || (await checkRelatedApps());
+        if (!actuallyInstalled) localStorage.removeItem("pwa:installed");
+      }
+    } catch {}
+  })();
+
+  // If display-mode flips after load (user launches from home screen), redirect.
   const dm = window.matchMedia("(display-mode: standalone)");
   dm.addEventListener?.("change", (e) => {
     if (e.matches && !sameUrl(location.href, TARGET)) location.replace(TARGET);
   });
 
-  // Keep a single, fresh prompt object (no globals)
+  // Keep a single, fresh prompt object (no globals beyond this scope)
   let deferredPrompt = null;
-  
+
   // Hide the button until we know a prompt exists
   if (installBtn) installBtn.hidden = true;
-  
-  // Reveal UI only after the prompt is actually available
+
+  // Show install UI only when a prompt is actually available
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault(); // stop auto-banner
-  
-    // If already installed (standalone or our flag), don't show install UI
-    if (isRunningStandalone() || hasInstalledFlag()) return;
-  
+
+    // If already installed (standalone), don't show install UI
+    if (isRunningStandalone()) return;
+
     deferredPrompt = e; // capture the event for the user gesture
     if (overlay) overlay.hidden = false;
     if (installBtn) installBtn.hidden = false;
   }, { once: true });
-  
+
   // Button click → show prompt (must be inside a user gesture)
   installBtn?.addEventListener("click", async () => {
     try {
@@ -217,10 +232,10 @@ async function checkRelatedApps() {
       deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
       deferredPrompt = null; // can only be used once
-  
+
       // Hide after interaction (optional)
       if (installBtn) installBtn.hidden = true;
-  
+
       // If they accepted, bounce to the app URL
       if (choice && choice.outcome === "accepted" && !sameUrl(location.href, TARGET)) {
         location.replace(TARGET);
@@ -229,10 +244,9 @@ async function checkRelatedApps() {
       console.error("Install prompt failed:", err);
     }
   });
-  
-  // When the app is installed, remember it and redirect
+
+  // When the app is installed, just tidy UI and optionally redirect
   window.addEventListener("appinstalled", () => {
-    try { localStorage.setItem("pwa:installed", "1"); } catch {}
     if (installBtn) installBtn.hidden = true;
     if (!sameUrl(location.href, TARGET)) location.replace(TARGET);
   });
@@ -246,18 +260,17 @@ async function checkRelatedApps() {
     }, 1200);
   }
 
-  (function boot() {
-    const TARGET = "https://tv.ilymmd.com/web";
-    // Only redirect if THIS app is running standalone or we truly installed it.
-    if ((isRunningStandalone() || hasInstalledFlag()) && !sameUrl(location.href, TARGET)) {
+  // ===============================
+  // Boot: only redirect if truly installed
+  // ===============================
+  (async function boot() {
+    if ((await isTrulyInstalled()) && !sameUrl(location.href, TARGET)) {
       location.replace(TARGET);
       return;
     }
+    // Otherwise, let the fallback reveal the overlay shortly
+    showUiFallbackIfNeeded();
   })();
-
-// If no prompt path is available, reveal the logo after ~1.2s
-showUiFallbackIfNeeded();
-
 </script>
 </body>
 </html>
