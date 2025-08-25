@@ -1,6 +1,6 @@
 ## RELEASE STEPS
-Change all version codes to newest version (i.e. search v7 in every file, and update it to v8)
-Change manifest file name versions as well
+1. Change all version codes to newest version (i.e. search v7 in every file, and update it to v8)
+2. Change manifest file name versions as well
 
 ## **WHAT TO EXPECT**
 1. Day 0 (you deploy v6):
