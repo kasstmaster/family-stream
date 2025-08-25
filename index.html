@@ -138,7 +138,7 @@
 
   <!-- Service worker (unchanged) -->
   <script>
-    if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('/service-worker.js')
           .then(function (registration) {
@@ -149,7 +149,6 @@
       });
     }
 
-    
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/service-worker.js").then((reg) => {
     // Check for updates immediately + every hour
@@ -167,8 +166,35 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+// === PWA detection + auto-redirect ===
+function isRunningStandalone() {
+  const mq = window.matchMedia('(display-mode: standalone)').matches
+          || window.matchMedia('(display-mode: minimal-ui)').matches
+          || window.matchMedia('(display-mode: fullscreen)').matches;
+  const iosStandalone = (window.navigator.standalone === true);
+  return mq || iosStandalone;
+}
+
+if (isRunningStandalone()) {
+  const TARGET = 'https://tv.ilymmd.com/web';
+  const here = location.href.replace(/\/$/, '');
+  const there = TARGET.replace(/\/$/, '');
+  if (here !== there) location.replace(TARGET);
+}
+
+// Also catch runtime changes
+const dm = window.matchMedia('(display-mode: standalone)');
+dm.addEventListener?.('change', (e) => {
+  if (e.matches) {
+    const TARGET = 'https://tv.ilymmd.com/web';
+    const here = location.href.replace(/\/$/, '');
+    const there = TARGET.replace(/\/$/, '');
+    if (here !== there) location.replace(TARGET);
+  }
+});
+
 // 1) Is the app currently running in standalone / installed mode?
-  function isRunningStandalone() {
+function isRunningStandalone() {
     // Works on most modern browsers
     const mq = window.matchMedia('(display-mode: standalone)').matches
             || window.matchMedia('(display-mode: minimal-ui)').matches
