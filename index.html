@@ -162,14 +162,22 @@
     return mq || iosStandalone;
   }
   function sameUrl(a, b) { return a.replace(/\/$/, "") === b.replace(/\/$/, ""); }
+  
+  // NEW: treat users as "installed" if we set the flag on appinstalled
+  function hasInstalledFlag() {
+    try { return localStorage.getItem("pwa:installed") === "1"; } catch { return false; }
+  }
 
   // Start blank. If installed, bounce immediately. Otherwise reveal UI (with fallback).
   (function boot() {
-    if (isRunningStandalone() && !sameUrl(location.href, TARGET)) {
+    // NEW: redirect if standalone OR we've previously installed (even in a normal tab)
+    if ((isRunningStandalone() || hasInstalledFlag()) && !sameUrl(location.href, TARGET)) {
       location.replace(TARGET);
       return;
     }
     showUiFallbackIfNeeded();
+    // NEW: Chrome/Android related-apps check (see section B)
+    detectRelatedAppsAndMaybeRedirect();
   })();
 
   // If display-mode flips after load (user opens from home screen), redirect.
@@ -183,11 +191,13 @@
 
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
-    if (isRunningStandalone()) return;
+    // NEW: don't show install UI if we already installed before
+    if (isRunningStandalone() || hasInstalledFlag()) return;
     window.__deferredPrompt = e;
-    if (overlay) overlay.hidden = false;   // show logo
-    if (installBtn) installBtn.hidden = false;  // show button only when prompt exists
+    if (overlay) overlay.hidden = false;
+    if (installBtn) installBtn.hidden = false;
   });
+
 
   installBtn?.addEventListener("click", async () => {
     const dp = window.__deferredPrompt;
@@ -201,6 +211,8 @@
   window.addEventListener("appinstalled", () => {
     if (installBtn) installBtn.hidden = true;
     try { localStorage.setItem("pwa:installed", "1"); } catch (_) {}
+    // NEW: jump to the app right after install
+    if (!sameUrl(location.href, TARGET)) location.replace(TARGET);
   });
 
   // Fallback: if no install prompt (Safari/Firefox), at least show the logo after ~1.2s
