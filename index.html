@@ -15,6 +15,8 @@
 
 
 <style>
+  [hidden]{display:none !important;}
+  
   :root{
     --bg:#111111;
     --text:#ffffff;
@@ -136,7 +138,7 @@
   // ---- Service Worker (single registration) ----
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/service-worker.js").then((reg) => {
-      reg.update();
+      setTimeout(() => reg.update(), 5000); // wait a beat before checking for updates
       setInterval(() => reg.update(), 60 * 60 * 1000);
     });
     let reloadedForSW = false;
@@ -165,19 +167,6 @@
     return mq || iosStandalone;
   }
   function sameUrl(a, b) { return a.replace(/\/$/, "") === b.replace(/\/$/, ""); }
-  
-  function isRunningStandalone() {
-  const mq =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.matchMedia("(display-mode: minimal-ui)").matches ||
-    window.matchMedia("(display-mode: fullscreen)").matches;
-  const iosStandalone = (window.navigator.standalone === true); // iOS Safari legacy
-  return mq || iosStandalone;
-}
-
-function sameUrl(a, b) {
-  return a.replace(/\/$/, "") === b.replace(/\/$/, "");
-}
 
 // ✅ Put it here
 async function detectRelatedAppsAndMaybeRedirect() {
@@ -212,34 +201,51 @@ async function detectRelatedAppsAndMaybeRedirect() {
     if (e.matches && !sameUrl(location.href, TARGET)) location.replace(TARGET);
   });
 
-  // Install button stays hidden unless the prompt is available
-  if (installBtn) installBtn.hidden = true;
-
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    if (isRunningStandalone() || hasInstalledFlag()) return;
-    window.__deferredPrompt = e;
+  // Keep a single, fresh prompt object (no globals)
+  let deferredPrompt = null;
   
-    // Show UI *after* a short blank period
-    setTimeout(() => {
-      if (overlay) overlay.hidden = false;
-      if (installBtn) installBtn.hidden = false;
-    }, 1200);
-  });
-
+  // Hide the button until we know a prompt exists
+  if (installBtn) installBtn.hidden = true;
+  
+  // Reveal UI only after the prompt is actually available
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault(); // stop auto-banner
+  
+    // If already installed (standalone or our flag), don't show install UI
+    if (isRunningStandalone() || hasInstalledFlag()) return;
+  
+    deferredPrompt = e; // capture the event for the user gesture
+    if (overlay) overlay.hidden = false;
+    if (installBtn) installBtn.hidden = false;
+  }, { once: true });
+  
+  // Button click → show prompt (must be inside a user gesture)
   installBtn?.addEventListener("click", async () => {
-    const dp = window.__deferredPrompt;
-    if (!dp) return;
-    dp.prompt();
-    await dp.userChoice;
-    window.__deferredPrompt = null;
-    installBtn.hidden = true;
+    try {
+      if (!deferredPrompt) {
+        console.warn("No deferredPrompt available. Check manifest path/SW reload race.");
+        return;
+      }
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      deferredPrompt = null; // can only be used once
+  
+      // Hide after interaction (optional)
+      if (installBtn) installBtn.hidden = true;
+  
+      // If they accepted, bounce to the app URL
+      if (choice && choice.outcome === "accepted" && !sameUrl(location.href, TARGET)) {
+        location.replace(TARGET);
+      }
+    } catch (err) {
+      console.error("Install prompt failed:", err);
+    }
   });
-
+  
+  // When the app is installed, remember it and redirect
   window.addEventListener("appinstalled", () => {
+    try { localStorage.setItem("pwa:installed", "1"); } catch {}
     if (installBtn) installBtn.hidden = true;
-    try { localStorage.setItem("pwa:installed", "1"); } catch (_) {}
-    // NEW: jump to the app right after install
     if (!sameUrl(location.href, TARGET)) location.replace(TARGET);
   });
 
