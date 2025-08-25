@@ -148,6 +148,9 @@
     });
   }
 
+  /* Ensure nothing ever shows until JS unhides it */
+  [hidden] { display: none !important; }
+
   // ---- Helpers ----
   const TARGET = "https://tv.ilymmd.com/web";
   const overlay = document.getElementById("overlay");
@@ -214,13 +217,15 @@ async function detectRelatedAppsAndMaybeRedirect() {
 
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
-    // NEW: don't show install UI if we already installed before
     if (isRunningStandalone() || hasInstalledFlag()) return;
     window.__deferredPrompt = e;
-    if (overlay) overlay.hidden = false;
-    if (installBtn) installBtn.hidden = false;
+  
+    // Show UI *after* a short blank period
+    setTimeout(() => {
+      if (overlay) overlay.hidden = false;
+      if (installBtn) installBtn.hidden = false;
+    }, 1200);
   });
-
 
   installBtn?.addEventListener("click", async () => {
     const dp = window.__deferredPrompt;
@@ -246,6 +251,19 @@ async function detectRelatedAppsAndMaybeRedirect() {
       }
     }, 1200);
   }
+
+  (function boot() {
+    const TARGET = "https://tv.ilymmd.com/web";
+    if ((isRunningStandalone() || hasInstalledFlag()) && !sameUrl(location.href, TARGET)) {
+      location.replace(TARGET);
+      return;
+    }
+    detectRelatedAppsAndMaybeRedirect(); // async OK
+  })();
+
+// If no prompt path is available, reveal the logo after ~1.2s
+showUiFallbackIfNeeded();
+
 </script>
 </body>
 </html>
