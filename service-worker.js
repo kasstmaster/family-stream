@@ -41,44 +41,63 @@ self.addEventListener("activate", (event) => {
   })());
 });
 
-// --- Fetch ---
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-
-  // Only handle GET requests
-  if (req.method !== "GET") return;
-
-  const url = new URL(req.url);
-  const sameOrigin = url.origin === self.location.origin;
-
-  // Never cache manifest/icons: always fetch fresh
-  const dontCache = NO_CACHE_PATTERNS.some((re) => re.test(url.pathname + url.search));
-  if (dontCache) {
-    event.respondWith(fetch(req, { cache: "reload" }));
-    return;
-  }
-
-  // For cross-origin (fonts, CDNs, etc.), just go to network
-  if (!sameOrigin) {
-    event.respondWith(fetch(req));
-    return;
-  }
-
-  // Cache-first with background refresh for same-origin GETs
-  event.respondWith((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(req);
-
-    if (cached) {
-      // Update in the background
-      event.waitUntil((async () => {
-        try {
-          const fresh = await fetch(req);
-          if (fresh && fresh.ok && fresh.type === "basic") {
-            await cache.put(req, fresh.clone());
-          }
-        } catch (_) { /* swallow */ }
-      })());
+  // --- Fetch ---
+  self.addEventListener("fetch", (event) => {
+    const req = event.request;
+  
+    if (req.method !== "GET") return;
+  
+    // 🚫 Never serve cached HTML for top-level navigations
+    if (req.mode === "navigate") {
+      event.respondWith(fetch(req, { cache: "reload" }).catch(async () => {
+        // Optional offline fallback:
+        return (await caches.match("/offline.html")) || new Response("Offline", { status: 503 });
+      }));
+      return;
+    }
+  
+    const url = new URL(req.url);
+    const sameOrigin = url.origin === self.location.origin;
+  
+    const dontCache = NO_CACHE_PATTERNS.some((re) => re.test(url.pathname + url.search));
+    if (dontCache) {
+      event.respondWith(fetch(req, { cache: "reload" }));
+      return;
+    }
+  
+    if (!sameOrigin) {
+      event.respondWith(fetch(req));
+      return;
+    }
+  
+    // Cache-first with background refresh for other GETs
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(req);
+  
+      if (cached) {
+        event.waitUntil((async () => {
+          try {
+            const fresh = await fetch(req, { cache: "no-cache" });
+            if (fresh && fresh.ok && fresh.type === "basic") {
+              await cache.put(req, fresh.clone());
+            }
+          } catch {}
+        })());
+        return cached;
+      }
+  
+      try {
+        const resp = await fetch(req);
+        if (resp && resp.ok && resp.type === "basic") {
+          await cache.put(req, resp.clone());
+        }
+        return resp;
+      } catch {
+        return caches.match("/offline.html") || new Response("Offline", { status: 503 });
+      }
+    })());
+});
       return cached;
     }
 
