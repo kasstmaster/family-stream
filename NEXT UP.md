@@ -1,3 +1,6 @@
+# Jellyfin
+Not showing TV shows properly.
+
 ## Option C: Narrow it down without logs
 
 Since the scan always freezes at 79.7%, the last batch of files added are the most suspicious. You can:
