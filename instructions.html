@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ILYMMD+ • Instructions</title>
+  <link rel="icon" href="/favicon.v7.ico" />
+  <style>
+    :root{
+      --bg:#111111;--panel:#151515;--text:#ffffff;--muted:#bbbbbb;
+      --brand:#1f6feb;--brandHover:#1a60d0;--warn:#f8d34a;--warnText:#111;
+      --border:#262626;--btn:#ffffff;--btnText:#111;--btnHover:#e9e9e9
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{color:var(--brandHover)}
+    header{position:sticky;top:0;background:rgba(17,17,17,.85);backdrop-filter:saturate(150%) blur(8px);border-bottom:1px solid var(--border);z-index:2}
+    .container{max-width:900px;margin:0 auto;padding:20px}
+    .topnav{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    .topnav .links{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--btn);color:var(--btnText);font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .06s ease, background .15s ease}
+    .btn:hover{background:var(--btnHover);transform:translateY(-1px)}
+    .btn.secondary{background:var(--brand);color:#fff;border-color:transparent}
+    .btn.secondary:hover{background:var(--brandHover)}
+
+    .hero{display:flex;gap:16px;align-items:center}
+    .hero img{width:110px;height:auto}
+
+    .callout{margin:18px 0;padding:14px 16px;border-radius:12px;border:1px dashed #3a2;}
+
+    .warning{background:var(--warn);color:var(--warnText);border:1px solid #e7c53e;padding:16px;border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.35)}
+    .warning strong{display:block;margin-bottom:6px}
+
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 16px 6px;box-shadow:0 10px 30px rgba(0,0,0,.4);margin:20px 0}
+    h1{font-size:28px;margin:12px 0 8px}
+    h2{font-size:22px;margin:8px 0}
+    ol{margin:10px 0 10px 22px}
+    li{margin:6px 0}
+    code, .kbd{background:#1d1d1d;border:1px solid #2b2b2b;border-radius:6px;padding:1px 6px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+
+    .server-box{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#171717;border:1px solid var(--border);border-radius:12px;padding:10px}
+    .server-url{user-select:all}
+    .small{color:var(--muted);font-size:13px}
+    footer{color:var(--muted);border-top:1px solid var(--border);margin-top:28px;padding-top:16px}
+
+    details{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin:14px 0}
+    summary{cursor:pointer;font-weight:600}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container topnav">
+      <div class="links">
+        <a href="/index.html" class="btn" title="Back to Home">⬅ Home</a>
+        <a href="https://ilymmd.tail9854e5.ts.net" class="btn" target="_blank" rel="noopener">Open Jellyfin</a>
+        <a href="https://discover.tail9854e5.ts.net" class="btn secondary" target="_blank" rel="noopener">Open Jellyseerr</a>
+      </div>
+      <span class="small">ILYMMD+ Instructions</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <img src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+ Logo" />
+      <div>
+        <h1>How to use ILYMMD+ on your TV</h1>
+        <p class="small">Follow the steps below to connect your TV to our Jellyfin server.</p>
+      </div>
+    </section>
+
+    <div class="warning" role="alert" aria-live="polite">
+      <strong>Wishlist is mobile/desktop only</strong>
+      Requesting new shows or movies (the <em>Wish List</em>) is not available on smart TV/Roku. Use the app or a browser on your phone/tablet/computer and open <a href="https://discover.tail9854e5.ts.net" target="_blank" rel="noopener"><u>Jellyseerr</u></a> instead.
+    </div>
+
+    <section class="card">
+      <h2>Server Address</h2>
+      <div class="server-box">
+        <span>Use this server URL:</span>
+        <code class="server-url" id="srv">https://ilymmd.tail9854e5.ts.net</code>
+        <button class="btn" id="copy">Copy</button>
+      </div>
+      <p class="small">Type it exactly as shown, including <code>https://</code></p>
+    </section>
+
+    <section class="card">
+      <h2>Android TV / Google TV (most Smart TVs) & Fire TV</h2>
+      <ol>
+        <li>Open the <strong>Play Store</strong> (or Amazon Appstore on Fire TV) and install <strong>Jellyfin</strong>.</li>
+        <li>Open Jellyfin → choose <strong>Add Server</strong> (or <strong>Manually add</strong>).</li>
+        <li>Enter the server URL: <code>https://ilymmd.tail9854e5.ts.net</code>.</li>
+        <li>Select <strong>Next</strong> → log in with your account (we'll provide it if needed).</li>
+        <li>You're in! Browse your libraries and start watching.</li>
+      </ol>
+      <details>
+        <summary>Troubleshooting tips</summary>
+        <ul>
+          <li><strong>Cannot connect?</strong> Double‑check the URL has <code>https://</code> and no typos.</li>
+          <li><strong>Clock mismatch:</strong> Make sure your TV's date/time is correct (TLS needs accurate time).</li>
+          <li><strong>Network limits:</strong> Hotel/guest Wi‑Fi can block streaming ports. Try another network or your home Wi‑Fi.</li>
+          <li><strong>Still stuck?</strong> Restart the TV and the Jellyfin app, then try again.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>Roku</h2>
+      <ol>
+        <li>On your Roku, open the <strong>Channel Store</strong> and install <strong>Jellyfin</strong>.</li>
+        <li>Open Jellyfin → choose <strong>Sign in</strong> → <strong>Enter server manually</strong>.</li>
+        <li>Type the server: <code>https://ilymmd.tail9854e5.ts.net</code> and continue.</li>
+        <li>Log in with your account to finish setup.</li>
+      </ol>
+      <details>
+        <summary>Troubleshooting tips</summary>
+        <ul>
+          <li><strong>Connection failed?</strong> Re‑enter the URL carefully; Roku's on‑screen keyboard loves to drop the <code>s</code> in <code>https</code>.</li>
+          <li><strong>Update apps:</strong> Settings → System → System update → Check now, then retry Jellyfin.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>Requesting New Titles (Wish List)</h2>
+      <p>
+        Use <a href="https://discover.tail9854e5.ts.net" target="_blank" rel="noopener">Jellyseerr</a> on your phone, tablet, or computer. Search for a title and tap <strong>Request</strong>.
+        Requests do <em>not</em> work from TV apps.
+      </p>
+      <p class="small">Tip: Add the link to your mobile home screen for quick access.</p>
+    </section>
+
+    <footer>
+      <p>Need help? Take a photo of your TV screen and send it to us. We'll get you connected fast.</p>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById('copy')?.addEventListener('click', async () => {
+      const url = document.getElementById('srv').textContent.trim();
+      try {
+        await navigator.clipboard.writeText(url);
+        const btn = document.getElementById('copy');
+        const old = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(()=>btn.textContent=old, 1500);
+      } catch(e) {
+        alert('Copy failed. Please select and copy the URL manually.');
+      }
+    });
+  </script>
+</body>
+</html>
