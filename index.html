@@ -111,7 +111,7 @@
   .btn.secondary {
     background: var(--btn2);
     color: var(--btn2Text);
-    border-color: transparent;
+    border-color: transparent.
   }
   .btn.secondary:hover { background: var(--btn2Hover); }
 
@@ -147,11 +147,60 @@
   const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net";
 
   // ===============================
-  // Service Worker (single registration)
+  // Device detection (define EARLY)
   // ===============================
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js").then((reg) => {
-      // Check for updates shortly after load and then hourly
+  function isRunningStandalone() {
+    const mq =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches;
+    const iosStandalone = (window.navigator.standalone === true);
+    return mq || iosStandalone;
+  }
+  function isMobileDevice() {
+    return navigator.userAgentData?.mobile === true ||
+      /Android|iPhone|iPad|iPod|Silk|Kindle|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
+  }
+  function isDesktopWeb() {
+    return !isMobileDevice() && !isRunningStandalone();
+  }
+
+  // ===============================
+  // HARD STOP: kill old SWs on desktop (prevents legacy redirects)
+  // ===============================
+  (async function purgeOldSWOnDesktop() {
+    if (!isDesktopWeb()) return;
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      // Also neutralize any pending navigation triggered by old SW:
+      // show menu immediately
+      const overlay = document.getElementById("overlay");
+      const installSection = document.getElementById("installSection");
+      const linksSection = document.getElementById("linksSection");
+      if (overlay && installSection && linksSection) {
+        overlay.hidden = false;
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      }
+      // Important: do NOT register a SW again on desktop this load.
+    } catch (e) {
+      console.warn("SW purge error (safe to ignore):", e);
+    }
+  })();
+
+  // ===============================
+  // Service Worker (mobile only; desktop skips to avoid redirect ghosts)
+  // ===============================
+  if (!isDesktopWeb() && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/service-worker.v8.js").then((reg) => {
+      // Bump filename (v8) so any old redirecting SW becomes obsolete.
       setTimeout(() => reg.update(), 5000);
       setInterval(() => reg.update(), 60 * 60 * 1000);
     });
@@ -171,24 +220,6 @@
   const installBtn = document.getElementById("installBtn");
   const installSection = document.getElementById("installSection");
   const linksSection = document.getElementById("linksSection");
-
-  function isRunningStandalone() {
-    const mq =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: minimal-ui)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches;
-    const iosStandalone = (window.navigator.standalone === true);
-    return mq || iosStandalone;
-  }
-
-  // Device detection
-  function isMobileDevice() {
-    return navigator.userAgentData?.mobile === true ||
-      /Android|iPhone|iPad|iPod|Silk|Kindle|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
-  }
-  function isDesktopWeb() {
-    return !isMobileDevice() && !isRunningStandalone();
-  }
 
   // Related Apps API (best-effort; returns boolean)
   async function checkRelatedApps() {
@@ -229,11 +260,11 @@
     e.preventDefault(); // stop auto-banner
     if (overlay) overlay.hidden = false;
 
-    // If desktop web, always show the LINKS (bypass install UI)
+    // Desktop: always show the links (bypass install UI)
     if (isDesktopWeb()) {
       installSection.hidden = true;
       linksSection.hidden = false;
-      return; // do not store or show the prompt on desktop
+      return; // don't store prompt on desktop
     }
 
     (async () => {
