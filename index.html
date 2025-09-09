@@ -14,7 +14,6 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/web-app-manifest-512x512.v7.png">
 
 <style>
-  /* Keep everything hidden until JS decides what to show */
   [hidden]{display:none !important;}
 
   :root{
@@ -125,33 +124,26 @@
   <div id="overlay" hidden>
     <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
 
-    <!-- Install section (hidden when app is installed) -->
+    <!-- Install section -->
     <div id="installSection" class="cta" role="group" aria-label="Install app actions" hidden>
       <button id="installBtn" class="btn">Install App</button>
       <p id="installHelp" class="muted" aria-live="polite" hidden>Tap Install to add ILYMMD+ to your home screen.</p>
     </div>
 
-    <!-- Links section (shown when app is installed) -->
+    <!-- Links section -->
     <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
       <a class="btn secondary" id="toJellyfin" href="https://ilymmd.tail9854e5.ts.net" rel="noopener">Watch Now</a>
       <a class="btn" id="toJellyseerr" href="https://discover.tail9854e5.ts.net" rel="noopener">Discover</a>
-      <a class="btn" id="toJellyfin" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
+      <a class="btn" id="toRokuSetup" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
     </div>
   </div>
 
 <script>
-  // ===============================
-  // Constants
-  // ===============================
   const JELLYFIN_URL = "https://ilymmd.tail9854e5.ts.net";
   const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net";
 
-  // ===============================
-  // Service Worker (single registration)
-  // ===============================
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/service-worker.js").then((reg) => {
-      // Check for updates shortly after load and then hourly
       setTimeout(() => reg.update(), 5000);
       setInterval(() => reg.update(), 60 * 60 * 1000);
     });
@@ -164,9 +156,6 @@
     });
   }
 
-  // ===============================
-  // Helpers & elements
-  // ===============================
   const overlay = document.getElementById("overlay");
   const installBtn = document.getElementById("installBtn");
   const installSection = document.getElementById("installSection");
@@ -181,28 +170,29 @@
     return mq || iosStandalone;
   }
 
-  // Related Apps API (best-effort; returns boolean)
   async function checkRelatedApps() {
     try {
       if (!("getInstalledRelatedApps" in navigator)) return false;
       const apps = await navigator.getInstalledRelatedApps();
       return Array.isArray(apps) && apps.some(a => a.platform === "webapp");
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
-  // Definitive "installed" check: standalone OR related app present
   async function isTrulyInstalled() {
     if (isRunningStandalone()) return true;
-    try {
-      return await checkRelatedApps();
-    } catch {
-      return false;
-    }
+    try { return await checkRelatedApps(); }
+    catch { return false; }
   }
 
-  // ---- Heal any old sticky install flag from previous versions ----
+  // Device checks
+  function isMobileDevice() {
+    return navigator.userAgentData?.mobile === true ||
+      /Android|iPhone|iPad|iPod|Silk|Kindle|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
+  }
+  function isDesktopWeb() {
+    return !isMobileDevice() && !isRunningStandalone();
+  }
+
   (async () => {
     try {
       if (localStorage.getItem("pwa:installed") === "1") {
@@ -212,28 +202,23 @@
     } catch {}
   })();
 
-  // Keep a single, fresh prompt object (no globals beyond this scope)
   let deferredPrompt = null;
 
-  // Show install UI only when a prompt is actually available and NOT installed
   window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault(); // stop auto-banner
+    e.preventDefault();
     if (overlay) overlay.hidden = false;
     (async () => {
       if (await isTrulyInstalled()) {
-        // Installed → show links immediately; hide install
         installSection.hidden = true;
         linksSection.hidden = false;
         return;
       }
-      // Not installed → expose install section and store prompt
       deferredPrompt = e;
       installSection.hidden = false;
       linksSection.hidden = true;
     })();
   }, { once: true });
 
-  // Also handle cases where beforeinstallprompt never fires (Safari/Firefox)
   function showFallback() {
     setTimeout(async () => {
       if (!overlay || !overlay.hidden) return;
@@ -242,35 +227,26 @@
         installSection.hidden = true;
         linksSection.hidden = false;
       } else {
-        // No prompt known; keep install section hidden (since no button can work)
         installSection.hidden = true;
         linksSection.hidden = true;
       }
     }, 1200);
   }
 
-  // Button click → show prompt (must be inside a user gesture)
   installBtn?.addEventListener("click", async () => {
     try {
-      if (!deferredPrompt) {
-        console.warn("No deferredPrompt available. Check manifest path/SW reload race.");
-        return;
-      }
+      if (!deferredPrompt) return;
       deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
-      deferredPrompt = null; // can only be used once
-      // If they accepted, we simply mark installed and swap sections — NO redirect
+      deferredPrompt = null;
       if (choice && choice.outcome === "accepted") {
         try { localStorage.setItem("pwa:installed", "1"); } catch {}
         installSection.hidden = true;
         linksSection.hidden = false;
       }
-    } catch (err) {
-      console.error("Install prompt failed:", err);
-    }
+    } catch (err) { console.error("Install prompt failed:", err); }
   });
 
-  // When the app is installed, just tidy UI — NO redirect
   window.addEventListener("appinstalled", async () => {
     try { localStorage.setItem("pwa:installed", "1"); } catch {}
     if (!overlay.hidden) {
@@ -279,9 +255,8 @@
     }
   });
 
-  // If display-mode flips after load (user launches from home screen), NO redirect
   const dm = window.matchMedia("(display-mode: standalone)");
-  dm.addEventListener?.("change", async (e) => {
+  dm.addEventListener?.("change", async () => {
     if (overlay.hidden) overlay.hidden = false;
     if (await isTrulyInstalled()) {
       installSection.hidden = true;
@@ -289,26 +264,25 @@
     }
   });
 
-  // ===============================
-  // Boot: decide what to show; never auto-redirect
-  // ===============================
+  // Boot logic
   (async function boot() {
-    // Reveal the overlay after a moment if nothing else fired
-    showFallback();
+    // Desktop visitors bypass everything
+    if (isDesktopWeb()) {
+      location.replace(JELLYFIN_URL);
+      return;
+    }
 
-    // On load, choose sections
+    // Mobile / installed logic
+    showFallback();
     if (await isTrulyInstalled()) {
       overlay.hidden = false;
       installSection.hidden = true;
       linksSection.hidden = false;
-    } else {
-      // Not installed: wait for beforeinstallprompt to show install section; otherwise fallback keeps both hidden
-      // Overlay will still reveal the logo via fallback
     }
 
-    // Update hrefs just in case
     document.getElementById('toJellyfin').href = JELLYFIN_URL;
     document.getElementById('toJellyseerr').href = JELLYSEERR_URL;
+    document.getElementById('toRokuSetup').href = "https://kasstmaster.github.io/ilymmd/";
   })();
 </script>
 </body>
