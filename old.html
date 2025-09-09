@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ILYMMD+</title>
+
+<link rel="manifest" href="/manifest.v7.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.v7.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.v7.png">
+<link rel="icon" href="/favicon.v7.ico" type="image/x-icon">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.v7.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/web-app-manifest-192x192.v7.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/web-app-manifest-512x512.v7.png">
+
+<style>
+  /* Keep everything hidden until JS decides what to show */
+  [hidden]{display:none !important;}
+
+  :root{
+    --bg:#111111;
+    --text:#ffffff;
+    --muted:#bbbbbb;
+    --btn:#ffffff;
+    --btnText:#111111;
+    --btnBorder:#2a2a2a;
+    --btnHover:#e6e6e6;
+    --btn2:#1f6feb;
+    --btn2Text:#ffffff;
+    --btn2Hover:#1a60d0;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: Arial, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  #overlay {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    max-width: 90%;
+    padding: 0 16px;
+    gap: 16px;
+  }
+
+  #overlay img.icon {
+    display: block;
+    margin: 8px auto 0;
+    max-width: 260px;
+    width: 100%;
+    height: auto;
+  }
+
+  #overlay h1 {
+    font-size: 30px;
+    margin: 0 0 6px;
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
+  }
+
+  #overlay p {
+    font-size: 16px;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .cta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 340px;
+    margin-top: 6px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--btnBorder);
+    background: var(--btn);
+    color: var(--btnText);
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+    will-change: transform;
+  }
+  .btn:hover { background: var(--btnHover); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn.secondary {
+    background: var(--btn2);
+    color: var(--btn2Text);
+    border-color: transparent;
+  }
+  .btn.secondary:hover { background: var(--btn2Hover); }
+
+  @media (max-width: 360px) {
+    #overlay img.icon { max-width: 220px; }
+    .btn { padding: 12px 14px; font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+  <div id="overlay" hidden>
+    <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
+
+    <!-- Install section (hidden when app is installed) -->
+    <div id="installSection" class="cta" role="group" aria-label="Install app actions" hidden>
+      <button id="installBtn" class="btn">Install App</button>
+      <p id="installHelp" class="muted" aria-live="polite" hidden>Tap Install to add ILYMMD+ to your home screen.</p>
+    </div>
+
+    <!-- Links section (shown when app is installed) -->
+    <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
+      <a class="btn secondary" id="toJellyfin" href="https://ilymmd.tail9854e5.ts.net" rel="noopener">Watch Now</a>
+      <a class="btn" id="toJellyseerr" href="https://discover.tail9854e5.ts.net" rel="noopener">Discover</a>
+      <a class="btn" id="toJellyfin" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
+    </div>
+  </div>
+
+<script>
+  // ===============================
+  // Constants
+  // ===============================
+  const JELLYFIN_URL = "https://ilymmd.tail9854e5.ts.net";
+  const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net";
+
+  // ===============================
+  // Service Worker (single registration)
+  // ===============================
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/service-worker.js").then((reg) => {
+      // Check for updates shortly after load and then hourly
+      setTimeout(() => reg.update(), 5000);
+      setInterval(() => reg.update(), 60 * 60 * 1000);
+    });
+    let reloadedForSW = false;
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "SW_ACTIVATED_RELOAD" && !reloadedForSW) {
+        reloadedForSW = true;
+        location.reload(true);
+      }
+    });
+  }
+
+  // ===============================
+  // Helpers & elements
+  // ===============================
+  const overlay = document.getElementById("overlay");
+  const installBtn = document.getElementById("installBtn");
+  const installSection = document.getElementById("installSection");
+  const linksSection = document.getElementById("linksSection");
+
+  function isRunningStandalone() {
+    const mq =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches;
+    const iosStandalone = (window.navigator.standalone === true);
+    return mq || iosStandalone;
+  }
+
+  // Related Apps API (best-effort; returns boolean)
+  async function checkRelatedApps() {
+    try {
+      if (!("getInstalledRelatedApps" in navigator)) return false;
+      const apps = await navigator.getInstalledRelatedApps();
+      return Array.isArray(apps) && apps.some(a => a.platform === "webapp");
+    } catch {
+      return false;
+    }
+  }
+
+  // Definitive "installed" check: standalone OR related app present
+  async function isTrulyInstalled() {
+    if (isRunningStandalone()) return true;
+    try {
+      return await checkRelatedApps();
+    } catch {
+      return false;
+    }
+  }
+
+  // ---- Heal any old sticky install flag from previous versions ----
+  (async () => {
+    try {
+      if (localStorage.getItem("pwa:installed") === "1") {
+        const actuallyInstalled = isRunningStandalone() || (await checkRelatedApps());
+        if (!actuallyInstalled) localStorage.removeItem("pwa:installed");
+      }
+    } catch {}
+  })();
+
+  // Keep a single, fresh prompt object (no globals beyond this scope)
+  let deferredPrompt = null;
+
+  // Show install UI only when a prompt is actually available and NOT installed
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault(); // stop auto-banner
+    if (overlay) overlay.hidden = false;
+    (async () => {
+      if (await isTrulyInstalled()) {
+        // Installed → show links immediately; hide install
+        installSection.hidden = true;
+        linksSection.hidden = false;
+        return;
+      }
+      // Not installed → expose install section and store prompt
+      deferredPrompt = e;
+      installSection.hidden = false;
+      linksSection.hidden = true;
+    })();
+  }, { once: true });
+
+  // Also handle cases where beforeinstallprompt never fires (Safari/Firefox)
+  function showFallback() {
+    setTimeout(async () => {
+      if (!overlay || !overlay.hidden) return;
+      overlay.hidden = false;
+      if (await isTrulyInstalled()) {
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      } else {
+        // No prompt known; keep install section hidden (since no button can work)
+        installSection.hidden = true;
+        linksSection.hidden = true;
+      }
+    }, 1200);
+  }
+
+  // Button click → show prompt (must be inside a user gesture)
+  installBtn?.addEventListener("click", async () => {
+    try {
+      if (!deferredPrompt) {
+        console.warn("No deferredPrompt available. Check manifest path/SW reload race.");
+        return;
+      }
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      deferredPrompt = null; // can only be used once
+      // If they accepted, we simply mark installed and swap sections — NO redirect
+      if (choice && choice.outcome === "accepted") {
+        try { localStorage.setItem("pwa:installed", "1"); } catch {}
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      }
+    } catch (err) {
+      console.error("Install prompt failed:", err);
+    }
+  });
+
+  // When the app is installed, just tidy UI — NO redirect
+  window.addEventListener("appinstalled", async () => {
+    try { localStorage.setItem("pwa:installed", "1"); } catch {}
+    if (!overlay.hidden) {
+      installSection.hidden = true;
+      linksSection.hidden = false;
+    }
+  });
+
+  // If display-mode flips after load (user launches from home screen), NO redirect
+  const dm = window.matchMedia("(display-mode: standalone)");
+  dm.addEventListener?.("change", async (e) => {
+    if (overlay.hidden) overlay.hidden = false;
+    if (await isTrulyInstalled()) {
+      installSection.hidden = true;
+      linksSection.hidden = false;
+    }
+  });
+
+  // ===============================
+  // Boot: decide what to show; never auto-redirect
+  // ===============================
+  (async function boot() {
+    // Reveal the overlay after a moment if nothing else fired
+    showFallback();
+
+    // On load, choose sections
+    if (await isTrulyInstalled()) {
+      overlay.hidden = false;
+      installSection.hidden = true;
+      linksSection.hidden = false;
+    } else {
+      // Not installed: wait for beforeinstallprompt to show install section; otherwise fallback keeps both hidden
+      // Overlay will still reveal the logo via fallback
+    }
+
+    // Update hrefs just in case
+    document.getElementById('toJellyfin').href = JELLYFIN_URL;
+    document.getElementById('toJellyseerr').href = JELLYSEERR_URL;
+  })();
+</script>
+</body>
+</html>
