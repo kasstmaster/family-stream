@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ILYMMD+</title>
+
+<link rel="manifest" href="/manifest.v7.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.v7.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.v7.png">
+<link rel="icon" href="/favicon.v7.ico" type="image/x-icon">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.v7.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/web-app-manifest-192x192.v7.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/web-app-manifest-512x512.v7.png">
+
+<style>
+  /* Keep everything hidden until JS decides what to show */
+  [hidden]{display:none !important;}
+
+  :root{
+    --bg:#111111;
+    --text:#ffffff;
+    --muted:#bbbbbb;
+    --btn:#ffffff;
+    --btnText:#111111;
+    --btnBorder:#2a2a2a;
+    --btnHover:#e6e6e6;
+    --btn2:#1f6feb;
+    --btn2Text:#ffffff;
+    --btn2Hover:#1a60d0;
+
+    --toastBg: #1b1b1b;
+    --toastText: #ffffff;
+    --toastBorder: #2a2a2a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: Arial, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  #overlay {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    max-width: 90%;
+    padding: 0 16px;
+    gap: 16px;
+  }
+
+  #overlay img.icon {
+    display: block;
+    margin: 8px auto 0;
+    max-width: 260px;
+    width: 100%;
+    height: auto;
+  }
+
+  #overlay h1 {
+    font-size: 30px;
+    margin: 0 0 6px;
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
+  }
+
+  #overlay p {
+    font-size: 16px;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .cta {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 340px;
+    margin-top: 6px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--btnBorder);
+    background: var(--btn);
+    color: var(--btnText);
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+    will-change: transform;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--btnHover); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn.secondary {
+    background: var(--btn2);
+    color: var(--btn2Text);
+    border-color: transparent;
+  }
+  .btn.secondary:hover { background: var(--btn2Hover); }
+
+  /* Tiny inline toast for manual fallback */
+  #plexToast {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    background: var(--toastBg);
+    color: var(--toastText);
+    border: 1px solid var(--toastBorder);
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 9999;
+    max-width: min(92%, 520px);
+  }
+  #plexToast button, #plexToast a {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--btnBorder);
+    background: var(--btn);
+    color: var(--btnText);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  #plexToast .muted {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  @media (max-width: 360px) {
+    #overlay img.icon { max-width: 220px; }
+    .btn { padding: 12px 14px; font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+  <div id="overlay" hidden>
+    <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
+
+    <!-- Install section (hidden when app is installed) -->
+    <div id="installSection" class="cta" role="group" aria-label="Install app actions" hidden>
+      <button id="installBtn" class="btn">Install App</button>
+      <p id="installHelp" class="muted" aria-live="polite" hidden>Tap Install to add ILYMMD+ to your home screen.</p>
+    </div>
+
+    <!-- Links section (shown when app is installed OR desktop bypass) -->
+    <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
+      <!-- Watch Now tries Plex app first; NO auto web redirect on mobile -->
+      <a class="btn secondary" id="toJellyfin" href="https://app.plex.tv/desktop" rel="noopener">Watch Now</a>
+      <a class="btn" id="toJellyseerr" href="https://discover.ilymmd.com/login" rel="noopener">Discover</a>
+      <a class="btn" id="toRokuSetup" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
+    </div>
+  </div>
+
+  <!-- Inline toast for manual fallback (hidden by default) -->
+  <div id="plexToast" hidden>
+    <span class="muted">Couldn’t open the Plex app?</span>
+    <a id="openPlexWeb" href="https://app.plex.tv/desktop" rel="noopener">Open Plex Web</a>
+    <button id="closePlexToast" type="button">Dismiss</button>
+  </div>
+
+<script>
+  // ===============================
+  // Constants
+  // ===============================
+  const JELLYFIN_URL   = "https://ilymmd.tail9854e5.ts.net";   // not used by Watch Now anymore
+  const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net";
+
+  // --- Plex deep-link constants ---
+  const PLEX_WEB_FALLBACK   = "https://app.plex.tv/desktop";
+  const PLEX_IOS_SCHEME     = "plex://";
+  const PLEX_ANDROID_INTENT = "intent://open#Intent;scheme=plex;package=com.plexapp.android;end";
+
+  // ===============================
+  // Device detection (define EARLY)
+  // ===============================
+  function isRunningStandalone() {
+    const mq =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches;
+    const iosStandalone = (window.navigator.standalone === true);
+    return mq || iosStandalone;
+  }
+  function isMobileDevice() {
+    return navigator.userAgentData?.mobile === true ||
+      /Android|iPhone|iPad|iPod|Silk|Kindle|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
+  }
+  function isDesktopWeb() {
+    return !isMobileDevice() && !isRunningStandalone();
+  }
+
+  // ===============================
+  // HARD STOP: kill old SWs on desktop (prevents legacy redirects)
+  // ===============================
+  (async function purgeOldSWOnDesktop() {
+    if (!isDesktopWeb()) return;
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      // show menu immediately
+      const overlay = document.getElementById("overlay");
+      const installSection = document.getElementById("installSection");
+      const linksSection = document.getElementById("linksSection");
+      if (overlay && installSection && linksSection) {
+        overlay.hidden = false;
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      }
+      // Do NOT re-register a SW on desktop this load.
+    } catch (e) {
+      console.warn("SW purge error (safe to ignore):", e);
+    }
+  })();
+
+  // ===============================
+  // Service Worker (mobile only; desktop skips)
+  // ===============================
+  if (!isDesktopWeb() && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/service-worker.v8.js").then((reg) => {
+      setTimeout(() => reg.update(), 5000);
+      setInterval(() => reg.update(), 60 * 60 * 1000);
+    });
+    let reloadedForSW = false;
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "SW_ACTIVATED_RELOAD" && !reloadedForSW) {
+        reloadedForSW = true;
+        location.reload(true);
+      }
+    });
+  }
+
+  // ===============================
+  // Helpers & elements
+  // ===============================
+  const overlay = document.getElementById("overlay");
+  const installBtn = document.getElementById("installBtn");
+  const installSection = document.getElementById("installSection");
+  const linksSection = document.getElementById("linksSection");
+
+  const plexToast = document.getElementById('plexToast');
+  const openPlexWebBtn = document.getElementById('openPlexWeb');
+  const closePlexToastBtn = document.getElementById('closePlexToast');
+
+  function showPlexToast() {
+    if (!plexToast) return;
+    plexToast.hidden = false;
+  }
+  function hidePlexToast() {
+    if (!plexToast) return;
+    plexToast.hidden = true;
+  }
+  closePlexToastBtn?.addEventListener('click', hidePlexToast);
+
+  async function checkRelatedApps() {
+    try {
+      if (!("getInstalledRelatedApps" in navigator)) return false;
+      const apps = await navigator.getInstalledRelatedApps();
+      return Array.isArray(apps) && apps.some(a => a.platform === "webapp");
+    } catch {
+      return false;
+    }
+  }
+
+  async function isTrulyInstalled() {
+    if (isRunningStandalone()) return true;
+    try {
+      return await checkRelatedApps();
+    } catch {
+      return false;
+    }
+  }
+
+  // heal any old sticky install flag
+  (async () => {
+    try {
+      if (localStorage.getItem("pwa:installed") === "1") {
+        const actuallyInstalled = isRunningStandalone() || (await checkRelatedApps());
+        if (!actuallyInstalled) localStorage.removeItem("pwa:installed");
+      }
+    } catch {}
+  })();
+
+  let deferredPrompt = null;
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault(); // stop auto-banner
+    if (overlay) overlay.hidden = false;
+
+    if (isDesktopWeb()) {
+      installSection.hidden = true;
+      linksSection.hidden = false;
+      return;
+    }
+
+    (async () => {
+      if (await isTrulyInstalled()) {
+        installSection.hidden = true;
+        linksSection.hidden = false;
+        return;
+      }
+      deferredPrompt = e;
+      installSection.hidden = false;
+      linksSection.hidden = true;
+    })();
+  }, { once: true });
+
+  function showFallback() {
+    setTimeout(async () => {
+      if (!overlay || !overlay.hidden) return;
+      overlay.hidden = false;
+
+      if (isDesktopWeb()) {
+        installSection.hidden = true;
+        linksSection.hidden = false;
+        return;
+      }
+
+      if (await isTrulyInstalled()) {
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      } else {
+        installSection.hidden = true;
+        linksSection.hidden = true;
+      }
+    }, 1200);
+  }
+
+  installBtn?.addEventListener("click", async () => {
+    try {
+      if (!deferredPrompt) {
+        console.warn("No deferredPrompt available. Check manifest path/SW reload race.");
+        return;
+      }
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      if (choice && choice.outcome === "accepted") {
+        try { localStorage.setItem("pwa:installed", "1"); } catch {}
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      }
+    } catch (err) {
+      console.error("Install prompt failed:", err);
+    }
+  });
+
+  window.addEventListener("appinstalled", async () => {
+    try { localStorage.setItem("pwa:installed", "1"); } catch {}
+    if (!overlay.hidden) {
+      installSection.hidden = true;
+      linksSection.hidden = false;
+    }
+  });
+
+  const dm = window.matchMedia("(display-mode: standalone)");
+  dm.addEventListener?.("change", async () => {
+    if (overlay.hidden) overlay.hidden = false;
+    if (await isTrulyInstalled()) {
+      installSection.hidden = true;
+      linksSection.hidden = false;
+    }
+  });
+
+  // ===============================
+  // PLEX: open app with robust, NO-AUTO-WEB fallback
+  // ===============================
+  function openPlexApp(e) {
+    e.preventDefault();
+
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isMobile = isAndroid || isIOS;
+
+    // If we leave the page (app switch), cancel any fallback UI
+    let didHide = document.hidden; // in case we were already hidden
+    const onHide = () => { didHide = true; hidePlexToast(); };
+    document.addEventListener('visibilitychange', onHide, { once: true });
+
+    try {
+      if (isIOS) {
+        window.location.assign(PLEX_IOS_SCHEME);
+      } else if (isAndroid) {
+        window.location.assign(PLEX_ANDROID_INTENT);
+      } else {
+        // Desktop → go straight to web (desktop users expect web)
+        window.location.assign(PLEX_WEB_FALLBACK);
+        return;
+      }
+    } catch {
+      // If scheme/intent throws synchronously, just show the toast (don’t auto-nav)
+    }
+
+    // On mobile, do NOT auto-redirect.
+    // If we’re still visible after ~3s, show a manual fallback UI instead.
+    if (isMobile) {
+      setTimeout(() => {
+        if (!didHide && !document.hidden) {
+          showPlexToast();
+        }
+      }, 3000);
+    }
+  }
+
+  // ===============================
+  // Boot: decide what to show; never auto-redirect
+  // ===============================
+  (async function boot() {
+    showFallback();
+
+    if (isDesktopWeb()) {
+      overlay.hidden = false;
+      installSection.hidden = true;
+      linksSection.hidden = false;
+    } else {
+      if (await isTrulyInstalled()) {
+        overlay.hidden = false;
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      }
+    }
+
+    // Update hrefs for other buttons
+    document.getElementById('toJellyseerr').href = JELLYSEERR_URL;
+    document.getElementById('toRokuSetup').href = "https://kasstmaster.github.io/ilymmd/";
+
+    // Wire "Watch Now" → Plex
+    const watchBtn = document.getElementById('toJellyfin');
+    if (watchBtn) {
+      watchBtn.href = PLEX_WEB_FALLBACK; // visible fallback + non-JS
+      watchBtn.addEventListener('click', openPlexApp, { passive: false });
+    }
+
+    // Ensure toast buttons work even if rendered early
+    openPlexWebBtn?.setAttribute('href', PLEX_WEB_FALLBACK);
+  })();
+</script>
+</body>
+</html>
