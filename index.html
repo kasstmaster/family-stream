@@ -140,13 +140,13 @@
   <div id="overlay" hidden>
     <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
 
-    <!-- (Optional) PWA install section; we keep it but hidden by default -->
+    <!-- PWA install section (mobile, not installed) -->
     <div id="installSection" class="cta" role="group" aria-label="Install app actions" hidden>
       <button id="installBtn" class="btn">Install App</button>
       <p id="installHelp" class="muted" aria-live="polite" hidden>Tap Install to add ILYMMD+ to your home screen.</p>
     </div>
 
-    <!-- Links section -->
+    <!-- Links section (desktop or installed) -->
     <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
       <a class="btn secondary" id="toPlexWatch" href="https://app.plex.tv/desktop" rel="noopener">Watch Now</a>
       <a class="btn" id="toJellyseerr" href="https://discover.ilymmd.com/login" rel="noopener">Discover</a>
@@ -165,7 +165,7 @@
   // ===============================
   // Constants
   // ===============================
-  const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net";
+  const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net"; // your Tailscale URL
 
   // Plex deep-link + fallbacks
   const PLEX_WEB_FALLBACK   = "https://app.plex.tv/desktop";
@@ -173,7 +173,7 @@
   const PLEX_ANDROID_INTENT = "intent://open#Intent;scheme=plex;package=com.plexapp.android;end";
 
   // ===============================
-  // Device detection
+  // Device / context detection
   // ===============================
   function isRunningStandalone() {
     const mq =
@@ -193,6 +193,7 @@
 
   // ===============================
   // Desktop: purge old SW/caches (prevents legacy redirects)
+  // Also reveals the links on desktop per product rules
   // ===============================
   (async function purgeOldSWOnDesktop() {
     if (!isDesktopWeb()) return;
@@ -205,6 +206,7 @@
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
       }
+      // Show links on desktop
       const overlay = document.getElementById("overlay");
       const installSection = document.getElementById("installSection");
       const linksSection = document.getElementById("linksSection");
@@ -265,7 +267,7 @@
         window.location.assign(PLEX_IOS_SCHEME);
       } else if (isAndroid) {
         // Many Android browsers will route this to the app if installed,
-        // or Play Store if not — which is what you observed (great!)
+        // or Play Store if not
         window.location.assign(PLEX_ANDROID_INTENT);
       } else {
         // Desktop → straight to Plex Web
@@ -273,11 +275,10 @@
         return;
       }
     } catch {
-      // If scheme/intent throws synchronously, we’ll just offer Plex Web
+      // If scheme/intent throws synchronously, offer Plex Web via toast
     }
 
-    // On mobile, do NOT auto-redirect to web.
-    // If we’re still visible after ~3s, show a manual web fallback toast.
+    // On mobile, do NOT auto-redirect to web. Offer manual toast after a delay
     if (isIOS || isAndroid) {
       setTimeout(() => {
         if (!document.hidden) showPlexToast();
@@ -286,22 +287,42 @@
   }
 
   // ===============================
+  // Install detection
+  // ===============================
+  async function isAppInstalled() {
+    // 1) Running as PWA (standalone/minimal-ui/fullscreen)
+    if (isRunningStandalone()) return true;
+
+    // 2) Chrome on Android: detect related installed app
+    try {
+      if (navigator.getInstalledRelatedApps) {
+        const related = await navigator.getInstalledRelatedApps();
+        if (Array.isArray(related) && related.length > 0) return true;
+      }
+    } catch {}
+
+    // 3) Our own remembered flag from a previous install
+    try {
+      if (localStorage.getItem('ilymmd_installed') === '1') return true;
+    } catch {}
+
+    return false;
+  }
+
+  // Remember when the PWA gets installed (Chrome/Android + some desktop browsers)
+  window.addEventListener('appinstalled', () => {
+    try { localStorage.setItem('ilymmd_installed', '1'); } catch {}
+    // Immediately switch UI to links
+    installSection.hidden = true;
+    linksSection.hidden = false;
+  });
+
+  // ===============================
   // Boot
   // ===============================
   (async function boot() {
-    // Reveal UI depending on context
-    setTimeout(() => {
-      if (!overlay || !overlay.hidden) return;
-      overlay.hidden = false;
-
-      if (isDesktopWeb()) {
-        installSection.hidden = true;
-        linksSection.hidden = false;
-      } else {
-        installSection.hidden = true;
-        linksSection.hidden = false;
-      }
-    }, 800);
+    // Reveal shell quickly
+    setTimeout(() => { if (overlay?.hidden) overlay.hidden = false; }, 200);
 
     // Wire links
     document.getElementById('toJellyseerr')?.setAttribute('href', JELLYSEERR_URL);
@@ -316,18 +337,52 @@
 
     openPlexWebBtn?.setAttribute('href', PLEX_WEB_FALLBACK);
 
-    // (Optional) Handle PWA prompt if you ever expose the Install App button
+    // Decide what to show
+    if (isDesktopWeb()) {
+      // Desktop → always links
+      installSection.hidden = true;
+      linksSection.hidden = false;
+      return;
+    }
+
+    // Mobile
+    const installed = await isAppInstalled();
+
+    if (installed) {
+      // Mobile + installed → links
+      installSection.hidden = true;
+      linksSection.hidden = false;
+    } else {
+      // Mobile + NOT installed → show only Install
+      installSection.hidden = false;
+      linksSection.hidden = true;
+      document.getElementById('installHelp')?.removeAttribute('hidden');
+    }
+
+    // Handle PWA prompt capture (Android/Chrome)
     let deferredPrompt = null;
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       deferredPrompt = e;
+      // If user becomes eligible to install, ensure install UI is visible
+      installSection.hidden = false;
+      linksSection.hidden = true;
     }, { once: true });
 
     document.getElementById('installBtn')?.addEventListener('click', async () => {
       try {
-        if (!deferredPrompt) return;
+        if (!deferredPrompt) {
+          // iOS Safari doesn’t fire beforeinstallprompt — show friendly tip
+          alert("On iPhone/iPad: Share → Add to Home Screen to install ILYMMD+.");
+          return;
+        }
         deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
+        const choice = await deferredPrompt.userChoice;
+        if (choice?.outcome === 'accepted') {
+          try { localStorage.setItem('ilymmd_installed', '1'); } catch {}
+          installSection.hidden = true;
+          linksSection.hidden = false;
+        }
         deferredPrompt = null;
       } catch {}
     });
