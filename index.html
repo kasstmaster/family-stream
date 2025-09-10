@@ -147,24 +147,24 @@
 
     <!-- Links section (desktop or installed) -->
     <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
-      <a class="btn secondary" id="toPlexWatch" href="https://app.plex.tv/desktop" rel="noopener">Watch Now</a>
-      <a class="btn" id="toJellyseerr" href="https://discover.ilymmd.com/login" rel="noopener">Discover</a>
-      <a class="btn" id="toRokuSetup" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
+      <a class="btn secondary" id="toPlexWatch" href="https://app.plex.tv/desktop" rel="noopener noreferrer">Watch Now</a>
+      <!-- Hard-wired to your public domain -->
+      <a class="btn" id="toJellyseerr" href="https://discover.ilymmd.com/login" rel="noopener noreferrer">Discover</a>
+      <a class="btn" id="toRokuSetup" href="https://kasstmaster.github.io/ilymmd/" rel="noopener noreferrer">TV / Roku Setup</a>
     </div>
   </div>
 
   <!-- Tiny toast for manual fallback -->
   <div id="plexToast" hidden>
     <span class="muted">Couldn’t open the Plex app?</span>
-    <a id="openPlexWeb" href="https://app.plex.tv/desktop" rel="noopener">Open Plex Web</a>
+    <a id="openPlexWeb" href="https://app.plex.tv/desktop" rel="noopener noreferrer">Open Plex Web</a>
     <button id="closePlexToast" type="button">Dismiss</button>
   </div>
 
 <script>
   // ===============================
-  // Constants
+  // Constants (no Tailscale)
   // ===============================
-  const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net"; // your Tailscale URL
 
   // Plex deep-link + fallbacks
   const PLEX_WEB_FALLBACK   = "https://app.plex.tv/desktop";
@@ -265,8 +265,6 @@
       if (isIOS) {
         window.location.assign(PLEX_IOS_SCHEME);
       } else if (isAndroid) {
-        // Many Android browsers will route this to the app if installed,
-        // or Play Store if not
         window.location.assign(PLEX_ANDROID_INTENT);
       } else {
         // Desktop → straight to Plex Web
@@ -289,10 +287,8 @@
   // Install detection
   // ===============================
   async function isAppInstalled() {
-    // 1) Running as PWA (standalone/minimal-ui/fullscreen)
     if (isRunningStandalone()) return true;
 
-    // 2) Chrome on Android: detect related installed app
     try {
       if (navigator.getInstalledRelatedApps) {
         const related = await navigator.getInstalledRelatedApps();
@@ -300,7 +296,6 @@
       }
     } catch {}
 
-    // 3) Our own remembered flag from a previous install
     try {
       if (localStorage.getItem('ilymmd_installed') === '1') return true;
     } catch {}
@@ -308,10 +303,8 @@
     return false;
   }
 
-  // Remember when the PWA gets installed (Chrome/Android + some desktop browsers)
   window.addEventListener('appinstalled', () => {
     try { localStorage.setItem('ilymmd_installed', '1'); } catch {}
-    // Immediately switch UI to links
     installSection.hidden = true;
     linksSection.hidden = false;
   });
@@ -320,25 +313,17 @@
   // Boot
   // ===============================
   (async function boot() {
-    // Reveal shell quickly
     setTimeout(() => { if (overlay?.hidden) overlay.hidden = false; }, 200);
 
-    // Wire links
-    document.getElementById('toJellyseerr')?.setAttribute('href', JELLYSEERR_URL);
-    document.getElementById('toRokuSetup')?.setAttribute('href', "https://kasstmaster.github.io/ilymmd/");
-
+    // Wire links: Plex open handler + toast fallback
     const watchBtn = document.getElementById('toPlexWatch');
     if (watchBtn) {
-      // visible fallback if JS is off
-      watchBtn.href = PLEX_WEB_FALLBACK;
+      watchBtn.href = PLEX_WEB_FALLBACK; // visible fallback if JS is off
       watchBtn.addEventListener('click', openPlexApp, { passive: false });
     }
-
     openPlexWebBtn?.setAttribute('href', PLEX_WEB_FALLBACK);
 
-    // Decide what to show
     if (isDesktopWeb()) {
-      // Desktop → always links
       installSection.hidden = true;
       linksSection.hidden = false;
       return;
@@ -348,22 +333,18 @@
     const installed = await isAppInstalled();
 
     if (installed) {
-      // Mobile + installed → links
       installSection.hidden = true;
       linksSection.hidden = false;
     } else {
-      // Mobile + NOT installed → show only Install
       installSection.hidden = false;
       linksSection.hidden = true;
       document.getElementById('installHelp')?.removeAttribute('hidden');
     }
 
-    // Handle PWA prompt capture (Android/Chrome)
     let deferredPrompt = null;
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      // If user becomes eligible to install, ensure install UI is visible
       installSection.hidden = false;
       linksSection.hidden = true;
     }, { once: true });
@@ -371,7 +352,6 @@
     document.getElementById('installBtn')?.addEventListener('click', async () => {
       try {
         if (!deferredPrompt) {
-          // iOS Safari doesn’t fire beforeinstallprompt — show friendly tip
           alert("On iPhone/iPad: Share → Add to Home Screen to install ILYMMD+.");
           return;
         }
