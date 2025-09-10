@@ -134,7 +134,7 @@
 
     <!-- Links section (shown when app is installed OR desktop bypass) -->
     <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
-      <!-- Watch Now: now wired to try Plex app first with web fallback -->
+      <!-- Watch Now tries Plex app first; falls back to Plex Web -->
       <a class="btn secondary" id="toJellyfin" href="https://app.plex.tv/desktop" rel="noopener">Watch Now</a>
       <a class="btn" id="toJellyseerr" href="https://discover.tail9854e5.ts.net" rel="noopener">Discover</a>
       <a class="btn" id="toRokuSetup" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
@@ -145,13 +145,12 @@
   // ===============================
   // Constants
   // ===============================
-  // (Keeping your originals for reference; "Watch Now" targets Plex app now)
-  const JELLYFIN_URL   = "https://ilymmd.tail9854e5.ts.net";   // not used by the button anymore
+  const JELLYFIN_URL   = "https://ilymmd.tail9854e5.ts.net";   // not used by Watch Now anymore
   const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net";
 
   // --- Plex deep-link constants ---
-  const PLEX_WEB_FALLBACK = "https://app.plex.tv/desktop";
-  const PLEX_IOS_SCHEME   = "plex://";
+  const PLEX_WEB_FALLBACK   = "https://app.plex.tv/desktop";
+  const PLEX_IOS_SCHEME     = "plex://";
   const PLEX_ANDROID_INTENT = "intent://open#Intent;scheme=plex;package=com.plexapp.android;end";
 
   // ===============================
@@ -187,7 +186,6 @@
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
       }
-      // Also neutralize any pending navigation triggered by old SW:
       // show menu immediately
       const overlay = document.getElementById("overlay");
       const installSection = document.getElementById("installSection");
@@ -197,18 +195,17 @@
         installSection.hidden = true;
         linksSection.hidden = false;
       }
-      // Important: do NOT register a SW again on desktop this load.
+      // Do NOT re-register a SW on desktop this load.
     } catch (e) {
       console.warn("SW purge error (safe to ignore):", e);
     }
   })();
 
   // ===============================
-  // Service Worker (mobile only; desktop skips to avoid redirect ghosts)
+  // Service Worker (mobile only; desktop skips)
   // ===============================
   if (!isDesktopWeb() && "serviceWorker" in navigator) {
     navigator.serviceWorker.register("/service-worker.v8.js").then((reg) => {
-      // Bump filename (v8) so any old redirecting SW becomes obsolete.
       setTimeout(() => reg.update(), 5000);
       setInterval(() => reg.update(), 60 * 60 * 1000);
     });
@@ -229,7 +226,6 @@
   const installSection = document.getElementById("installSection");
   const linksSection = document.getElementById("linksSection");
 
-  // Related Apps API (best-effort; returns boolean)
   async function checkRelatedApps() {
     try {
       if (!("getInstalledRelatedApps" in navigator)) return false;
@@ -240,7 +236,6 @@
     }
   }
 
-  // Definitive "installed" check: standalone OR related app present
   async function isTrulyInstalled() {
     if (isRunningStandalone()) return true;
     try {
@@ -250,7 +245,7 @@
     }
   }
 
-  // ---- Heal any old sticky install flag from previous versions ----
+  // heal any old sticky install flag
   (async () => {
     try {
       if (localStorage.getItem("pwa:installed") === "1") {
@@ -260,42 +255,35 @@
     } catch {}
   })();
 
-  // Keep a single, fresh prompt object (no globals beyond this scope)
   let deferredPrompt = null;
 
-  // Show install UI only when a prompt is actually available and NOT installed
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault(); // stop auto-banner
     if (overlay) overlay.hidden = false;
 
-    // Desktop: always show the links (bypass install UI)
     if (isDesktopWeb()) {
       installSection.hidden = true;
       linksSection.hidden = false;
-      return; // don't store prompt on desktop
+      return;
     }
 
     (async () => {
       if (await isTrulyInstalled()) {
-        // Installed → show links immediately; hide install
         installSection.hidden = true;
         linksSection.hidden = false;
         return;
       }
-      // Not installed on mobile → expose install section and store prompt
       deferredPrompt = e;
       installSection.hidden = false;
       linksSection.hidden = true;
     })();
   }, { once: true });
 
-  // Also handle cases where beforeinstallprompt never fires (Safari/Firefox)
   function showFallback() {
     setTimeout(async () => {
       if (!overlay || !overlay.hidden) return;
       overlay.hidden = false;
 
-      // Desktop bypass on fallback as well
       if (isDesktopWeb()) {
         installSection.hidden = true;
         linksSection.hidden = false;
@@ -306,14 +294,12 @@
         installSection.hidden = true;
         linksSection.hidden = false;
       } else {
-        // No prompt known; keep install section hidden (since no button can work)
         installSection.hidden = true;
         linksSection.hidden = true;
       }
     }, 1200);
   }
 
-  // Button click → show prompt (must be inside a user gesture)
   installBtn?.addEventListener("click", async () => {
     try {
       if (!deferredPrompt) {
@@ -322,8 +308,7 @@
       }
       deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
-      deferredPrompt = null; // can only be used once
-      // If they accepted, we simply mark installed and swap sections — NO redirect
+      deferredPrompt = null;
       if (choice && choice.outcome === "accepted") {
         try { localStorage.setItem("pwa:installed", "1"); } catch {}
         installSection.hidden = true;
@@ -334,7 +319,6 @@
     }
   });
 
-  // When the app is installed, just tidy UI — NO redirect
   window.addEventListener("appinstalled", async () => {
     try { localStorage.setItem("pwa:installed", "1"); } catch {}
     if (!overlay.hidden) {
@@ -343,7 +327,6 @@
     }
   });
 
-  // If display-mode flips after load (user launches from home screen), NO redirect
   const dm = window.matchMedia("(display-mode: standalone)");
   dm.addEventListener?.("change", async () => {
     if (overlay.hidden) overlay.hidden = false;
@@ -354,29 +337,35 @@
   });
 
   // ===============================
-  // PLEX: open app with graceful fallback
+  // PLEX: open app with robust fallback
   // ===============================
   function openPlexApp(e) {
-    e.preventDefault(); // we’ll handle navigation
+    e.preventDefault();
 
     const ua = navigator.userAgent || '';
     const isAndroid = /Android/i.test(ua);
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
 
-    const fallback = () => { location.href = PLEX_WEB_FALLBACK; };
+    let didHide = false;
+    const onHide = () => { didHide = true; };
+    document.addEventListener('visibilitychange', onHide, { once: true });
 
-    if (isIOS) {
-      // iOS custom scheme
-      location.href = PLEX_IOS_SCHEME;
-      // If Plex app isn't installed, the scheme does nothing → go to web
-      setTimeout(fallback, 1200);
-    } else if (isAndroid) {
-      // Android Chrome intent to target Plex package
-      location.href = PLEX_ANDROID_INTENT;
-      setTimeout(fallback, 1200);
-    } else {
-      // Desktop browsers → use Plex Web
-      fallback();
+    const fallbackTimer = setTimeout(() => {
+      if (!didHide) window.location.assign(PLEX_WEB_FALLBACK);
+    }, 1500);
+
+    try {
+      if (isIOS) {
+        window.location.assign(PLEX_IOS_SCHEME);
+      } else if (isAndroid) {
+        window.location.assign(PLEX_ANDROID_INTENT);
+      } else {
+        clearTimeout(fallbackTimer);
+        window.location.assign(PLEX_WEB_FALLBACK);
+      }
+    } catch {
+      clearTimeout(fallbackTimer);
+      window.location.assign(PLEX_WEB_FALLBACK);
     }
   }
 
@@ -384,34 +373,29 @@
   // Boot: decide what to show; never auto-redirect
   // ===============================
   (async function boot() {
-    // Reveal the overlay after a moment if nothing else fired
     showFallback();
 
-    // Desktop visitors: bypass logo/install; show menu immediately
     if (isDesktopWeb()) {
       overlay.hidden = false;
       installSection.hidden = true;
       linksSection.hidden = false;
     } else {
-      // Mobile logic unchanged
       if (await isTrulyInstalled()) {
         overlay.hidden = false;
         installSection.hidden = true;
         linksSection.hidden = false;
       }
-      // else wait for beforeinstallprompt; fallback keeps both hidden (logo only)
     }
 
-    // Update hrefs just in case (Discover & Roku Setup)
+    // Update hrefs for other buttons
     document.getElementById('toJellyseerr').href = JELLYSEERR_URL;
     document.getElementById('toRokuSetup').href = "https://kasstmaster.github.io/ilymmd/";
 
-    // Wire up the "Watch Now" button to open Plex app first
+    // Wire "Watch Now" → Plex
     const watchBtn = document.getElementById('toJellyfin');
     if (watchBtn) {
-      // Set a visible-safe fallback URL for status bar / non-JS users
-      watchBtn.href = PLEX_WEB_FALLBACK;
-      watchBtn.addEventListener('click', openPlexApp);
+      watchBtn.href = PLEX_WEB_FALLBACK; // visible fallback + non-JS
+      watchBtn.addEventListener('click', openPlexApp, { passive: false });
     }
   })();
 </script>
