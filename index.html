@@ -120,7 +120,7 @@
   }
   .btn.secondary:hover { background: var(--btn2Hover); }
 
-  /* Tiny inline toast for manual fallback */
+  /* Toast for manual fallback */
   #plexToast {
     position: fixed;
     left: 50%;
@@ -153,6 +153,16 @@
     font-size: 14px;
   }
 
+  /* Install Plex notice (heuristic) */
+  #plexInstallNotice {
+    position: fixed;
+    left: 50%;
+    bottom: 76px;
+    transform: translateX(-50%);
+    z-index: 9998;
+    max-width: min(92%, 560px);
+  }
+
   @media (max-width: 360px) {
     #overlay img.icon { max-width: 220px; }
     .btn { padding: 12px 14px; font-size: 15px; }
@@ -178,6 +188,18 @@
     </div>
   </div>
 
+  <!-- Heuristic: Install Plex notice (hidden by default) -->
+  <div id="plexInstallNotice" hidden>
+    <div style="margin:12px auto; padding:12px 14px; border:1px solid var(--btnBorder); background:var(--toastBg); color:var(--toastText); border-radius:12px; text-align:left;">
+      <div style="font-weight:700; margin-bottom:6px;">Install Plex to watch instantly</div>
+      <div class="muted" style="margin-bottom:10px;">We couldn’t confirm the Plex app on this device. Install it, then tap “Watch Now” again.</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a id="storeLink" class="btn" href="#" rel="noopener">Get the app</a>
+        <button id="dismissPlexNotice" class="btn" type="button">Don’t show again</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Inline toast for manual fallback (hidden by default) -->
   <div id="plexToast" hidden>
     <span class="muted">Couldn’t open the Plex app?</span>
@@ -196,6 +218,9 @@
   const PLEX_WEB_FALLBACK   = "https://app.plex.tv/desktop";
   const PLEX_IOS_SCHEME     = "plex://";
   const PLEX_ANDROID_INTENT = "intent://open#Intent;scheme=plex;package=com.plexapp.android;end";
+
+  // Heuristic storage key
+  const PLEX_INSTALLED_KEY = "plex:likely_installed";
 
   // ===============================
   // Device detection (define EARLY)
@@ -274,15 +299,37 @@
   const openPlexWebBtn = document.getElementById('openPlexWeb');
   const closePlexToastBtn = document.getElementById('closePlexToast');
 
-  function showPlexToast() {
-    if (!plexToast) return;
-    plexToast.hidden = false;
-  }
-  function hidePlexToast() {
-    if (!plexToast) return;
-    plexToast.hidden = true;
-  }
+  const plexInstallNotice = document.getElementById('plexInstallNotice');
+  const storeLink = document.getElementById('storeLink');
+  const dismissPlexNoticeBtn = document.getElementById('dismissPlexNotice');
+
+  function showPlexToast() { if (plexToast) plexToast.hidden = false; }
+  function hidePlexToast() { if (plexToast) plexToast.hidden = true; }
   closePlexToastBtn?.addEventListener('click', hidePlexToast);
+
+  function getPlexStoreLink() {
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    if (isIOS)   return "https://apps.apple.com/app/plex-watch-tv-movies/id383457673";
+    if (isAndroid) return "https://play.google.com/store/apps/details?id=com.plexapp.android";
+    return "https://www.plex.tv/sign-in/?forward=/apps-devices/";
+  }
+
+  function setPlexLikelyInstalled(v) {
+    try { localStorage.setItem(PLEX_INSTALLED_KEY, v ? "1" : "0"); } catch {}
+  }
+  function getPlexLikelyInstalled() {
+    try { return localStorage.getItem(PLEX_INSTALLED_KEY) === "1"; } catch { return false; }
+  }
+
+  function showPlexInstallNotice() {
+    if (plexInstallNotice) plexInstallNotice.hidden = false;
+    storeLink?.setAttribute('href', getPlexStoreLink());
+  }
+  function hidePlexInstallNotice() {
+    if (plexInstallNotice) plexInstallNotice.hidden = true;
+  }
 
   async function checkRelatedApps() {
     try {
@@ -395,7 +442,7 @@
   });
 
   // ===============================
-  // PLEX: open app with robust, NO-AUTO-WEB fallback
+  // PLEX: open app with heuristic + NO auto-web on mobile
   // ===============================
   function openPlexApp(e) {
     e.preventDefault();
@@ -406,9 +453,33 @@
     const isMobile = isAndroid || isIOS;
 
     // If we leave the page (app switch), cancel any fallback UI
-    let didHide = document.hidden; // in case we were already hidden
+    let didHide = document.hidden; // in case page was already hidden
     const onHide = () => { didHide = true; hidePlexToast(); };
     document.addEventListener('visibilitychange', onHide, { once: true });
+
+    // Assume success if we hide quickly; otherwise show notice + toast
+    let assumedLaunchTimer = null;
+    let focusBackTimer = null;
+
+    if (isMobile) {
+      assumedLaunchTimer = setTimeout(() => {
+        if (!didHide && !document.hidden) {
+          setPlexLikelyInstalled(false);
+          showPlexInstallNotice();
+          showPlexToast();
+        }
+      }, 2000); // 2s = good middle ground
+    }
+
+    window.addEventListener('focus', () => {
+      if (didHide) {
+        setPlexLikelyInstalled(true);
+        hidePlexInstallNotice();
+        hidePlexToast();
+      }
+      if (assumedLaunchTimer) clearTimeout(assumedLaunchTimer);
+      if (focusBackTimer) clearTimeout(focusBackTimer);
+    }, { once: true });
 
     try {
       if (isIOS) {
@@ -416,22 +487,25 @@
       } else if (isAndroid) {
         window.location.assign(PLEX_ANDROID_INTENT);
       } else {
-        // Desktop → go straight to web (desktop users expect web)
+        // Desktop → web is expected
         window.location.assign(PLEX_WEB_FALLBACK);
         return;
       }
     } catch {
-      // If scheme/intent throws synchronously, just show the toast (don’t auto-nav)
+      setPlexLikelyInstalled(false);
+      showPlexInstallNotice();
+      showPlexToast();
     }
 
-    // On mobile, do NOT auto-redirect.
-    // If we’re still visible after ~3s, show a manual fallback UI instead.
+    // Backstop after ~6s if nothing happened
     if (isMobile) {
-      setTimeout(() => {
-        if (!didHide && !document.hidden) {
+      focusBackTimer = setTimeout(() => {
+        if (!document.hidden) {
+          setPlexLikelyInstalled(false);
+          showPlexInstallNotice();
           showPlexToast();
         }
-      }, 3000);
+      }, 6000);
     }
   }
 
@@ -454,8 +528,8 @@
     }
 
     // Update hrefs for other buttons
-    document.getElementById('toJellyseerr').href = JELLYSEERR_URL;
-    document.getElementById('toRokuSetup').href = "https://kasstmaster.github.io/ilymmd/";
+    document.getElementById('toJellyseerr')?.setAttribute('href', JELLYSEERR_URL);
+    document.getElementById('toRokuSetup')?.setAttribute('href', "https://kasstmaster.github.io/ilymmd/");
 
     // Wire "Watch Now" → Plex
     const watchBtn = document.getElementById('toJellyfin');
@@ -464,8 +538,20 @@
       watchBtn.addEventListener('click', openPlexApp, { passive: false });
     }
 
-    // Ensure toast buttons work even if rendered early
+    // Toast buttons + store link
     openPlexWebBtn?.setAttribute('href', PLEX_WEB_FALLBACK);
+    storeLink?.setAttribute('href', getPlexStoreLink());
+    dismissPlexNoticeBtn?.addEventListener('click', () => {
+      hidePlexInstallNotice();
+      setPlexLikelyInstalled(true); // user opted out; don't nag again
+    });
+
+    // Show the Plex install notice on load if mobile and we don't think it's installed yet
+    if (!isDesktopWeb() && !getPlexLikelyInstalled()) {
+      showPlexInstallNotice();
+    } else {
+      hidePlexInstallNotice();
+    }
   })();
 </script>
 </body>
