@@ -65,63 +65,35 @@
     <section class="hero">
       <img src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+ Logo" />
       <div>
-        <p class="small">Follow the steps below to connect your TV to our Jellyfin server.</p>
+        <p class="small">Follow the steps below to connect to Plex and request new titles through Jellyseerr.</p>
       </div>
     </section>
 
     <section class="card">
-      <h2>Server Address</h2>
+      <h2>Plex Access</h2>
+      <p>On your TV, phone, or computer, open the Plex app and sign in with your Plex account. Remote access is built in — no manual server URL is required.</p>
       <div class="server-box">
-        <span>Use this server URL:</span>
-        <code class="server-url" id="srv">https://ilymmd.tail9854e5.ts.net</code>
-        <button class="btn" id="copy">Copy</button>
+        <span>Plex Web App:</span>
+        <code class="server-url" id="plex">https://app.plex.tv</code>
+        <button class="btn" id="copyPlex">Copy</button>
       </div>
-      <p class="small">Type it exactly as shown, including https://</p>
-    </section>
-
-    <section class="card">
-      <h2>Android TV / Google TV (most Smart TVs) & Fire TV</h2>
-        <li>Open the <strong>Play Store</strong> (or Amazon Appstore on Fire TV) and install <strong>Jellyfin</strong>.</li>
-        <li>Open Jellyfin → choose <strong>Add Server</strong> (or <strong>Manually add</strong>).</li>
-        <li>Enter the server URL: <code class="server-url" id="srv">https://ilymmd.tail9854e5.ts.net</code></li>
-        <li>Select <strong>Next</strong> → log in with your account (we'll provide it if needed).</li>
-        <li>You're in! Browse your libraries and start watching.</li>
-      <details>
-        <summary>Troubleshooting tips</summary>
-        <ul>
-          <li><strong>Cannot connect?</strong> Double‑check the URL has <code>https://</code> and no typos.</li>
-          <li><strong>Clock mismatch:</strong> Make sure your TV's date/time is correct (TLS needs accurate time).</li>
-          <li><strong>Network limits:</strong> Hotel/guest Wi‑Fi can block streaming ports. Try another network or your home Wi‑Fi.</li>
-          <li><strong>Still stuck?</strong> Restart the TV and the Jellyfin app, then try again.</li>
-        </ul>
-      </details>
-    </section>
-
-    <section class="card">
-      <h2>Roku</h2>
-        <li>On your Roku, open the <strong>Channel Store</strong> and install <strong>Jellyfin</strong>.</li>
-        <li>Open Jellyfin → choose <strong>Sign in</strong> → <strong>Enter server manually</strong>.</li>
-        <li>Type the server: <code>https://ilymmd.tail9854e5.ts.net</code> and continue.</li>
-        <li>Log in with your account to finish setup.</li>
-      <details>
-        <summary>Troubleshooting tips</summary>
-        <ul>
-          <li><strong>Connection failed?</strong> Re‑enter the URL carefully; Roku's on‑screen keyboard loves to drop the <code>s</code> in <code>https</code>.</li>
-          <li><strong>Update apps:</strong> Settings → System → System update → Check now, then retry Jellyfin.</li>
-        </ul>
-      </details>
     </section>
 
     <section class="card">
       <h2>Requesting New Titles</h2>
       <p>
-        Use <a href="https://discover.tail9854e5.ts.net" target="_blank" rel="noopener">Discover</a> on your phone, tablet, or computer. Search for a title and tap <strong>Request</strong>.
-        Requests do <em>not</em> work from TV apps.
+        Use Jellyseerr on your phone, tablet, or computer. Visit the following URL, search for a title, and tap <strong>Request</strong>.  
       </p>
+      <div class="server-box">
+        <span>Jellyseerr URL:</span>
+        <code class="server-url" id="srv">https://discover.ilymmd.com</code>
+        <button class="btn" id="copy">Copy</button>
+      </div>
+      <p class="small">Requests must be made through this site, not through TV apps.</p>
     </section>
 
     <footer>
-      <p>Need help? Take a photo of your TV screen and send it to us. We'll get you connected fast.</p>
+      <p>Need help? Take a photo or screenshot and send it to us. We'll get you connected fast.</p>
     </footer>
   </main>
 
@@ -131,6 +103,19 @@
       try {
         await navigator.clipboard.writeText(url);
         const btn = document.getElementById('copy');
+        const old = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(()=>btn.textContent=old, 1500);
+      } catch(e) {
+        alert('Copy failed. Please select and copy the URL manually.');
+      }
+    });
+
+    document.getElementById('copyPlex')?.addEventListener('click', async () => {
+      const url = document.getElementById('plex').textContent.trim();
+      try {
+        await navigator.clipboard.writeText(url);
+        const btn = document.getElementById('copyPlex');
         const old = btn.textContent;
         btn.textContent = 'Copied!';
         setTimeout(()=>btn.textContent=old, 1500);
