@@ -14,7 +14,6 @@
 <link rel="icon" type="image/png" sizes="512x512" href="/web-app-manifest-512x512.v7.png">
 
 <style>
-  /* Keep everything hidden until JS decides what to show */
   [hidden]{display:none !important;}
 
   :root{
@@ -70,19 +69,6 @@
     height: auto;
   }
 
-  #overlay h1 {
-    font-size: 30px;
-    margin: 0 0 6px;
-    font-family: 'Playfair Display', serif;
-    font-weight: 400;
-  }
-
-  #overlay p {
-    font-size: 16px;
-    color: var(--muted);
-    margin: 0;
-  }
-
   .cta {
     display: flex;
     flex-direction: column;
@@ -107,7 +93,6 @@
     text-decoration: none;
     transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
     box-shadow: 0 4px 18px rgba(0,0,0,0.35);
-    will-change: transform;
     cursor: pointer;
   }
   .btn:hover { background: var(--btnHover); transform: translateY(-1px); }
@@ -148,20 +133,7 @@
     text-decoration: none;
     cursor: pointer;
   }
-  #plexToast .muted {
-    color: var(--muted);
-    font-size: 14px;
-  }
-
-  /* Install Plex notice (heuristic) */
-  #plexInstallNotice {
-    position: fixed;
-    left: 50%;
-    bottom: 76px;
-    transform: translateX(-50%);
-    z-index: 9998;
-    max-width: min(92%, 560px);
-  }
+  #plexToast .muted { color: var(--muted); font-size: 14px; }
 
   @media (max-width: 360px) {
     #overlay img.icon { max-width: 220px; }
@@ -179,28 +151,19 @@
       <p id="installHelp" class="muted" aria-live="polite" hidden>Tap Install to add ILYMMD+ to your home screen.</p>
     </div>
 
-    <!-- Links section (shown when app is installed OR desktop bypass) -->
+    <!-- Links section -->
     <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
-      <!-- Watch Now tries Plex app first; NO auto web redirect on mobile -->
-      <a class="btn secondary" id="toJellyfin" href="https://app.plex.tv/desktop" rel="noopener">Watch Now</a>
+      <a class="btn secondary" id="toPlexWatch" href="https://app.plex.tv/desktop" rel="noopener">Watch Now</a>
       <a class="btn" id="toJellyseerr" href="https://discover.ilymmd.com/login" rel="noopener">Discover</a>
       <a class="btn" id="toRokuSetup" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
+
+      <!-- NEW: Install Plex button + notice -->
+      <a class="btn" id="installPlexBtn" href="#" rel="noopener">Install Plex</a>
+      <p class="muted" id="installPlexNote" style="margin:0;">Plex must be installed for this app to work properly.</p>
     </div>
   </div>
 
-  <!-- Heuristic: Install Plex notice (hidden by default) -->
-  <div id="plexInstallNotice" hidden>
-    <div style="margin:12px auto; padding:12px 14px; border:1px solid var(--btnBorder); background:var(--toastBg); color:var(--toastText); border-radius:12px; text-align:left;">
-      <div style="font-weight:700; margin-bottom:6px;">Install Plex to watch instantly</div>
-      <div class="muted" style="margin-bottom:10px;">We couldn’t confirm the Plex app on this device. Install it, then tap “Watch Now” again.</div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <a id="storeLink" class="btn" href="#" rel="noopener">Get the app</a>
-        <button id="dismissPlexNotice" class="btn" type="button">Don’t show again</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Inline toast for manual fallback (hidden by default) -->
+  <!-- Toast for manual fallback -->
   <div id="plexToast" hidden>
     <span class="muted">Couldn’t open the Plex app?</span>
     <a id="openPlexWeb" href="https://app.plex.tv/desktop" rel="noopener">Open Plex Web</a>
@@ -211,19 +174,13 @@
   // ===============================
   // Constants
   // ===============================
-  const JELLYFIN_URL   = "https://ilymmd.tail9854e5.ts.net";   // not used by Watch Now anymore
   const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net";
-
-  // --- Plex deep-link constants ---
   const PLEX_WEB_FALLBACK   = "https://app.plex.tv/desktop";
   const PLEX_IOS_SCHEME     = "plex://";
   const PLEX_ANDROID_INTENT = "intent://open#Intent;scheme=plex;package=com.plexapp.android;end";
 
-  // Heuristic storage key
-  const PLEX_INSTALLED_KEY = "plex:likely_installed";
-
   // ===============================
-  // Device detection (define EARLY)
+  // Device detection
   // ===============================
   function isRunningStandalone() {
     const mq =
@@ -242,7 +199,7 @@
   }
 
   // ===============================
-  // HARD STOP: kill old SWs on desktop (prevents legacy redirects)
+  // Desktop: purge old SW/caches (prevents legacy redirects)
   // ===============================
   (async function purgeOldSWOnDesktop() {
     if (!isDesktopWeb()) return;
@@ -255,7 +212,6 @@
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
       }
-      // show menu immediately
       const overlay = document.getElementById("overlay");
       const installSection = document.getElementById("installSection");
       const linksSection = document.getElementById("linksSection");
@@ -264,7 +220,6 @@
         installSection.hidden = true;
         linksSection.hidden = false;
       }
-      // Do NOT re-register a SW on desktop this load.
     } catch (e) {
       console.warn("SW purge error (safe to ignore):", e);
     }
@@ -288,7 +243,7 @@
   }
 
   // ===============================
-  // Helpers & elements
+  // Elements & helpers
   // ===============================
   const overlay = document.getElementById("overlay");
   const installBtn = document.getElementById("installBtn");
@@ -299,187 +254,30 @@
   const openPlexWebBtn = document.getElementById('openPlexWeb');
   const closePlexToastBtn = document.getElementById('closePlexToast');
 
-  const plexInstallNotice = document.getElementById('plexInstallNotice');
-  const storeLink = document.getElementById('storeLink');
-  const dismissPlexNoticeBtn = document.getElementById('dismissPlexNotice');
-
   function showPlexToast() { if (plexToast) plexToast.hidden = false; }
   function hidePlexToast() { if (plexToast) plexToast.hidden = true; }
   closePlexToastBtn?.addEventListener('click', hidePlexToast);
 
+  // Platform store links for Plex
   function getPlexStoreLink() {
     const ua = navigator.userAgent || '';
     const isAndroid = /Android/i.test(ua);
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
     if (isIOS)   return "https://apps.apple.com/app/plex-watch-tv-movies/id383457673";
     if (isAndroid) return "https://play.google.com/store/apps/details?id=com.plexapp.android";
+    // Desktop fallback: general apps/devices page
     return "https://www.plex.tv/sign-in/?forward=/apps-devices/";
   }
 
-  function setPlexLikelyInstalled(v) {
-    try { localStorage.setItem(PLEX_INSTALLED_KEY, v ? "1" : "0"); } catch {}
-  }
-  function getPlexLikelyInstalled() {
-    try { return localStorage.getItem(PLEX_INSTALLED_KEY) === "1"; } catch { return false; }
-  }
-
-  function showPlexInstallNotice() {
-    if (plexInstallNotice) plexInstallNotice.hidden = false;
-    storeLink?.setAttribute('href', getPlexStoreLink());
-  }
-  function hidePlexInstallNotice() {
-    if (plexInstallNotice) plexInstallNotice.hidden = true;
-  }
-
-  async function checkRelatedApps() {
-    try {
-      if (!("getInstalledRelatedApps" in navigator)) return false;
-      const apps = await navigator.getInstalledRelatedApps();
-      return Array.isArray(apps) && apps.some(a => a.platform === "webapp");
-    } catch {
-      return false;
-    }
-  }
-
-  async function isTrulyInstalled() {
-    if (isRunningStandalone()) return true;
-    try {
-      return await checkRelatedApps();
-    } catch {
-      return false;
-    }
-  }
-
-  // heal any old sticky install flag
-  (async () => {
-    try {
-      if (localStorage.getItem("pwa:installed") === "1") {
-        const actuallyInstalled = isRunningStandalone() || (await checkRelatedApps());
-        if (!actuallyInstalled) localStorage.removeItem("pwa:installed");
-      }
-    } catch {}
-  })();
-
-  let deferredPrompt = null;
-
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault(); // stop auto-banner
-    if (overlay) overlay.hidden = false;
-
-    if (isDesktopWeb()) {
-      installSection.hidden = true;
-      linksSection.hidden = false;
-      return;
-    }
-
-    (async () => {
-      if (await isTrulyInstalled()) {
-        installSection.hidden = true;
-        linksSection.hidden = false;
-        return;
-      }
-      deferredPrompt = e;
-      installSection.hidden = false;
-      linksSection.hidden = true;
-    })();
-  }, { once: true });
-
-  function showFallback() {
-    setTimeout(async () => {
-      if (!overlay || !overlay.hidden) return;
-      overlay.hidden = false;
-
-      if (isDesktopWeb()) {
-        installSection.hidden = true;
-        linksSection.hidden = false;
-        return;
-      }
-
-      if (await isTrulyInstalled()) {
-        installSection.hidden = true;
-        linksSection.hidden = false;
-      } else {
-        installSection.hidden = true;
-        linksSection.hidden = true;
-      }
-    }, 1200);
-  }
-
-  installBtn?.addEventListener("click", async () => {
-    try {
-      if (!deferredPrompt) {
-        console.warn("No deferredPrompt available. Check manifest path/SW reload race.");
-        return;
-      }
-      deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      if (choice && choice.outcome === "accepted") {
-        try { localStorage.setItem("pwa:installed", "1"); } catch {}
-        installSection.hidden = true;
-        linksSection.hidden = false;
-      }
-    } catch (err) {
-      console.error("Install prompt failed:", err);
-    }
-  });
-
-  window.addEventListener("appinstalled", async () => {
-    try { localStorage.setItem("pwa:installed", "1"); } catch {}
-    if (!overlay.hidden) {
-      installSection.hidden = true;
-      linksSection.hidden = false;
-    }
-  });
-
-  const dm = window.matchMedia("(display-mode: standalone)");
-  dm.addEventListener?.("change", async () => {
-    if (overlay.hidden) overlay.hidden = false;
-    if (await isTrulyInstalled()) {
-      installSection.hidden = true;
-      linksSection.hidden = false;
-    }
-  });
-
   // ===============================
-  // PLEX: open app with heuristic + NO auto-web on mobile
+  // Deep-link open (no auto-web redirect on mobile)
   // ===============================
   function openPlexApp(e) {
-    e.preventDefault();
+    e?.preventDefault?.();
 
     const ua = navigator.userAgent || '';
     const isAndroid = /Android/i.test(ua);
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
-    const isMobile = isAndroid || isIOS;
-
-    // If we leave the page (app switch), cancel any fallback UI
-    let didHide = document.hidden; // in case page was already hidden
-    const onHide = () => { didHide = true; hidePlexToast(); };
-    document.addEventListener('visibilitychange', onHide, { once: true });
-
-    // Assume success if we hide quickly; otherwise show notice + toast
-    let assumedLaunchTimer = null;
-    let focusBackTimer = null;
-
-    if (isMobile) {
-      assumedLaunchTimer = setTimeout(() => {
-        if (!didHide && !document.hidden) {
-          setPlexLikelyInstalled(false);
-          showPlexInstallNotice();
-          showPlexToast();
-        }
-      }, 2000); // 2s = good middle ground
-    }
-
-    window.addEventListener('focus', () => {
-      if (didHide) {
-        setPlexLikelyInstalled(true);
-        hidePlexInstallNotice();
-        hidePlexToast();
-      }
-      if (assumedLaunchTimer) clearTimeout(assumedLaunchTimer);
-      if (focusBackTimer) clearTimeout(focusBackTimer);
-    }, { once: true });
 
     try {
       if (isIOS) {
@@ -487,71 +285,78 @@
       } else if (isAndroid) {
         window.location.assign(PLEX_ANDROID_INTENT);
       } else {
-        // Desktop → web is expected
+        // Desktop → go straight to web
         window.location.assign(PLEX_WEB_FALLBACK);
         return;
       }
     } catch {
-      setPlexLikelyInstalled(false);
-      showPlexInstallNotice();
-      showPlexToast();
+      // If scheme/intent throws synchronously, just show the toast (don’t auto-nav)
     }
 
-    // Backstop after ~6s if nothing happened
-    if (isMobile) {
-      focusBackTimer = setTimeout(() => {
-        if (!document.hidden) {
-          setPlexLikelyInstalled(false);
-          showPlexInstallNotice();
-          showPlexToast();
-        }
-      }, 6000);
+    // On mobile, do NOT auto-redirect. If we’re still visible after ~3s, show manual fallback UI.
+    if (isIOS || isAndroid) {
+      setTimeout(() => {
+        if (!document.hidden) showPlexToast();
+      }, 3000);
     }
   }
 
   // ===============================
-  // Boot: decide what to show; never auto-redirect
+  // Boot
   // ===============================
   (async function boot() {
-    showFallback();
-
-    if (isDesktopWeb()) {
+    // Reveal UI depending on context
+    setTimeout(async () => {
+      if (!overlay || !overlay.hidden) return;
       overlay.hidden = false;
-      installSection.hidden = true;
-      linksSection.hidden = false;
-    } else {
-      if (await isTrulyInstalled()) {
-        overlay.hidden = false;
+
+      if (isDesktopWeb()) {
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      } else {
+        // On mobile, only show links; hide install section unless PWA prompt fires
         installSection.hidden = true;
         linksSection.hidden = false;
       }
-    }
+    }, 800);
 
-    // Update hrefs for other buttons
+    // Wire buttons/links
     document.getElementById('toJellyseerr')?.setAttribute('href', JELLYSEERR_URL);
     document.getElementById('toRokuSetup')?.setAttribute('href', "https://kasstmaster.github.io/ilymmd/");
 
-    // Wire "Watch Now" → Plex
-    const watchBtn = document.getElementById('toJellyfin');
+    const watchBtn = document.getElementById('toPlexWatch');
     if (watchBtn) {
       watchBtn.href = PLEX_WEB_FALLBACK; // visible fallback + non-JS
       watchBtn.addEventListener('click', openPlexApp, { passive: false });
     }
 
-    // Toast buttons + store link
-    openPlexWebBtn?.setAttribute('href', PLEX_WEB_FALLBACK);
-    storeLink?.setAttribute('href', getPlexStoreLink());
-    dismissPlexNoticeBtn?.addEventListener('click', () => {
-      hidePlexInstallNotice();
-      setPlexLikelyInstalled(true); // user opted out; don't nag again
-    });
-
-    // Show the Plex install notice on load if mobile and we don't think it's installed yet
-    if (!isDesktopWeb() && !getPlexLikelyInstalled()) {
-      showPlexInstallNotice();
-    } else {
-      hidePlexInstallNotice();
+    // Install Plex button → device-appropriate store
+    const installPlexBtn = document.getElementById('installPlexBtn');
+    if (installPlexBtn) {
+      installPlexBtn.href = getPlexStoreLink();
+      // if you prefer to open in a new tab:
+      // installPlexBtn.target = "_blank";
     }
+
+    // Toast button
+    openPlexWebBtn?.setAttribute('href', PLEX_WEB_FALLBACK);
+
+    // Optional: handle PWA install prompt when available
+    let deferredPrompt = null;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      // show install UI if you want; currently we leave the dedicated PWA install button hidden
+    }, { once: true });
+
+    installBtn?.addEventListener("click", async () => {
+      try {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      } catch {}
+    });
   })();
 </script>
 </body>
