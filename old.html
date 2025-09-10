@@ -111,7 +111,7 @@
   .btn.secondary {
     background: var(--btn2);
     color: var(--btn2Text);
-    border-color: transparent;
+    border-color: transparent.
   }
   .btn.secondary:hover { background: var(--btn2Hover); }
 
@@ -131,11 +131,11 @@
       <p id="installHelp" class="muted" aria-live="polite" hidden>Tap Install to add ILYMMD+ to your home screen.</p>
     </div>
 
-    <!-- Links section (shown when app is installed) -->
+    <!-- Links section (shown when app is installed OR desktop bypass) -->
     <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
       <a class="btn secondary" id="toJellyfin" href="https://ilymmd.tail9854e5.ts.net" rel="noopener">Watch Now</a>
       <a class="btn" id="toJellyseerr" href="https://discover.tail9854e5.ts.net" rel="noopener">Discover</a>
-      <a class="btn" id="toJellyfin" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
+      <a class="btn" id="toRokuSetup" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
     </div>
   </div>
 
@@ -147,11 +147,60 @@
   const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net";
 
   // ===============================
-  // Service Worker (single registration)
+  // Device detection (define EARLY)
   // ===============================
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js").then((reg) => {
-      // Check for updates shortly after load and then hourly
+  function isRunningStandalone() {
+    const mq =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches;
+    const iosStandalone = (window.navigator.standalone === true);
+    return mq || iosStandalone;
+  }
+  function isMobileDevice() {
+    return navigator.userAgentData?.mobile === true ||
+      /Android|iPhone|iPad|iPod|Silk|Kindle|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
+  }
+  function isDesktopWeb() {
+    return !isMobileDevice() && !isRunningStandalone();
+  }
+
+  // ===============================
+  // HARD STOP: kill old SWs on desktop (prevents legacy redirects)
+  // ===============================
+  (async function purgeOldSWOnDesktop() {
+    if (!isDesktopWeb()) return;
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      // Also neutralize any pending navigation triggered by old SW:
+      // show menu immediately
+      const overlay = document.getElementById("overlay");
+      const installSection = document.getElementById("installSection");
+      const linksSection = document.getElementById("linksSection");
+      if (overlay && installSection && linksSection) {
+        overlay.hidden = false;
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      }
+      // Important: do NOT register a SW again on desktop this load.
+    } catch (e) {
+      console.warn("SW purge error (safe to ignore):", e);
+    }
+  })();
+
+  // ===============================
+  // Service Worker (mobile only; desktop skips to avoid redirect ghosts)
+  // ===============================
+  if (!isDesktopWeb() && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/service-worker.v8.js").then((reg) => {
+      // Bump filename (v8) so any old redirecting SW becomes obsolete.
       setTimeout(() => reg.update(), 5000);
       setInterval(() => reg.update(), 60 * 60 * 1000);
     });
@@ -171,15 +220,6 @@
   const installBtn = document.getElementById("installBtn");
   const installSection = document.getElementById("installSection");
   const linksSection = document.getElementById("linksSection");
-
-  function isRunningStandalone() {
-    const mq =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: minimal-ui)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches;
-    const iosStandalone = (window.navigator.standalone === true);
-    return mq || iosStandalone;
-  }
 
   // Related Apps API (best-effort; returns boolean)
   async function checkRelatedApps() {
@@ -219,6 +259,14 @@
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault(); // stop auto-banner
     if (overlay) overlay.hidden = false;
+
+    // Desktop: always show the links (bypass install UI)
+    if (isDesktopWeb()) {
+      installSection.hidden = true;
+      linksSection.hidden = false;
+      return; // don't store prompt on desktop
+    }
+
     (async () => {
       if (await isTrulyInstalled()) {
         // Installed → show links immediately; hide install
@@ -226,7 +274,7 @@
         linksSection.hidden = false;
         return;
       }
-      // Not installed → expose install section and store prompt
+      // Not installed on mobile → expose install section and store prompt
       deferredPrompt = e;
       installSection.hidden = false;
       linksSection.hidden = true;
@@ -238,6 +286,14 @@
     setTimeout(async () => {
       if (!overlay || !overlay.hidden) return;
       overlay.hidden = false;
+
+      // Desktop bypass on fallback as well
+      if (isDesktopWeb()) {
+        installSection.hidden = true;
+        linksSection.hidden = false;
+        return;
+      }
+
       if (await isTrulyInstalled()) {
         installSection.hidden = true;
         linksSection.hidden = false;
@@ -281,7 +337,7 @@
 
   // If display-mode flips after load (user launches from home screen), NO redirect
   const dm = window.matchMedia("(display-mode: standalone)");
-  dm.addEventListener?.("change", async (e) => {
+  dm.addEventListener?.("change", async () => {
     if (overlay.hidden) overlay.hidden = false;
     if (await isTrulyInstalled()) {
       installSection.hidden = true;
@@ -296,19 +352,25 @@
     // Reveal the overlay after a moment if nothing else fired
     showFallback();
 
-    // On load, choose sections
-    if (await isTrulyInstalled()) {
+    // Desktop visitors: bypass logo/install; show menu immediately
+    if (isDesktopWeb()) {
       overlay.hidden = false;
       installSection.hidden = true;
       linksSection.hidden = false;
     } else {
-      // Not installed: wait for beforeinstallprompt to show install section; otherwise fallback keeps both hidden
-      // Overlay will still reveal the logo via fallback
+      // Mobile logic unchanged
+      if (await isTrulyInstalled()) {
+        overlay.hidden = false;
+        installSection.hidden = true;
+        linksSection.hidden = false;
+      }
+      // else wait for beforeinstallprompt; fallback keeps both hidden (logo only)
     }
 
     // Update hrefs just in case
     document.getElementById('toJellyfin').href = JELLYFIN_URL;
     document.getElementById('toJellyseerr').href = JELLYSEERR_URL;
+    document.getElementById('toRokuSetup').href = "https://kasstmaster.github.io/ilymmd/";
   })();
 </script>
 </body>
