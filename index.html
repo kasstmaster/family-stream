@@ -104,6 +104,7 @@
     transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
     box-shadow: 0 4px 18px rgba(0,0,0,0.35);
     will-change: transform;
+    cursor: pointer;
   }
   .btn:hover { background: var(--btnHover); transform: translateY(-1px); }
   .btn:active { transform: translateY(0); }
@@ -111,7 +112,7 @@
   .btn.secondary {
     background: var(--btn2);
     color: var(--btn2Text);
-    border-color: transparent.
+    border-color: transparent;
   }
   .btn.secondary:hover { background: var(--btn2Hover); }
 
@@ -133,7 +134,8 @@
 
     <!-- Links section (shown when app is installed OR desktop bypass) -->
     <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
-      <a class="btn secondary" id="toJellyfin" href="https://ilymmd.tail9854e5.ts.net" rel="noopener">Watch Now</a>
+      <!-- Watch Now: now wired to try Plex app first with web fallback -->
+      <a class="btn secondary" id="toJellyfin" href="https://app.plex.tv/desktop" rel="noopener">Watch Now</a>
       <a class="btn" id="toJellyseerr" href="https://discover.tail9854e5.ts.net" rel="noopener">Discover</a>
       <a class="btn" id="toRokuSetup" href="https://kasstmaster.github.io/ilymmd/" rel="noopener">TV / Roku Setup</a>
     </div>
@@ -143,8 +145,14 @@
   // ===============================
   // Constants
   // ===============================
-  const JELLYFIN_URL = "https://ilymmd.tail9854e5.ts.net";
+  // (Keeping your originals for reference; "Watch Now" targets Plex app now)
+  const JELLYFIN_URL   = "https://ilymmd.tail9854e5.ts.net";   // not used by the button anymore
   const JELLYSEERR_URL = "https://discover.tail9854e5.ts.net";
+
+  // --- Plex deep-link constants ---
+  const PLEX_WEB_FALLBACK = "https://app.plex.tv/desktop";
+  const PLEX_IOS_SCHEME   = "plex://";
+  const PLEX_ANDROID_INTENT = "intent://open#Intent;scheme=plex;package=com.plexapp.android;end";
 
   // ===============================
   // Device detection (define EARLY)
@@ -346,6 +354,33 @@
   });
 
   // ===============================
+  // PLEX: open app with graceful fallback
+  // ===============================
+  function openPlexApp(e) {
+    e.preventDefault(); // we’ll handle navigation
+
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+    const fallback = () => { location.href = PLEX_WEB_FALLBACK; };
+
+    if (isIOS) {
+      // iOS custom scheme
+      location.href = PLEX_IOS_SCHEME;
+      // If Plex app isn't installed, the scheme does nothing → go to web
+      setTimeout(fallback, 1200);
+    } else if (isAndroid) {
+      // Android Chrome intent to target Plex package
+      location.href = PLEX_ANDROID_INTENT;
+      setTimeout(fallback, 1200);
+    } else {
+      // Desktop browsers → use Plex Web
+      fallback();
+    }
+  }
+
+  // ===============================
   // Boot: decide what to show; never auto-redirect
   // ===============================
   (async function boot() {
@@ -367,10 +402,17 @@
       // else wait for beforeinstallprompt; fallback keeps both hidden (logo only)
     }
 
-    // Update hrefs just in case
-    document.getElementById('toJellyfin').href = JELLYFIN_URL;
+    // Update hrefs just in case (Discover & Roku Setup)
     document.getElementById('toJellyseerr').href = JELLYSEERR_URL;
     document.getElementById('toRokuSetup').href = "https://kasstmaster.github.io/ilymmd/";
+
+    // Wire up the "Watch Now" button to open Plex app first
+    const watchBtn = document.getElementById('toJellyfin');
+    if (watchBtn) {
+      // Set a visible-safe fallback URL for status bar / non-JS users
+      watchBtn.href = PLEX_WEB_FALLBACK;
+      watchBtn.addEventListener('click', openPlexApp);
+    }
   })();
 </script>
 </body>
