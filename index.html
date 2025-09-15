@@ -103,15 +103,17 @@
   #linksSection .help-note{
     margin-top: 12px;
     text-align: center;
-    font-size: 1rem;            /* bump to 1.25rem if you want it bigger */
-    color: #e5e7eb;             /* light gray for dark background */
+    font-size: 1rem; /* bump to 1.25rem if you want it bigger */
+    color: #e5e7eb;
   }
   #linksSection .help-link{
-    text-decoration: underline;
+    color: var(--btn2);
     font-weight: 600;
+    text-decoration: underline;
   }
-  #linksSection .help-link:focus,
-  #linksSection .help-link:hover{
+  #linksSection .help-link:hover,
+  #linksSection .help-link:focus{
+    color: var(--btn2Hover);
     text-decoration-thickness: 2px;
   }
 
