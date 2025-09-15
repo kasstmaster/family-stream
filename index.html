@@ -100,6 +100,21 @@
   .btn.secondary { background: var(--btn2); color: var(--btn2Text); border-color: transparent; }
   .btn.secondary:hover { background: var(--btn2Hover); }
 
+  #linksSection .help-note{
+    margin-top: 12px;
+    text-align: center;
+    font-size: 1rem;            /* bump to 1.25rem if you want it bigger */
+    color: #e5e7eb;             /* light gray for dark background */
+  }
+  #linksSection .help-link{
+    text-decoration: underline;
+    font-weight: 600;
+  }
+  #linksSection .help-link:focus,
+  #linksSection .help-link:hover{
+    text-decoration-thickness: 2px;
+  }
+
   /* Toast for manual fallback */
   #plexToast {
     position: fixed;
@@ -139,18 +154,23 @@
 <body>
   <div id="overlay" hidden>
     <img class="icon" src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+">
-
+  
     <!-- PWA install section (mobile, not installed) -->
     <div id="installSection" class="cta" role="group" aria-label="Install app actions" hidden>
       <button id="installBtn" class="btn">Install App</button>
     </div>
-
+  
     <!-- Links section (desktop or installed) -->
     <div id="linksSection" class="cta" role="group" aria-label="Open services" hidden>
       <a class="btn secondary" id="toPlexWatch" href="https://app.plex.tv/desktop" rel="noopener noreferrer">Watch Now</a>
       <!-- Hard-wired to your public domain -->
       <a class="btn" id="toJellyseerr" href="https://discover.ilymmd.com/login" rel="noopener noreferrer">Discover</a>
       <a class="btn" id="toRokuSetup" href="https://kasstmaster.github.io/ilymmd/" rel="noopener noreferrer">TV / Roku Setup</a>
+  
+      <!-- Help text -->
+      <p class="help-note" role="contentinfo">
+        Need help? <a class="help-link" href="mailto:ilymmdplus@gmail.com?subject=Help%20with%20ILYMMD%2B">Shoot us an email</a>
+      </p>
     </div>
   </div>
 
