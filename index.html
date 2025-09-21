@@ -171,7 +171,7 @@
   
       <!-- Help text -->
       <p class="help-note" role="contentinfo">
-        Need help? <a class="help-link" href="mailto:ilymmdplus@gmail.com?subject=Help%20with%20ILYMMD%2B">Shoot us an email</a>
+        Need help? <a class="help-link" id="helpEmailLink" href="#">Shoot us an email</a>
       </p>
     </div>
   </div>
@@ -344,6 +344,11 @@
       watchBtn.addEventListener('click', openPlexApp, { passive: false });
     }
     openPlexWebBtn?.setAttribute('href', PLEX_WEB_FALLBACK);
+
+    // Generate a random 12-digit number
+    const issueNum = Math.floor(Math.random() * 1e12); 
+    const mailto = `mailto:ilymmdplus@gmail.com?subject=ILYMMD+%20Issue%20%23${issueNum}`;
+    document.getElementById("helpEmailLink").setAttribute("href", mailto);
 
     if (isDesktopWeb()) {
       installSection.hidden = true;
