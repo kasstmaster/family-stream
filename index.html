@@ -104,13 +104,23 @@
     --gradEndHover:#a855f7;    /* purple-500 */
   }
   
+  :root {
+    --gradStart:#4f46e5;       /* indigo-600 */
+    --gradEnd:#9333ea;         /* purple-600 */
+    --gradStartHover:#6366f1;  /* indigo-500 */
+    --gradEndHover:#a855f7;    /* purple-500 */
+  }
+  
   .btn.secondary {
     background: linear-gradient(135deg, var(--gradStart), var(--gradEnd));
-    color: #ffffff;
-    border-color: transparent;
+    color:#ffffff !important;
+    border-color:transparent;
   }
-  .btn.secondary:hover {
+  .btn.secondary:hover,
+  .btn.secondary:active,
+  .btn.secondary:focus {
     background: linear-gradient(135deg, var(--gradStartHover), var(--gradEndHover));
+    color:#ffffff !important;
   }
 
   #linksSection .help-note{
