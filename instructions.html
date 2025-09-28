@@ -55,23 +55,48 @@
       transition: transform .06s ease, background .15s ease;
     }
     .nav-btn:hover{ background:#222; transform: translateY(-1px); }
-    :root {
+    /* merge into your first :root block */
+    :root{
+      --bg:#111111;--panel:#151515;--text:#ffffff;--muted:#bbbbbb;
+      --brand:#1f6feb;--brandHover:#1a60d0;--warn:#f8d34a;--warnText:#111;
+      --border:#262626;--btn:#ffffff;--btnText:#111;--btnHover:#e9e9e9;
+    
+      /* gradient */
       --gradStart:#4f46e5;       /* indigo-600 */
       --gradEnd:#9333ea;         /* purple-600 */
       --gradStartHover:#6366f1;  /* indigo-500 */
       --gradEndHover:#a855f7;    /* purple-500 */
     }
     
-    .nav-primary {
+    /* bottom nav */
+    .bottom-nav{
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+      background:#151515; border-top:1px solid var(--border);
+      display:grid; grid-template-columns: repeat(3,1fr); gap:6px;
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      box-shadow: 0 -8px 24px rgba(0,0,0,.35);
+    }
+    .nav-btn{
+      display:flex; align-items:center; justify-content:center;
+      padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+      background:#1b1b1b; color:#fff; font-weight:600; text-decoration:none;
+      transition: transform .06s ease, background .15s ease, box-shadow .15s ease;
+    }
+    .nav-btn:hover{ background:#222; transform: translateY(-1px); }
+    .nav-btn svg{ color:#fff; } /* keep icons white */
+    
+    /* active/primary */
+    .nav-primary{
       background: linear-gradient(135deg, var(--gradStart), var(--gradEnd));
-      color:#ffffff !important;
-      border-color:transparent;
+      color:#ffffff !important; border-color:transparent;
     }
     .nav-primary:hover,
-    .nav-primary:active,
-    .nav-primary:focus {
+    .nav-primary:active{
       background: linear-gradient(135deg, var(--gradStartHover), var(--gradEndHover));
       color:#ffffff !important;
+    }
+    .nav-primary:focus-visible{
+      outline: 2px solid #ffffff80; outline-offset: 2px;
     }
   </style>
 </head>
