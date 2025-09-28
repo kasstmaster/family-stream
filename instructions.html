@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instructions - ILYMMD+</title>
+  <link rel="icon" href="/favicon.v7.ico" />
+  <style>
+    :root{
+      --bg:#111111;--panel:#151515;--text:#ffffff;--muted:#bbbbbb;
+      --brand:#1f6feb;--brandHover:#1a60d0;--warn:#f8d34a;--warnText:#111;
+      --border:#262626;--btn:#ffffff;--btnText:#111;--btnHover:#e9e9e9
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{color:var(--brandHover)}
+    header{position:sticky;top:0;background:rgba(17,17,17,.85);backdrop-filter:saturate(150%) blur(8px);border-bottom:1px solid var(--border);z-index:2}
+    .container{max-width:900px;margin:0 auto;padding:20px}
+    .topnav{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    .topnav .links{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--btn);color:var(--btnText);font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .06s ease, background .15s ease}
+    .btn:hover{background:var(--btnHover);transform:translateY(-1px)}
+    .btn.secondary{background:var(--brand);color:#fff;border-color:transparent}
+    .btn.secondary:hover{background:var(--brandHover)}
+
+    .hero{display:flex;gap:16px;align-items:center}
+    .hero img{width:110px;height:auto}
+
+    code {white-space: nowrap; overflow-x: auto; display: block; max-width: 100%; font-size: 13px;}
+
+    ol {margin: 0; padding-left: 0; list-style-position: inside;}
+    
+    .callout{margin:18px 0;padding:14px 16px;border-radius:12px;border:1px dashed #3a2;}
+
+    .warning{background:var(--warn);color:var(--warnText);border:1px solid #e7c53e;padding:16px;border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.35)}
+    .warning strong{display:block;margin-bottom:6px}
+
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 16px 6px;box-shadow:0 10px 30px rgba(0,0,0,.4);margin:20px 0}
+    h1{font-size:28px;margin:12px 0 8px}
+    h2{font-size:22px;margin:8px 0}
+    ol{margin:10px 0 10px 22px}
+    li{margin:6px 0}
+    code, .kbd{background:#1d1d1d;border:1px solid #2b2b2b;border-radius:6px;padding:1px 6px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+
+    .server-box{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#171717;border:1px solid var(--border);border-radius:12px;padding:10px}
+    .server-url{user-select:all}
+    .small{color:var(--muted);font-size:13px}
+    footer{color:var(--muted);border-top:1px solid var(--border);margin-top:28px;padding-top:16px}
+
+    details{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin:14px 0}
+    summary{cursor:pointer;font-weight:600}
+  </style>
+</head>
+<body>
+
+  <main class="container">
+    <section class="hero">
+      <img src="https://i.postimg.cc/C5mdsHGY/ilymmd.png" alt="ILYMMD+ Logo" />
+      <div>
+        <p class="small">Follow the steps below to watch with Plex and request new titles through Jellyseerr.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Android TV / Google TV / Fire TV</h2>
+        <li>Open the Play Store (or Amazon Appstore on Fire TV) and install <strong>Plex</strong>.</li>
+        <li>Open Plex and sign in with your Plex account.</li>
+        <li>Go to “Home” and you should see our library after you’re shared in.</li>
+      <details>
+        <summary>Troubleshooting tips</summary>
+        <ul>
+          <li><strong>Can't see the library?</strong> Sign out/in again, then open “Sources” and check that our server is selected.</li>
+          <li><strong>Clock mismatch:</strong> Make sure your device’s date/time is correct (secure connections need accurate time).</li>
+          <li><strong>Network limits:</strong> Some guest/hotel Wi-Fi blocks streaming. Try another network or your home Wi-Fi.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>Roku (Plex)</h2>
+      <p>You have two ways to watch Plex on Roku:</p>
+    
+      <h3>Option 1 – Sign in on Roku</h3>
+      <li>From the Channel Store, install <strong>Plex</strong>.</li>
+      <li>Open Plex, choose <strong>Sign In</strong>, and follow the code pairing on your phone or at <code>https://app.plex.tv</code></li>
+      <li>Once signed in, our shared library will appear automatically.</li>
+    
+      <h3>Option 2 – Cast from your phone</h3>
+      <li>Install the Plex app on your Roku from the Channel Store (you don’t need to sign in on Roku).</li>
+      <li>On your phone, open the Plex app and connect to our server.</li>
+      <li>Tap the <strong>Cast</strong> button (TV icon with Wi-Fi waves) and select your Roku device.</li>
+      <li>The movie or show will start playing on your Roku TV.</li>
+      <p class="small"><em>Note: Casting requires your phone and Roku to be on the same Wi-Fi. Playback depends on your phone staying connected, and you may see fewer features compared to signing in directly on Roku.</em></p>
+    
+      <details>
+        <summary>Troubleshooting tips</summary>
+        <ul>
+          <li><strong>No library?</strong> If using Option 1, make sure you’re signed in with the correct Plex account that has been shared to.</li>
+          <li><strong>Cast button missing?</strong> Ensure your Roku and your phone are on the same Wi-Fi network, and both apps are updated.</li>
+          <li><strong>Update apps:</strong> On Roku: Settings → System → System update → Check now, then reopen Plex.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>Requesting New Titles</h2>
+      <p>
+        Use the <strong>Discover</strong> section in the app via your phone, tablet, or computer. Search for a title and tap <strong>Request</strong>.
+        Requests do <em>not</em> work from TV apps.
+      </p>
+    </section>
+
+    <footer>
+      <p>Need help? Take a photo of your screen and send it to us. We'll get you connected fast.</p>
+    </footer>
+  </main>
+
+  <script>
+    const copyBtn = (btnId, codeId) => {
+      document.getElementById(btnId)?.addEventListener('click', async () => {
+        const url = document.getElementById(codeId).textContent.trim();
+        try {
+          await navigator.clipboard.writeText(url);
+          const btn = document.getElementById(btnId);
+          const old = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(()=>btn.textContent=old, 1500);
+        } catch(e) {
+          alert('Copy failed. Please select and copy the URL manually.');
+        }
+      });
+    };
+
+    copyBtn('copyPlex', 'plex');
+    copyBtn('copyJelly', 'jelly');
+  </script>
+</body>
+</html>
