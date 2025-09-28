@@ -7,16 +7,27 @@
   <link rel="icon" href="/favicon.v7.ico" />
   <style>
     :root{
-      --bg:#111111;--panel:#151515;--text:#ffffff;--muted:#bbbbbb;
-      --brand:#1f6feb;--brandHover:#1a60d0;--warn:#f8d34a;--warnText:#111;
-      --border:#262626;--btn:#ffffff;--btnText:#111;--btnHover:#e9e9e9
+      --bg:#111111; --panel:#151515; --text:#ffffff; --muted:#bbbbbb;
+      --brand:#1f6feb; --brandHover:#1a60d0;
+      --warn:#f8d34a; --warnText:#111;
+      --border:#262626; --btn:#ffffff; --btnText:#111; --btnHover:#e9e9e9;
+      /* Gradient for “primary” nav button */
+      --gradStart:#4f46e5;        /* indigo-600 */
+      --gradEnd:#9333ea;          /* purple-600 */
+      --gradStartHover:#6366f1;   /* indigo-500 */
+      --gradEndHover:#a855f7;     /* purple-500 */
     }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    a{color:var(--brand);text-decoration:none}
-    a:hover{color:var(--brandHover)}
-    
-    /* lock white text for bottom-nav buttons in all states */
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+
+    a{ color:var(--brand); text-decoration:none; }
+    a:hover{ color:var(--brandHover); }
+
+    /* Lock white text for bottom-nav buttons in all states (overrides global link hover) */
     .bottom-nav .nav-btn,
     .bottom-nav .nav-btn:hover,
     .bottom-nav .nav-btn:focus,
@@ -28,96 +39,88 @@
     .bottom-nav .nav-primary:active,
     .bottom-nav .nav-primary:visited{
       color:#fff !important;
-      -webkit-text-fill-color:#fff; /* Safari/iOS edge cases */
+      -webkit-text-fill-color:#fff;
     }
-    
-    /* keep any icons white too */
-    .bottom-nav .nav-btn svg{
-      color:#fff !important;
-      fill:currentColor !important;
-    }
-    .container{max-width:900px;margin:0 auto;padding:20px;padding-bottom:110px} /* space for bottom nav */
-    .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--btn);color:var(--btnText);font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .06s ease, background .15s ease}
-    .btn:hover{background:var(--btnHover);transform:translateY(-1px)}
-    .btn.secondary{background:var(--brand);color:#fff;border-color:transparent}
-    .btn.secondary:hover{background:var(--brandHover)}
-    .hero{display:flex;gap:16px;align-items:center}
-    .hero img{width:110px;height:auto}
-    code {white-space: nowrap; overflow-x: auto; display: block; max-width: 100%; font-size: 13px;}
-    ol {margin: 0; padding-left: 0; list-style-position: inside;}
-    .callout{margin:18px 0;padding:14px 16px;border-radius:12px;border:1px dashed #3a2;}
-    .warning{background:var(--warn);color:var(--warnText);border:1px solid #e7c53e;padding:16px;border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.35)}
-    .warning strong{display:block;margin-bottom:6px}
-    .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 16px 6px;box-shadow:0 10px 30px rgba(0,0,0,.4);margin:20px 0}
-    h1{font-size:28px;margin:12px 0 8px}
-    h2{font-size:22px;margin:8px 0}
-    ol{margin:10px 0 10px 22px}
-    li{margin:6px 0}
-    code,.kbd{background:#1d1d1d;border:1px solid #2b2b2b;border-radius:6px;padding:1px 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-    .server-box{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#171717;border:1px solid var(--border);border-radius:12px;padding:10px}
-    .server-url{user-select:all}
-    .small{color:var(--muted);font-size:13px}
-    footer{color:var(--muted);border-top:1px solid var(--border);margin-top:28px;padding-top:16px}
-    details{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin:14px 0}
-    summary{cursor:pointer;font-weight:600}
+    .bottom-nav .nav-btn svg{ color:#fff !important; fill:currentColor !important; }
 
-    /* bottom nav */
+    .container{ max-width:900px; margin:0 auto; padding:20px; padding-bottom:110px; }
+
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:10px 14px; border-radius:10px; border:1px solid var(--border);
+      background:var(--btn); color:var(--btnText); font-weight:600;
+      box-shadow:0 4px 16px rgba(0,0,0,.35);
+      transition:transform .06s ease, background .15s ease;
+    }
+    .btn:hover{ background:var(--btnHover); transform:translateY(-1px); }
+    .btn.secondary{ background:var(--brand); color:#fff; border-color:transparent; }
+    .btn.secondary:hover{ background:var(--brandHover); }
+
+    .hero{ display:flex; gap:16px; align-items:center; }
+    .hero img{ width:110px; height:auto; }
+
+    code{ white-space:nowrap; overflow-x:auto; display:block; max-width:100%; font-size:13px; }
+    ol{ margin:10px 0 10px 22px; }
+    li{ margin:6px 0; }
+
+    .callout{ margin:18px 0; padding:14px 16px; border-radius:12px; border:1px dashed #3a2; }
+    .warning{
+      background:var(--warn); color:var(--warnText); border:1px solid #e7c53e;
+      padding:16px; border-radius:14px; box-shadow:0 6px 22px rgba(0,0,0,.35);
+    }
+    .warning strong{ display:block; margin-bottom:6px; }
+
+    .card{
+      background:var(--panel); border:1px solid var(--border); border-radius:14px;
+      padding:16px 16px 6px; box-shadow:0 10px 30px rgba(0,0,0,.4); margin:20px 0;
+    }
+
+    h1{ font-size:28px; margin:12px 0 8px; }
+    h2{ font-size:22px; margin:8px 0; }
+
+    code,.kbd{
+      background:#1d1d1d; border:1px solid #2b2b2b; border-radius:6px;
+      padding:1px 6px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    }
+
+    .server-box{
+      display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+      background:#171717; border:1px solid var(--border); border-radius:12px; padding:10px;
+    }
+    .server-url{ user-select:all; }
+    .small{ color:var(--muted); font-size:13px; }
+
+    footer{ color:var(--muted); border-top:1px solid var(--border); margin-top:28px; padding-top:16px; }
+    details{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px; margin:14px 0; }
+    summary{ cursor:pointer; font-weight:600; }
+
+    /* Bottom nav */
     .bottom-nav{
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+      position:fixed; left:0; right:0; bottom:0; z-index:10;
       background:#151515; border-top:1px solid var(--border);
-      display:grid; grid-template-columns: repeat(3,1fr); gap:6px;
-      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-      box-shadow: 0 -8px 24px rgba(0,0,0,.35);
+      display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
+      padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+      box-shadow:0 -8px 24px rgba(0,0,0,.35);
     }
     .nav-btn{
       display:flex; align-items:center; justify-content:center;
       padding:10px 12px; border-radius:10px; border:1px solid var(--border);
-      background:#1b1b1b; color:#fff; font-weight:600; text-decoration:none;
-      transition: transform .06s ease, background .15s ease;
+      background:#1b1b1b; font-weight:600; text-decoration:none;
+      transition:transform .06s ease, background .15s ease, box-shadow .15s ease;
     }
-    .nav-btn:hover{ background:#222; transform: translateY(-1px); }
-    /* merge into your first :root block */
-    :root{
-      --bg:#111111;--panel:#151515;--text:#ffffff;--muted:#bbbbbb;
-      --brand:#1f6feb;--brandHover:#1a60d0;--warn:#f8d34a;--warnText:#111;
-      --border:#262626;--btn:#ffffff;--btnText:#111;--btnHover:#e9e9e9;
-    
-      /* gradient */
-      --gradStart:#4f46e5;       /* indigo-600 */
-      --gradEnd:#9333ea;         /* purple-600 */
-      --gradStartHover:#6366f1;  /* indigo-500 */
-      --gradEndHover:#a855f7;    /* purple-500 */
-    }
-    
-    /* bottom nav */
-    .bottom-nav{
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-      background:#151515; border-top:1px solid var(--border);
-      display:grid; grid-template-columns: repeat(3,1fr); gap:6px;
-      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-      box-shadow: 0 -8px 24px rgba(0,0,0,.35);
-    }
-    .nav-btn{
-      display:flex; align-items:center; justify-content:center;
-      padding:10px 12px; border-radius:10px; border:1px solid var(--border);
-      background:#1b1b1b; color:#fff; font-weight:600; text-decoration:none;
-      transition: transform .06s ease, background .15s ease, box-shadow .15s ease;
-    }
-    .nav-btn:hover{ background:#222; transform: translateY(-1px); }
-    .nav-btn svg{ color:#fff; } /* keep icons white */
-    
-    /* active/primary */
+    .nav-btn:hover{ background:#222; transform:translateY(-1px); }
+
+    /* Active/primary nav button uses gradient */
     .nav-primary{
-      background: linear-gradient(135deg, var(--gradStart), var(--gradEnd));
-      color:#ffffff !important; border-color:transparent;
+      background:linear-gradient(135deg, var(--gradStart), var(--gradEnd));
+      border-color:transparent;
     }
     .nav-primary:hover,
     .nav-primary:active{
-      background: linear-gradient(135deg, var(--gradStartHover), var(--gradEndHover));
-      color:#ffffff !important;
+      background:linear-gradient(135deg, var(--gradStartHover), var(--gradEndHover));
     }
     .nav-primary:focus-visible{
-      outline: 2px solid #ffffff80; outline-offset: 2px;
+      outline:2px solid #ffffff80; outline-offset:2px;
     }
   </style>
 </head>
@@ -178,14 +181,13 @@
   </main>
 
   <nav class="bottom-nav" aria-label="ILYMMD navigation">
-    <!-- Current page is Instructions → omit Instructions -->
     <a class="nav-btn" href="request.html">Requests</a>
     <a class="nav-btn" href="books.html">Books</a>
     <a class="nav-btn nav-primary" href="https://ilymmd.com/">Home</a>
   </nav>
 
   <script>
-    // keeps any existing copy button logic if you add it later
+    /* Placeholder for future JS */
   </script>
 </body>
 </html>
