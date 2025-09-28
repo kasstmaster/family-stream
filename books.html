@@ -5,10 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Audiobookshelf – books.ilymmd.com</title>
   <style>
-    :root { --bg:#111; --panel:#151515; --text:#fff; --border:#262626; --btn:#1f6feb; --btnHover:#1a60d0; }
-    html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); }
-    iframe { width: 100%; height: calc(100vh - 64px - env(safe-area-inset-bottom)); border: 0; display:block; }
-    /* bottom nav */
+    :root{
+      --bg:#111111;--panel:#151515;--text:#ffffff;--muted:#bbbbbb;
+      --brand:#1f6feb;--brandHover:#1a60d0;--border:#262626;
+    }
+    html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
+      font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+    /* Make room for fixed bottom nav */
+    iframe { width: 100%; height: calc(100vh - 64px - env(safe-area-inset-bottom)); border: 0; display: block; }
+
+    /* bottom nav — identical to instructions */
     .bottom-nav{
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
       background:#151515; border-top:1px solid var(--border);
@@ -38,9 +44,9 @@
 
   <nav class="bottom-nav" aria-label="ILYMMD navigation">
     <!-- Current page is Books → omit Books button -->
-    <a class="nav-btn nav-primary" href="request.html">Requests</a>
+    <a class="nav-btn" href="request.html">Requests</a>
     <a class="nav-btn" href="instructions.html">Instructions</a>
-    <a class="nav-btn" href="https://ilymmd.com/">Home</a>
+    <a class="nav-btn nav-primary" href="https://ilymmd.com/">Home</a>
   </nav>
 </body>
 </html>
