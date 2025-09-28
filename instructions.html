@@ -64,11 +64,14 @@
     
     .nav-primary {
       background: linear-gradient(135deg, var(--gradStart), var(--gradEnd));
-      color:#ffffff;
+      color:#ffffff !important;
       border-color:transparent;
     }
-    .nav-primary:hover {
+    .nav-primary:hover,
+    .nav-primary:active,
+    .nav-primary:focus {
       background: linear-gradient(135deg, var(--gradStartHover), var(--gradEndHover));
+      color:#ffffff !important;
     }
   </style>
 </head>
