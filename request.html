@@ -8,22 +8,23 @@
     :root { --bg:#111; --panel:#151515; --text:#fff; --border:#262626; --btn:#1f6feb; --btnHover:#1a60d0; }
     html,body{height:100%;margin:0;background:var(--bg);color:var(--text)}
     iframe{width:100%;height:calc(100vh - 64px - env(safe-area-inset-bottom));border:0;display:block}
+    /* bottom nav */
     .bottom-nav{
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-      background: var(--panel); border-top:1px solid var(--border);
-      display: grid; grid-template-columns: repeat(3,1fr); gap:6px;
+      background:#151515; border-top:1px solid var(--border);
+      display:grid; grid-template-columns: repeat(3,1fr); gap:6px;
       padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
       box-shadow: 0 -8px 24px rgba(0,0,0,.35);
     }
     .nav-btn{
       display:flex; align-items:center; justify-content:center;
-      padding: 10px 12px; border-radius:10px; border:1px solid var(--border);
-      background:#1b1b1b; color:var(--text); font-weight:600; text-decoration:none;
+      padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+      background:#1b1b1b; color:#fff; font-weight:600; text-decoration:none;
       transition: transform .06s ease, background .15s ease;
     }
     .nav-btn:hover{ background:#222; transform: translateY(-1px); }
-    .nav-primary{ background:var(--btn); border-color:transparent; }
-    .nav-primary:hover{ background:var(--btnHover); }
+    .nav-primary{ background:#1f6feb; border-color:transparent; }
+    .nav-primary:hover{ background:#1a60d0; }
   </style>
 </head>
 <body>
