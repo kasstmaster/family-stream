@@ -55,8 +55,21 @@
       transition: transform .06s ease, background .15s ease;
     }
     .nav-btn:hover{ background:#222; transform: translateY(-1px); }
-    .nav-primary{ background:#1f6feb; border-color:transparent; }
-    .nav-primary:hover{ background:#1a60d0; }
+    :root {
+      --gradStart:#4f46e5;       /* indigo-600 */
+      --gradEnd:#9333ea;         /* purple-600 */
+      --gradStartHover:#6366f1;  /* indigo-500 */
+      --gradEndHover:#a855f7;    /* purple-500 */
+    }
+    
+    .nav-primary {
+      background: linear-gradient(135deg, var(--gradStart), var(--gradEnd));
+      color:#ffffff;
+      border-color:transparent;
+    }
+    .nav-primary:hover {
+      background: linear-gradient(135deg, var(--gradStartHover), var(--gradEndHover));
+    }
   </style>
 </head>
 <body>
