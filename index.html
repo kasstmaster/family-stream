@@ -97,8 +97,21 @@
   }
   .btn:hover { background: var(--btnHover); transform: translateY(-1px); }
   .btn:active { transform: translateY(0); }
-  .btn.secondary { background: var(--btn2); color: var(--btn2Text); border-color: transparent; }
-  .btn.secondary:hover { background: var(--btn2Hover); }
+  :root {
+    --gradStart:#4f46e5;       /* indigo-600 */
+    --gradEnd:#9333ea;         /* purple-600 */
+    --gradStartHover:#6366f1;  /* indigo-500 */
+    --gradEndHover:#a855f7;    /* purple-500 */
+  }
+  
+  .btn.secondary {
+    background: linear-gradient(135deg, var(--gradStart), var(--gradEnd));
+    color: #ffffff;
+    border-color: transparent;
+  }
+  .btn.secondary:hover {
+    background: linear-gradient(135deg, var(--gradStartHover), var(--gradEndHover));
+  }
 
   #linksSection .help-note{
     margin-top: 12px;
